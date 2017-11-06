@@ -1,0 +1,5 @@
+Config File:ssd.cfg
+Total physical block/page 512  16777216
+Total logical block/page 384  12582912
+Initialization done! 
+File "../GPU-trace/matrixMul/dram.trace" open FAIL!
