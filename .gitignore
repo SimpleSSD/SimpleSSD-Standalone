@@ -1,7 +1,3 @@
-# CMake Output
-bin/
-lib/
-
 # CMake Temporary Files
 CMakeFiles/
 *.cmake
