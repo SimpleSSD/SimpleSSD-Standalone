@@ -21,3 +21,6 @@ SimpleSSD-Standalone.dir
 
 # Make Specific
 Makefile
+
+# Atom Specific
+.clang_complete
