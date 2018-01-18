@@ -1,0 +1,27 @@
+# CMake Output
+bin/
+lib/
+
+# CMake Temporary Files
+CMakeFiles/
+*.cmake
+CMakeCache.txt
+
+# Visual Studio Specific
+.vs/
+Debug/
+Release/
+Win32/
+MinSizeRel/
+RelWithDebInfo/
+SimpleSSD-Standalone.dir
+*.sdf
+*.db
+*.opendb
+*.filters
+*.vcxproj
+*.vcproj
+*.sln
+
+# Make Specific
+Makefile
