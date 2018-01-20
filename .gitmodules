@@ -1,0 +1,3 @@
+[submodule "simplessd"]
+	path = simplessd
+	url = git@repo.yonsei.ac.kr:simplessd/simplessd.git
