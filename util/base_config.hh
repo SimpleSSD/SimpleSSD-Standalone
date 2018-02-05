@@ -17,6 +17,8 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #ifndef __UTIL_BASE_CONFIG__
 #define __UTIL_BASE_CONFIG__
 

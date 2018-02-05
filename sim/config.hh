@@ -17,6 +17,8 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #ifndef __SIM_CONFIG__
 #define __SIM_CONFIG__
 
