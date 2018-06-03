@@ -19,35 +19,32 @@
 
 #pragma once
 
-#ifndef __UTIL_BASE_CONFIG__
-#define __UTIL_BASE_CONFIG__
+#ifndef __SIM_CONFIG_READER__
+#define __SIM_CONFIG_READER__
 
 #include <cinttypes>
-#include <cstring>
 #include <string>
 
-namespace SimpleSSD {
+#include "simplessd/lib/inih/ini.h"
 
-#define MATCH_SECTION(str) (strcmp(section, str) == 0)
-#define MATCH_NAME(str) (strcmp(name, str) == 0)
-#define MATCH_VALUE(str) (strcmp(value, str) == 0)
+typedef enum {
+  CONFIG_GLOBAL,
+  CONFIG_TRACE,
+  CONFIG_REQ_GEN,
+} CONFIG_SECTION;
 
-class BaseConfig {
- protected:
-  bool convertBool(const char *);
-  uint64_t convertInt(const char *);
+class ConfigReader {
+ private:
+  static int parserHandler(void *, const char *, const char *, const char *);
 
  public:
-  virtual bool setConfig(const char *, const char *) = 0;
-  virtual void update(){};
+  bool init(std::string);
 
-  virtual int64_t readInt(uint32_t) { return 0; };
-  virtual uint64_t readUint(uint32_t) { return 0; };
-  virtual float readFloat(uint32_t) { return 0.f; };
-  virtual std::string readString(uint32_t) { return ""; };
-  virtual bool readBoolean(uint32_t) { return false; };
+  int64_t readInt(CONFIG_SECTION, uint32_t);
+  uint64_t readUint(CONFIG_SECTION, uint32_t);
+  float readFloat(CONFIG_SECTION, uint32_t);
+  std::string readString(CONFIG_SECTION, uint32_t);
+  bool readBoolean(CONFIG_SECTION, uint32_t);
 };
-
-}  // namespace SimpleSSD
 
 #endif
