@@ -19,8 +19,8 @@
 
 #pragma once
 
-#ifndef __SIM_CONFIG_READER__
-#define __SIM_CONFIG_READER__
+#ifndef __SIM_CONFIG_READER_2__
+#define __SIM_CONFIG_READER_2__
 
 #include <cinttypes>
 #include <string>
