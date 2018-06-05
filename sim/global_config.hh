@@ -53,7 +53,7 @@ class Config : public SimpleSSD::BaseConfig {
   std::string logDebugFile;
   INTERFACE interface;
 
-public:
+ public:
   Config();
 
   bool setConfig(const char *, const char *) override;

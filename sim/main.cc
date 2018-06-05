@@ -19,8 +19,8 @@
 
 #include <iostream>
 
-#include "simplessd/util/simplessd.hh"
 #include "sim/engine.hh"
+#include "simplessd/util/simplessd.hh"
 
 int main(int argc, char *argv[]) {
   Engine engine;
