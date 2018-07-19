@@ -70,17 +70,19 @@
 
 #include <cinttypes>
 #include <csignal>
+#include <cstring>
 #include <iostream>
 
-#include <unistd.h>
 #include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
 
 static uint8_t stack[SIGSTKSZ * 2];
 
 static bool setupStack() {
   stack_t st;
 
-  st.ss_so = stack;
+  st.ss_sp = stack;
   st.ss_size = sizeof(stack);
   st.ss_flags = 0;
 
@@ -102,7 +104,7 @@ static void installHandler(int sig, void (*handler)(int),
   sa.sa_handler = handler;
   sa.sa_flags = flags;
 
-  sigaction(signal, &sa, nullptr);
+  sigaction(sig, &sa, nullptr);
 }
 
 void print_backtrace() {
@@ -116,7 +118,7 @@ void print_backtrace() {
   backtrace_symbols_fd(buffer, size, STDERR_FILENO);
 
   if (size == sizeof(buffer))
-      std::cerr << "Warning: Backtrace may have been truncated." << std::endl;
+    std::cerr << "Warning: Backtrace may have been truncated." << std::endl;
 
   std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
 }
