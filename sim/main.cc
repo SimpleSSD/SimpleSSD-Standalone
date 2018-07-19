@@ -20,7 +20,12 @@
 #include <iostream>
 
 #include "sim/engine.hh"
+#include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
+
+void cleanup(int) {
+  // Cleanup all here
+}
 
 int main(int argc, char *argv[]) {
   Engine engine;
@@ -37,6 +42,9 @@ int main(int argc, char *argv[]) {
 
     return 1;
   }
+
+  // Install signal handler
+  installSignalHandler(cleanup);
 
   // Initialize SimpleSSD
   auto ssdConfig = initSimpleSSDEngine(&engine, std::cout, std::cerr, argv[2]);
@@ -58,6 +66,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << "End of simulation @ tick " << engine.getCurrentTick()
             << std::endl;
+
+  cleanup(0);
 
   return 0;
 }
