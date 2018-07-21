@@ -23,8 +23,8 @@
 #define __BIL_ENTRY__
 
 #include <cinttypes>
-#include <list>
 #include <functional>
+#include <list>
 
 #include "sim/cfg_reader.hh"
 #include "sim/engine.hh"

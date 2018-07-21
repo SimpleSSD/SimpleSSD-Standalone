@@ -19,8 +19,8 @@
 
 #include "bil/entry.hh"
 
-#include "bil/scheduler.hh"
 #include "bil/interface.hh"
+#include "bil/scheduler.hh"
 
 namespace BIL {
 
