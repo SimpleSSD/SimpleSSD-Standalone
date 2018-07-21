@@ -27,7 +27,7 @@
 
 #include "simplessd/sim/simulator.hh"
 
-class Engine : SimpleSSD::Simulator {
+class Engine : public SimpleSSD::Simulator {
  private:
   uint64_t simTick;
   SimpleSSD::Event counter;
