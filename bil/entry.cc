@@ -24,19 +24,18 @@
 
 namespace BIL {
 
-BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e)
+BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
     : conf(c),
       engine(e),
       pScheduler(nullptr),
-      pDriver(nullptr),
+      pDriver(i),
       callback([this](uint64_t id) { completion(id); }) {
-  // TODO: Create scheduler and driver based on configuration
+  // TODO: Create scheduler based on configuration
   // TODO: Call init of scheduler
 }
 
 BlockIOEntry::~BlockIOEntry() {
   delete pScheduler;
-  delete pDriver;
 }
 
 void BlockIOEntry::submitIO(BIO &bio) {

@@ -26,6 +26,7 @@
 #include <list>
 #include <functional>
 
+#include "sim/cfg_reader.hh"
 #include "sim/engine.hh"
 
 namespace BIL {
@@ -79,7 +80,7 @@ class BlockIOEntry {
   void completion(uint64_t);
 
  public:
-  BlockIOEntry(ConfigReader &, Engine &);
+  BlockIOEntry(ConfigReader &, Engine &, DriverInterface *);
   ~BlockIOEntry();
 
   void submitIO(BIO &);

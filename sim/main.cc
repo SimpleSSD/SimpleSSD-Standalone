@@ -57,8 +57,12 @@ int main(int argc, char *argv[]) {
     return 2;
   }
 
+  // Create Driver
+  BIL::DriverInterface *pInterface = nullptr;
+  // TODO:: allocate this
+
   // Create Block I/O Layer
-  BIL::BlockIOEntry bioEntry(simConfig, engine);
+  BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
 
   // Create I/O generator
   // TODO: fill here
