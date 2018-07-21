@@ -46,8 +46,8 @@ typedef struct _BIO {
 
   // I/O definition
   BIO_TYPE type;
-  uint64_t slba;
-  uint64_t nlb;
+  uint64_t offset;
+  uint64_t length;
 
   // I/O completion
   std::function<void(uint64_t)> callback;
@@ -60,8 +60,8 @@ typedef struct _BIO {
   _BIO()
       : id(-1),
         type(BIO_READ),
-        slba(0),
-        nlb(0),
+        offset(0),
+        length(0),
         submittedAt(0),
         dispatchedAt(0),
         completedAt(0) {}
