@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "bil/entry.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
@@ -56,7 +57,10 @@ int main(int argc, char *argv[]) {
     return 2;
   }
 
-  // Create interface
+  // Create Block I/O Layer
+  BIL::BlockIOEntry bioEntry(simConfig, engine);
+
+  // Create I/O generator
   // TODO: fill here
 
   // Do Simulation
