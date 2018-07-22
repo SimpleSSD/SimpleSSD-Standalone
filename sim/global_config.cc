@@ -26,11 +26,13 @@ const char NAME_LOG_PERIOD[] = "LogPeriod";
 const char NAME_LOG_FILE[] = "LogFile";
 const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
 const char NAME_INTERFACE[] = "Interface";
+const char NAME_SCHEDULER[] = "Scheduler";
 
 Config::Config() {
   mode = MODE_REQUEST_GENERATOR;
   logPeriod = 0;
   interface = INTERFACE_NVME;
+  scheduler = SCHEDULER_NOOP;
 }
 
 bool Config::setConfig(const char *name, const char *value) {
@@ -50,6 +52,9 @@ bool Config::setConfig(const char *name, const char *value) {
   }
   else if (MATCH_NAME(NAME_INTERFACE)) {
     interface = (INTERFACE)strtoul(value, nullptr, 10);
+  }
+  else if (MATCH_NAME(NAME_SCHEDULER)) {
+    scheduler = (SCHEDULER)strtoul(value, nullptr, 10);
   }
   else {
     ret = false;
@@ -79,6 +84,9 @@ uint64_t Config::readUint(uint32_t idx) {
       break;
     case GLOBAL_INTERFACE:
       ret = interface;
+      break;
+    case GLOBAL_SCHEDULER:
+      ret = scheduler;
       break;
   }
 

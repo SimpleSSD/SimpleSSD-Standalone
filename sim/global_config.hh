@@ -30,6 +30,7 @@ typedef enum {
   GLOBAL_LOG_FILE,
   GLOBAL_DEBUG_LOG_FILE,
   GLOBAL_INTERFACE,
+  GLOBAL_SCHEDULER,
 } GLOBAL_CONFIG;
 
 typedef enum {
@@ -45,6 +46,11 @@ typedef enum {
   INTERFACE_NUM,
 } INTERFACE;
 
+typedef enum {
+  SCHEDULER_NOOP,
+  SCHEDULER_NUM,
+} SCHEDULER;
+
 class Config : public SimpleSSD::BaseConfig {
  private:
   SIM_MODE mode;
@@ -52,6 +58,7 @@ class Config : public SimpleSSD::BaseConfig {
   std::string logFile;
   std::string logDebugFile;
   INTERFACE interface;
+  SCHEDULER scheduler;
 
  public:
   Config();
