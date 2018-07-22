@@ -40,10 +40,10 @@ void NoneDriver::submitIO(BIL::BIO &bio) {
 
   // Convert to request
   req.reqID = bio.id;
-  req.offset = bio.offset;
-  req.length = bio.length;
   req.range.slpn = bio.offset / logicalPageSize;
   req.range.nlp = bio.length / logicalPageSize;
+  req.offset = bio.offset % logicalPageSize;
+  req.length = bio.length;
   req.context = (void *)bio.id;
   req.function = [pFunc](uint64_t, void *context) {
     pFunc->operator()((uint64_t)context);
