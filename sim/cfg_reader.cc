@@ -17,7 +17,7 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sim/config_reader.hh"
+#include "sim/cfg_reader.hh"
 
 #include "simplessd/sim/base_config.hh"
 #include "simplessd/sim/trace.hh"
@@ -38,6 +38,7 @@ bool ConfigReader::init(std::string file) {
   }
 
   // Update all
+  globalConfig.update();
 
   return true;
 }
@@ -45,7 +46,7 @@ bool ConfigReader::init(std::string file) {
 int64_t ConfigReader::readInt(CONFIG_SECTION section, uint32_t idx) {
   switch (section) {
     case CONFIG_GLOBAL:
-      return 0;
+      return globalConfig.readInt(idx);
     case CONFIG_TRACE:
       return 0;
     case CONFIG_REQ_GEN:
@@ -58,7 +59,7 @@ int64_t ConfigReader::readInt(CONFIG_SECTION section, uint32_t idx) {
 uint64_t ConfigReader::readUint(CONFIG_SECTION section, uint32_t idx) {
   switch (section) {
     case CONFIG_GLOBAL:
-      return 0;
+      return globalConfig.readUint(idx);
     case CONFIG_TRACE:
       return 0;
     case CONFIG_REQ_GEN:
@@ -71,7 +72,7 @@ uint64_t ConfigReader::readUint(CONFIG_SECTION section, uint32_t idx) {
 float ConfigReader::readFloat(CONFIG_SECTION section, uint32_t idx) {
   switch (section) {
     case CONFIG_GLOBAL:
-      return 0.f;
+      return globalConfig.readFloat(idx);
     case CONFIG_TRACE:
       return 0.f;
     case CONFIG_REQ_GEN:
@@ -84,7 +85,7 @@ float ConfigReader::readFloat(CONFIG_SECTION section, uint32_t idx) {
 std::string ConfigReader::readString(CONFIG_SECTION section, uint32_t idx) {
   switch (section) {
     case CONFIG_GLOBAL:
-      return std::string();
+      return globalConfig.readString(idx);
     case CONFIG_TRACE:
       return std::string();
     case CONFIG_REQ_GEN:
@@ -97,7 +98,7 @@ std::string ConfigReader::readString(CONFIG_SECTION section, uint32_t idx) {
 bool ConfigReader::readBoolean(CONFIG_SECTION section, uint32_t idx) {
   switch (section) {
     case CONFIG_GLOBAL:
-      return false;
+      return globalConfig.readBoolean(idx);
     case CONFIG_TRACE:
       return false;
     case CONFIG_REQ_GEN:
@@ -113,7 +114,7 @@ int ConfigReader::parserHandler(void *context, const char *section,
   bool handled = false;
 
   if (MATCH_SECTION(SECTION_GLOBAL)) {
-    // handled = pThis->cpuConfig.setConfig(name, value);
+    handled = pThis->globalConfig.setConfig(name, value);
   }
   else if (MATCH_SECTION(SECTION_TRACE)) {
     // handled = pThis->dramConfig.setConfig(name, value);

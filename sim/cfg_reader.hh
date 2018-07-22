@@ -26,6 +26,7 @@
 #include <string>
 
 #include "simplessd/lib/inih/ini.h"
+#include "sim/global_config.hh"
 
 typedef enum {
   CONFIG_GLOBAL,
@@ -35,6 +36,8 @@ typedef enum {
 
 class ConfigReader {
  private:
+  Config globalConfig;
+
   static int parserHandler(void *, const char *, const char *, const char *);
 
  public:
