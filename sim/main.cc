@@ -18,14 +18,20 @@
  */
 
 #include <iostream>
+#include <fstream>
 
 #include "bil/entry.hh"
+#include "drivers/none/none.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
 
+// Global objects
+BIL::DriverInterface *pInterface = nullptr;
+
 void cleanup(int) {
   // Cleanup all here
+  delete pInterface;
 }
 
 int main(int argc, char *argv[]) {
@@ -47,9 +53,6 @@ int main(int argc, char *argv[]) {
   // Install signal handler
   installSignalHandler(cleanup);
 
-  // Initialize SimpleSSD
-  auto ssdConfig = initSimpleSSDEngine(&engine, std::cout, std::cerr, argv[2]);
-
   // Read simulation config file
   if (!simConfig.init(argv[1])) {
     std::cerr << " Failed to open simulation configuration file!" << std::endl;
@@ -57,9 +60,66 @@ int main(int argc, char *argv[]) {
     return 2;
   }
 
+  // Log setting
+  std::ostream *pLog;
+  std::ostream *pDebugLog;
+  std::ofstream logOut;
+  std::ofstream debugLogOut;
+  std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
+  std::string debugLogPath =
+      simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
+
+  if (logPath.compare("STDOUT") == 0) {
+    pLog = &std::cout;
+  }
+  else if (logPath.compare("STDERR") == 0) {
+    pLog = &std::cerr;
+  }
+  else {
+    logOut.open(logPath);
+
+    if (~logOut.is_open()) {
+      std::cerr << " Failed to open log file: " << logPath << std::endl;
+
+      return 3;
+    }
+
+    pLog = &logOut;
+  }
+
+  if (debugLogPath.compare("STDOUT") == 0) {
+    pDebugLog = &std::cout;
+  }
+  else if (debugLogPath.compare("STDERR") == 0) {
+    pDebugLog = &std::cerr;
+  }
+  else {
+    debugLogOut.open(debugLogPath);
+
+    if (~debugLogOut.is_open()) {
+      std::cerr << " Failed to open log file: " << debugLogPath << std::endl;
+
+      return 3;
+    }
+
+    pDebugLog = &debugLogOut;
+  }
+
+  // Initialize SimpleSSD
+  auto ssdConfig =
+      initSimpleSSDEngine(&engine, *pDebugLog, *pDebugLog, argv[2]);
+
   // Create Driver
-  BIL::DriverInterface *pInterface = nullptr;
-  // TODO:: allocate this
+  switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
+    case INTERFACE_NONE:
+      pInterface = new SIL::NoneDriver(engine, ssdConfig);
+
+      break;
+    default:
+      std::cerr << " Undefined interface specified." << std::endl;
+
+      return 4;
+  }
 
   // Create Block I/O Layer
   BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
@@ -68,9 +128,7 @@ int main(int argc, char *argv[]) {
   // TODO: fill here
 
   // Do Simulation
-  while (engine.doNextEvent()) {
-    // Do nothing
-  }
+  while (engine.doNextEvent());
 
   std::cout << "End of simulation @ tick " << engine.getCurrentTick()
             << std::endl;

@@ -40,6 +40,7 @@ typedef enum {
 } SIM_MODE;
 
 typedef enum {
+  INTERFACE_NONE,
   INTERFACE_NVME,
   INTERFACE_SATA,
   INTERFACE_UFS,
