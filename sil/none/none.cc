@@ -34,6 +34,11 @@ void NoneDriver::init() {
   pHIL->getLPNInfo(totalLogicalPages, logicalPageSize);
 }
 
+void NoneDriver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+  bytesize = totalLogicalPages * logicalPageSize;
+  minbs = 512;
+}
+
 void NoneDriver::submitIO(BIL::BIO &bio) {
   SimpleSSD::HIL::Request req;
   auto *pFunc = new std::function<void(uint64_t)>(bio.callback);

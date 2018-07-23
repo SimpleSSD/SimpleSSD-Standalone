@@ -39,6 +39,7 @@ class NoneDriver : public BIL::DriverInterface {
   ~NoneDriver();
 
   void init() override;
+  void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
 };
 

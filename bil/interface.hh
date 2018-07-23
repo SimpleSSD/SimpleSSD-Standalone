@@ -35,6 +35,7 @@ class DriverInterface {
   virtual ~DriverInterface() {}
 
   virtual void init() = 0;
+  virtual void getInfo(uint64_t &, uint32_t &) = 0;
   virtual void submitIO(BIO &) = 0;
 };
 
