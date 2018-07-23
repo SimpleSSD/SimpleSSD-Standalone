@@ -21,7 +21,7 @@
 #include <fstream>
 
 #include "bil/entry.hh"
-#include "drivers/none/none.hh"
+#include "sil/none/none.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"

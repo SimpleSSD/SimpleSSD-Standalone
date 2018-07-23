@@ -17,7 +17,7 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "drivers/none/none.hh"
+#include "sil/none/none.hh"
 
 namespace SIL {
 
