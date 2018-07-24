@@ -50,11 +50,13 @@ typedef enum {
   IO_RANDWRITE,
   IO_READWRITE,
   IO_RANDRW,
+  IO_TYPE_NUM,
 } IO_TYPE;
 
 typedef enum {
   IO_SYNC,
   IO_ASYNC,
+  IO_MODE_NUM,
 } IO_MODE;
 
 class RequestConfig : public SimpleSSD::BaseConfig {

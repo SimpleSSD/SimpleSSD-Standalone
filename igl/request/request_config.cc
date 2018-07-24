@@ -63,7 +63,27 @@ bool RequestConfig::setConfig(const char *name, const char *value) {
     io_size = convertInteger(value);
   }
   else if (MATCH_NAME(NAME_IO_TYPE)) {
-    type = (IO_TYPE)strtoul(value, nullptr, 10);
+    if (strcasecmp(value, "read") == 0) {
+      type = IO_READ;
+    }
+    else if (strcasecmp(value, "write") == 0) {
+      type = IO_WRITE;
+    }
+    else if (strcasecmp(value, "randread") == 0) {
+      type = IO_RANDREAD;
+    }
+    else if (strcasecmp(value, "randwrite") == 0) {
+      type = IO_RANDWRITE;
+    }
+    else if (strcasecmp(value, "readwrite") == 0) {
+      type = IO_READWRITE;
+    }
+    else if (strcasecmp(value, "randrw") == 0) {
+      type = IO_RANDRW;
+    }
+    else {
+      type = IO_TYPE_NUM;
+    }
   }
   else if (MATCH_NAME(NAME_IO_MIX_RATIO)) {
     rwmixread = strtof(value, nullptr);
@@ -75,7 +95,15 @@ bool RequestConfig::setConfig(const char *name, const char *value) {
     blockalign = convertInteger(value);
   }
   else if (MATCH_NAME(NAME_IO_MODE)) {
-    mode = (IO_MODE)strtoul(value, nullptr, 10);
+    if (strcasecmp(value, "sync") == 0) {
+      mode = IO_SYNC;
+    }
+    else if (strcasecmp(value, "async") == 0) {
+      mode = IO_ASYNC;
+    }
+    else {
+      mode = IO_MODE_NUM;
+    }
   }
   else if (MATCH_NAME(NAME_IO_DEPTH)) {
     iodepth = convertInteger(value);
@@ -109,7 +137,15 @@ bool RequestConfig::setConfig(const char *name, const char *value) {
 }
 
 void RequestConfig::update() {
-
+  if (type == IO_TYPE_NUM) {
+    SimpleSSD::panic("Invalid value of readwrite");
+  }
+  if (mode == IO_MODE_NUM) {
+    SimpleSSD::panic("Invalid value of iomode");
+  }
+  if (rwmixread < 0 || rwmixread > 1) {
+    SimpleSSD::panic("Invalid value of rwmixread");
+  }
 }
 
 uint64_t RequestConfig::readUint(uint32_t idx) {
@@ -181,4 +217,4 @@ bool RequestConfig::readBoolean(uint32_t idx) {
   return ret;
 }
 
-}
+}  // namespace IGL
