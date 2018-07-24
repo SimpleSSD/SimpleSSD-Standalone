@@ -20,7 +20,8 @@
 #include "bil/entry.hh"
 
 #include "bil/interface.hh"
-#include "bil/scheduler.hh"
+#include "bil/noop_scheduler.hh"
+#include "simplessd/sim/trace.hh"
 
 namespace BIL {
 
@@ -30,8 +31,18 @@ BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
       pScheduler(nullptr),
       pDriver(i),
       callback([this](uint64_t id) { completion(id); }) {
-  // TODO: Create scheduler based on configuration
-  // TODO: Call init of scheduler
+  switch (c.readUint(CONFIG_GLOBAL, GLOBAL_SCHEDULER)) {
+    case SCHEDULER_NOOP:
+      pScheduler = new NoopScheduler(e, i);
+
+      break;
+    default:
+      SimpleSSD::panic("Invalid I/O scheduler specified");
+
+      break;
+  }
+
+  pScheduler->init();
 }
 
 BlockIOEntry::~BlockIOEntry() {

@@ -26,7 +26,7 @@
 
 namespace BIL {
 
-class NoopScheduler : Scheduler {
+class NoopScheduler : public Scheduler {
  public:
   NoopScheduler(Engine &, DriverInterface *);
   ~NoopScheduler();
