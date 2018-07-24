@@ -22,6 +22,8 @@
 #ifndef __BIL_DRIVER_INTERFACE__
 #define __BIL_DRIVER_INTERFACE__
 
+#include <functional>
+
 #include "bil/entry.hh"
 
 namespace BIL {
@@ -34,7 +36,7 @@ class DriverInterface {
   DriverInterface(Engine &e) : engine(e) {}
   virtual ~DriverInterface() {}
 
-  virtual void init() = 0;
+  virtual void init(std::function<void()> &) = 0;
   virtual void getInfo(uint64_t &, uint32_t &) = 0;
   virtual void submitIO(BIO &) = 0;
 };

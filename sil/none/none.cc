@@ -30,8 +30,14 @@ NoneDriver::~NoneDriver() {
   delete pHIL;
 }
 
-void NoneDriver::init() {
+void NoneDriver::init(std::function<void()> &func) {
   pHIL->getLPNInfo(totalLogicalPages, logicalPageSize);
+
+  // No initialization process is needed for NoneDriver
+  beginFunction = func;
+
+  auto eid = engine.allocateEvent([this](uint64_t){ beginFunction(); });
+  engine.scheduleEvent(eid, 0);
 }
 
 void NoneDriver::getInfo(uint64_t &bytesize, uint32_t &minbs) {

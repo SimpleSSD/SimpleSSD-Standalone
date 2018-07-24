@@ -34,11 +34,13 @@ class NoneDriver : public BIL::DriverInterface {
   uint64_t totalLogicalPages;
   uint32_t logicalPageSize;
 
+  std::function<void()> beginFunction;
+
  public:
   NoneDriver(Engine &, SimpleSSD::ConfigReader &);
   ~NoneDriver();
 
-  void init() override;
+  void init(std::function<void()> &) override;
   void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
 };
