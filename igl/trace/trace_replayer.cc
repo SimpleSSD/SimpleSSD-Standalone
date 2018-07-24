@@ -115,8 +115,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   bool valid = true;
 
   if (timeValids[0] && match.size() > groupID[ID_TIME_SEC]) {
-    tick += strtoul(match[groupID[ID_TIME_SEC]].str().c_str(), nullptr,
-                    useHex ? 16 : 10) *
+    tick += strtoul(match[groupID[ID_TIME_SEC]].str().c_str(), nullptr, 10) *
             1000000000000ULL;
   }
   else if (timeValids[0]) {
@@ -124,8 +123,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   }
 
   if (timeValids[1] && match.size() > groupID[ID_TIME_MS]) {
-    tick += strtoul(match[groupID[ID_TIME_MS]].str().c_str(), nullptr,
-                    useHex ? 16 : 10) *
+    tick += strtoul(match[groupID[ID_TIME_MS]].str().c_str(), nullptr, 10) *
             1000000000ULL;
   }
   else if (timeValids[1]) {
@@ -133,8 +131,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   }
 
   if (timeValids[2] && match.size() > groupID[ID_TIME_US]) {
-    tick += strtoul(match[groupID[ID_TIME_US]].str().c_str(), nullptr,
-                    useHex ? 16 : 10) *
+    tick += strtoul(match[groupID[ID_TIME_US]].str().c_str(), nullptr, 10) *
             1000000ULL;
   }
   else if (timeValids[2]) {
@@ -142,8 +139,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   }
 
   if (timeValids[3] && match.size() > groupID[ID_TIME_NS]) {
-    tick += strtoul(match[groupID[ID_TIME_NS]].str().c_str(), nullptr,
-                    useHex ? 16 : 10) *
+    tick += strtoul(match[groupID[ID_TIME_NS]].str().c_str(), nullptr, 10) *
             1000ULL;
   }
   else if (timeValids[3]) {
@@ -151,8 +147,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   }
 
   if (timeValids[4] && match.size() > groupID[ID_TIME_PS]) {
-    tick += strtoul(match[groupID[ID_TIME_PS]].str().c_str(), nullptr,
-                    useHex ? 16 : 10);
+    tick += strtoul(match[groupID[ID_TIME_PS]].str().c_str(), nullptr, 10);
   }
   else if (timeValids[4]) {
     valid = false;
