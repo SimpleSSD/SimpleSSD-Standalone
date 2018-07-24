@@ -160,7 +160,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   return tick;
 }
 
-BIL::BIO_TYPE getType(std::string type) {
+BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
   switch (type[0]) {
     case 'r':
     case 'R':
