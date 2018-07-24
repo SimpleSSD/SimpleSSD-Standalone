@@ -36,7 +36,7 @@ class Engine : public SimpleSSD::Simulator {
 
   bool insertEvent(SimpleSSD::Event, uint64_t, uint64_t * = nullptr);
   bool removeEvent(SimpleSSD::Event);
-  bool isEventExist(SimpleSSD::Event);
+  bool isEventExist(SimpleSSD::Event, uint64_t * = nullptr);
 
  public:
   Engine();
@@ -47,7 +47,7 @@ class Engine : public SimpleSSD::Simulator {
   SimpleSSD::Event allocateEvent(SimpleSSD::EventFunction) override;
   void scheduleEvent(SimpleSSD::Event, uint64_t) override;
   void descheduleEvent(SimpleSSD::Event) override;
-  bool isScheduled(SimpleSSD::Event) override;
+  bool isScheduled(SimpleSSD::Event, uint64_t * = nullptr) override;
   void deallocateEvent(SimpleSSD::Event) override;
 
   bool doNextEvent();

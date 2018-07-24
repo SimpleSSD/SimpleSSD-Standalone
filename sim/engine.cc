@@ -76,9 +76,13 @@ bool Engine::removeEvent(SimpleSSD::Event eid) {
   return found;
 }
 
-bool Engine::isEventExist(SimpleSSD::Event eid) {
+bool Engine::isEventExist(SimpleSSD::Event eid, uint64_t *pTick) {
   for (auto &iter : eventQueue) {
     if (iter.first == eid) {
+      if (pTick) {
+        *pTick = iter.second;
+      }
+
       return true;
     }
   }
@@ -136,12 +140,12 @@ void Engine::descheduleEvent(SimpleSSD::Event eid) {
   }
 }
 
-bool Engine::isScheduled(SimpleSSD::Event eid) {
+bool Engine::isScheduled(SimpleSSD::Event eid, uint64_t *pTick) {
   bool ret = false;
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
-    ret = isEventExist(eid);
+    ret = isEventExist(eid, pTick);
   }
   else {
     SimpleSSD::panic("Event %" PRIu64 " does not exists", eid);
