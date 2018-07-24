@@ -132,8 +132,11 @@ bool RequestGenerator::nextIOIsRead() {
 void RequestGenerator::_submitIO(uint64_t tick) {
   BIL::BIO bio;
 
-  if (io_submitted >= io_size) {
-    // We are done
+  // We are done
+  if (!time_based && io_submitted >= io_size) {
+    return;
+  }
+  else if (time_based && runtime > (tick - initTime)) {
     return;
   }
 
