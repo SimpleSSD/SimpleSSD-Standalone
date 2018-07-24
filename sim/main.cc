@@ -146,9 +146,18 @@ int main(int argc, char *argv[]) {
       return 5;
   }
 
-  // Do Simulation
-  pIOGen->begin();
+  uint64_t bytesize;
+  uint32_t bs;
 
+  std::function<void()> callback = []() {
+    pIOGen->begin();
+  };
+
+  pInterface->init(callback);
+  pInterface->getInfo(bytesize, bs);
+  pIOGen->init(bytesize, bs);
+
+  // Do Simulation
   while (engine.doNextEvent())
     ;
 
