@@ -21,7 +21,6 @@ project(simplessd-standalone)
 
 # Add options for debug build
 option(DEBUG_BUILD "Build SimpleSSD-Standalone in debug mode." OFF)
-option(DEBUG_SIMPLESSD "Build SimpleSSD in debug mode." OFF)
 
 # Set DRAMPower path
 set(DRAMPOWER_SOURCE_DIR
@@ -56,7 +55,7 @@ else ()
   if (DEBUG_BUILD)
     set(CMAKE_CXX_FLAGS "-O0 -g -rdynamic ${CMAKE_CXX_FLAGS}")
   else ()
-    set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-O2 -rdynamic ${CMAKE_CXX_FLAGS}")
   endif ()
 
   set(CMAKE_CXX_STANDARD 11)
