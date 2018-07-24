@@ -21,6 +21,8 @@
 #include <fstream>
 
 #include "bil/entry.hh"
+#include "igl/trace/trace_replayer.hh"
+#include "igl/request/request_generator.hh"
 #include "sil/none/none.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
@@ -28,10 +30,12 @@
 
 // Global objects
 BIL::DriverInterface *pInterface = nullptr;
+IGL::IOGenerator *pIOGen = nullptr;
 
 void cleanup(int) {
   // Cleanup all here
   delete pInterface;
+  delete pIOGen;
 }
 
 int main(int argc, char *argv[]) {
@@ -125,10 +129,28 @@ int main(int argc, char *argv[]) {
   BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
 
   // Create I/O generator
-  // TODO: fill here
+  switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_SIM_MODE)) {
+    case MODE_REQUEST_GENERATOR:
+      pIOGen = new IGL::RequestGenerator(engine, simConfig, bioEntry);
+
+      break;
+    case MODE_TRACE_REPLAYER:
+      pIOGen = new IGL::TraceReplayer(engine, simConfig, bioEntry);
+
+      break;
+    default:
+      std::cerr << " Undefined simulation mode specified." << std::endl;
+
+      cleanup(0);
+
+      return 5;
+  }
 
   // Do Simulation
-  while (engine.doNextEvent());
+  pIOGen->begin();
+
+  while (engine.doNextEvent())
+    ;
 
   std::cout << "End of simulation @ tick " << engine.getCurrentTick()
             << std::endl;
