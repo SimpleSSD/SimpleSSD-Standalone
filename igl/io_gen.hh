@@ -34,8 +34,8 @@ class IOGenerator {
   BIL::BlockIOEntry bioEntry;
 
  public:
-  IOGenerator(Engine &, BIL::BlockIOEntry &);
-  virtual ~IOGenerator();
+  IOGenerator(Engine &e, BIL::BlockIOEntry &b) : engine(e), bioEntry(b) {}
+  virtual ~IOGenerator() {}
 
   virtual void init(uint64_t, uint32_t) = 0;
   virtual void begin() = 0;
