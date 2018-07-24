@@ -22,6 +22,9 @@
 #ifndef __IGL_REQUEST_GENERATOR__
 #define __IGL_REQUEST_GENERATOR__
 
+#include <list>
+#include <random>
+
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
 #include "sim/cfg_reader.hh"
@@ -30,6 +33,56 @@
 namespace IGL {
 
 class RequestGenerator : public IOGenerator {
+ private:
+  uint64_t io_size;
+  uint64_t io_submitted;
+
+  IO_TYPE type;
+
+  IO_MODE mode;
+  uint64_t iodepth;
+
+  uint64_t io_count;
+  uint64_t read_count;
+  float rwmixread;
+
+  uint64_t offset;
+  uint64_t size;
+
+  uint64_t thinktime;
+
+  uint64_t blocksize;
+  uint64_t blockalign;
+
+  uint64_t randseed;
+  std::mt19937_64 randengine;
+  std::uniform_int_distribution<uint64_t> randgen;
+
+  bool time_based;
+  uint64_t runtime;
+  uint64_t ramp_time;
+
+  uint64_t ssdSize;
+  uint64_t ssdBlocksize;
+
+  uint64_t asyncBreak;
+  uint64_t syncBreak;
+
+  std::list<BIL::BIO> bioList;
+
+  uint64_t initTime;
+
+  void generateAddress(uint64_t &, uint64_t &);
+  bool nextIOIsRead();
+  void rescheduleSubmit(uint64_t);
+
+  SimpleSSD::Event submitEvent;
+  SimpleSSD::EventFunction submitIO;
+  SimpleSSD::EventFunction iocallback;
+
+  void _submitIO(uint64_t);
+  void _iocallback(uint64_t);
+
  public:
   RequestGenerator(Engine &, ConfigReader &, BIL::BlockIOEntry &);
   ~RequestGenerator();

@@ -1,0 +1,200 @@
+/*
+ * Copyright (C) 2017 CAMELab
+ *
+ * This file is part of SimpleSSD.
+ *
+ * SimpleSSD is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * SimpleSSD is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "igl/request/request_generator.hh"
+
+#include "simplessd/sim/trace.hh"
+#include "simplessd/util/algorithm.hh"
+
+namespace IGL {
+
+RequestGenerator::RequestGenerator(Engine &e, ConfigReader &c,
+                                   BIL::BlockIOEntry &b)
+    : IOGenerator(e, b), io_submitted(0), io_count(0), read_count(0) {
+  // Read config
+  io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
+  type = (IO_TYPE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_TYPE);
+  mode = (IO_MODE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_MODE);
+  iodepth = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_DEPTH);
+  rwmixread = c.readFloat(CONFIG_REQ_GEN, REQUEST_IO_MIX_RATIO);
+  offset = c.readUint(CONFIG_REQ_GEN, REQUEST_OFFSET);
+  size = c.readUint(CONFIG_REQ_GEN, REQUEST_SIZE);
+  thinktime = c.readUint(CONFIG_REQ_GEN, REQUEST_THINKTIME);
+  blocksize = c.readUint(CONFIG_REQ_GEN, REQUEST_BLOCK_SIZE);
+  blockalign = c.readUint(CONFIG_REQ_GEN, REQUEST_BLOCK_ALIGN);
+  randseed = c.readUint(CONFIG_REQ_GEN, REQUEST_RANDOM_SEED);
+  time_based = c.readBoolean(CONFIG_REQ_GEN, REQUEST_TIME_BASED);
+  runtime = c.readUint(CONFIG_REQ_GEN, REQUEST_RUN_TIME);
+  ramp_time = c.readUint(CONFIG_REQ_GEN, REQUEST_RAMP_TIME);
+
+  if (blockalign == 0) {
+    blockalign = blocksize;
+  }
+
+  if (mode == IO_SYNC) {
+    iodepth = 1;
+    mode = IO_ASYNC;
+  }
+
+  // TODO: make configurable
+  asyncBreak = 500000;  // 500ns
+  syncBreak = 1000000;  // 1us
+
+  // Set random engine
+  randengine.seed(randseed);
+
+  submitIO = [this](uint64_t tick) { _submitIO(tick); };
+  iocallback = [this](uint64_t id) { _iocallback(id); };
+
+  submitEvent = engine.allocateEvent(submitIO);
+}
+
+RequestGenerator::~RequestGenerator() {}
+
+void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
+  ssdSize = bytesize;
+  ssdBlocksize = bs;
+
+  if (offset > ssdSize) {
+    SimpleSSD::panic("offset is larger than SSD size");
+  }
+  if (size == 0 || offset + size > ssdSize) {
+    size = ssdSize - offset;
+  }
+  if (size == 0) {
+    SimpleSSD::panic("Invalid offset and size provided");
+  }
+
+  randgen = std::uniform_int_distribution<uint64_t>(offset, offset + size);
+}
+
+void RequestGenerator::begin() {
+  initTime = engine.getCurrentTick();
+
+  _submitIO(initTime);
+}
+
+void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
+  // This function generates address to access
+  // based on I/O type, blocksize/align and offset/size
+  if (type == IO_RANDREAD || type == IO_RANDWRITE || type == IO_RANDRW) {
+    off = randgen(randengine);
+    off -= off % blockalign;
+    len = blocksize;
+  }
+  else {
+    off = io_submitted * blockalign;
+    len = blocksize;
+  }
+
+  while (off + len > ssdSize) {
+    if (off >= ssdSize) {
+      off -= ssdSize;
+    }
+    else {
+      off -= len;
+    }
+  }
+}
+
+bool RequestGenerator::nextIOIsRead() {
+  // This function determine next I/O is read or write
+  // based on rwmixread
+  // io_count should not zero
+  if (type == IO_READWRITE || type == IO_RANDRW) {
+    if (rwmixread > (float)read_count / io_count) {
+      return true;
+    }
+  }
+  else if (type == IO_READ || type == IO_RANDREAD) {
+    return true;
+  }
+
+  return false;
+}
+
+void RequestGenerator::_submitIO(uint64_t tick) {
+  BIL::BIO bio;
+
+  if (io_submitted >= io_size) {
+    // We are done
+    return;
+  }
+
+  bio.id = io_count++;
+
+  if (nextIOIsRead()) {
+    bio.type = BIL::BIO_READ;
+    read_count++;
+  }
+  else {
+    bio.type = BIL::BIO_WRITE;
+  }
+
+  generateAddress(bio.offset, bio.length);
+
+  io_submitted += bio.length;
+
+  bio.callback = iocallback;
+
+  // push to queue
+  bioList.push_back(bio);
+
+  // Check on-the-fly I/O depth
+  rescheduleSubmit(tick);
+
+  // Submit to Block I/O entry
+  bioEntry.submitIO(bio);
+}
+
+void RequestGenerator::_iocallback(uint64_t id) {
+  // Find ID from list
+  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
+    if (iter->id == id) {
+      // This request is finished
+      bioList.erase(iter);
+
+      break;
+    }
+  }
+
+  // Check on-the-fly I/O depth
+  rescheduleSubmit(engine.getCurrentTick());
+}
+
+void RequestGenerator::rescheduleSubmit(uint64_t tick) {
+  if (bioList.size() < iodepth) {
+    uint64_t scheduledTick;
+    bool doSchedule = true;
+
+    // Check conflict
+    if (engine.isScheduled(submitEvent, &scheduledTick)) {
+      if (scheduledTick > tick + asyncBreak) {
+        doSchedule = false;
+      }
+    }
+
+    // We can schedule it
+    if (doSchedule) {
+      engine.scheduleEvent(submitEvent, tick + asyncBreak);
+    }
+  }
+}
+
+}  // namespace IGL
