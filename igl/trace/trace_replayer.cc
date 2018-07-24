@@ -86,7 +86,7 @@ TraceReplayer::TraceReplayer(Engine &e, ConfigReader &c, BIL::BlockIOEntry &b)
   }
 
   submitIO = [this](uint64_t tick) { _submitIO(tick); };
-  iocallback = [this](uint64_t tick) { _iocallback(tick); };
+  iocallback = [this](uint64_t id) { _iocallback(id); };
 
   submitEvent = engine.allocateEvent(submitIO);
 }
