@@ -36,7 +36,7 @@ void NoneDriver::init(std::function<void()> &func) {
   // No initialization process is needed for NoneDriver
   beginFunction = func;
 
-  auto eid = engine.allocateEvent([this](uint64_t){ beginFunction(); });
+  auto eid = engine.allocateEvent([this](uint64_t) { beginFunction(); });
   engine.scheduleEvent(eid, 0);
 }
 
@@ -75,7 +75,17 @@ void NoneDriver::submitIO(BIL::BIO &bio) {
     case BIL::BIO_TRIM:
       pHIL->trim(req);
       break;
+    default:
+      break;
   }
+}
+
+void NoneDriver::initStats(std::vector<SimpleSSD::Stats> &list) {
+  pHIL->getStatList(list, "");
+}
+
+void NoneDriver::getStats(std::vector<double> &values) {
+  pHIL->getStatValues(values);
 }
 
 }  // namespace SIL

@@ -29,8 +29,14 @@
 #include "simplessd/util/simplessd.hh"
 
 // Global objects
+Engine engine;
+ConfigReader simConfig;
 BIL::DriverInterface *pInterface = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
+std::ostream *pLog = nullptr;
+std::ostream *pDebugLog = nullptr;
+SimpleSSD::Event statEvent;
+std::vector<SimpleSSD::Stats> statList;
 
 void cleanup(int) {
   // Cleanup all here
@@ -38,10 +44,36 @@ void cleanup(int) {
   delete pIOGen;
 }
 
-int main(int argc, char *argv[]) {
-  Engine engine;
-  ConfigReader simConfig;
+void statistics(uint64_t tick) {
+  std::ostream &out = *pLog;
+  std::vector<double> stat;
+  uint64_t count = 0;
 
+  pInterface->getStats(stat);
+
+  count = statList.size();
+
+  if (count != stat.size()) {
+    out << "Stat list length mismatch" << std::endl;
+
+    std::terminate();
+  }
+
+  out << "Periodic log printout @ tick " << tick << std::endl;
+
+  for (uint64_t i = 0; i < count; i++) {
+    out << statList[i].name << "\t" << stat[i] << "\t" << statList[i].desc
+        << std::endl;
+  }
+
+  out << "End of log @ tick " << tick << std::endl;
+
+  engine.scheduleEvent(
+      statEvent, tick + simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) *
+                            1000000000ULL);
+}
+
+int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
@@ -65,8 +97,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Log setting
-  std::ostream *pLog;
-  std::ostream *pDebugLog;
   std::ofstream logOut;
   std::ofstream debugLogOut;
   std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
@@ -149,13 +179,21 @@ int main(int argc, char *argv[]) {
   uint64_t bytesize;
   uint32_t bs;
 
-  std::function<void()> callback = []() {
-    pIOGen->begin();
-  };
+  std::function<void()> callback = []() { pIOGen->begin(); };
 
   pInterface->init(callback);
   pInterface->getInfo(bytesize, bs);
   pIOGen->init(bytesize, bs);
+
+  // Insert stat event
+  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
+    pInterface->initStats(statList);
+
+    statEvent = engine.allocateEvent([](uint64_t tick) { statistics(tick); });
+    engine.scheduleEvent(
+        statEvent,
+        simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) * 1000000000ULL);
+  }
 
   // Do Simulation
   while (engine.doNextEvent())

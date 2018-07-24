@@ -43,6 +43,9 @@ class NoneDriver : public BIL::DriverInterface {
   void init(std::function<void()> &) override;
   void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
+
+  void initStats(std::vector<SimpleSSD::Stats> &) override;
+  void getStats(std::vector<double> &) override;
 };
 
 }  // namespace SIL

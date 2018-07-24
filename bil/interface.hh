@@ -25,6 +25,7 @@
 #include <functional>
 
 #include "bil/entry.hh"
+#include "simplessd/sim/statistics.hh"
 
 namespace BIL {
 
@@ -39,6 +40,9 @@ class DriverInterface {
   virtual void init(std::function<void()> &) = 0;
   virtual void getInfo(uint64_t &, uint32_t &) = 0;
   virtual void submitIO(BIO &) = 0;
+
+  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
+  virtual void getStats(std::vector<double> &) = 0;
 };
 
 }  // namespace BIL
