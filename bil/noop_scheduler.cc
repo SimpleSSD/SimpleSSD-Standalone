@@ -25,9 +25,7 @@ NoopScheduler::NoopScheduler(Engine &e, DriverInterface *i) : Scheduler(e, i) {}
 
 NoopScheduler::~NoopScheduler() {}
 
-void NoopScheduler::init() {
-  pInterface->init();
-}
+void NoopScheduler::init() {}
 
 void NoopScheduler::submitIO(BIO &bio) {
   pInterface->submitIO(bio);
