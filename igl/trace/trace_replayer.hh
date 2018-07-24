@@ -22,6 +22,9 @@
 #ifndef __IGL_TRACE_REPLAYER__
 #define __IGL_TRACE_REPLAYER__
 
+#include <fstream>
+#include <regex>
+
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
 #include "sim/cfg_reader.hh"
@@ -30,6 +33,49 @@
 namespace IGL {
 
 class TraceReplayer : public IOGenerator {
+private:
+  enum {
+    ID_OPERATION,
+    ID_BYTE_OFFSET,
+    ID_BYTE_LENGTH,
+    ID_LBA_OFFSET,
+    ID_LBA_LENGTH,
+    ID_TIME_SEC,
+    ID_TIME_MS,
+    ID_TIME_US,
+    ID_TIME_NS,
+    ID_TIME_PS,
+    ID_NUM
+  };
+
+  std::ifstream file;
+  std::regex regex;
+
+  bool useLBA;
+  uint32_t lbaSize;
+  uint32_t groupID[ID_NUM];
+  bool timeValids[5];
+  bool useHex;
+
+  uint64_t ssdSize;
+  uint32_t blocksize;
+
+  uint64_t initTime;
+  uint64_t firstTick;
+
+  BIL::BIO bio;
+
+  uint64_t mergeTime(std::smatch &);
+  BIL::BIO_TYPE getType(std::string);
+  void handleNextLine(bool = false);
+
+  SimpleSSD::Event submitEvent;
+  SimpleSSD::EventFunction submitIO;
+  SimpleSSD::EventFunction iocallback;
+
+  void _submitIO(uint64_t);
+  void _iocallback(uint64_t);
+
  public:
   TraceReplayer(Engine &, ConfigReader &, BIL::BlockIOEntry &);
   ~TraceReplayer();

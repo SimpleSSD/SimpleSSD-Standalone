@@ -39,6 +39,7 @@ enum BIO_TYPE : uint8_t {
   BIO_WRITE,
   BIO_FLUSH,
   BIO_TRIM,
+  BIO_NUM,
 };
 
 typedef struct _BIO {
