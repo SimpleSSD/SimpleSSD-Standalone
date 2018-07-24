@@ -39,6 +39,8 @@ bool ConfigReader::init(std::string file) {
 
   // Update all
   globalConfig.update();
+  traceConfig.update();
+  requestConfig.update();
 
   return true;
 }
@@ -48,9 +50,9 @@ int64_t ConfigReader::readInt(CONFIG_SECTION section, uint32_t idx) {
     case CONFIG_GLOBAL:
       return globalConfig.readInt(idx);
     case CONFIG_TRACE:
-      return 0;
+      return traceConfig.readInt(idx);
     case CONFIG_REQ_GEN:
-      return 0;
+      return requestConfig.readInt(idx);
     default:
       return 0;
   }
@@ -61,9 +63,9 @@ uint64_t ConfigReader::readUint(CONFIG_SECTION section, uint32_t idx) {
     case CONFIG_GLOBAL:
       return globalConfig.readUint(idx);
     case CONFIG_TRACE:
-      return 0;
+      return traceConfig.readUint(idx);
     case CONFIG_REQ_GEN:
-      return 0;
+      return requestConfig.readUint(idx);
     default:
       return 0;
   }
@@ -74,9 +76,9 @@ float ConfigReader::readFloat(CONFIG_SECTION section, uint32_t idx) {
     case CONFIG_GLOBAL:
       return globalConfig.readFloat(idx);
     case CONFIG_TRACE:
-      return 0.f;
+      return traceConfig.readFloat(idx);
     case CONFIG_REQ_GEN:
-      return 0.f;
+      return requestConfig.readFloat(idx);
     default:
       return 0.f;
   }
@@ -87,9 +89,9 @@ std::string ConfigReader::readString(CONFIG_SECTION section, uint32_t idx) {
     case CONFIG_GLOBAL:
       return globalConfig.readString(idx);
     case CONFIG_TRACE:
-      return std::string();
+      return traceConfig.readString(idx);
     case CONFIG_REQ_GEN:
-      return std::string();
+      return requestConfig.readString(idx);
     default:
       return std::string();
   }
@@ -100,9 +102,9 @@ bool ConfigReader::readBoolean(CONFIG_SECTION section, uint32_t idx) {
     case CONFIG_GLOBAL:
       return globalConfig.readBoolean(idx);
     case CONFIG_TRACE:
-      return false;
+      return traceConfig.readBoolean(idx);
     case CONFIG_REQ_GEN:
-      return false;
+      return requestConfig.readBoolean(idx);
     default:
       return false;
   }
@@ -117,10 +119,10 @@ int ConfigReader::parserHandler(void *context, const char *section,
     handled = pThis->globalConfig.setConfig(name, value);
   }
   else if (MATCH_SECTION(SECTION_TRACE)) {
-    // handled = pThis->dramConfig.setConfig(name, value);
+    handled = pThis->traceConfig.setConfig(name, value);
   }
   else if (MATCH_SECTION(SECTION_REQ_GEN)) {
-    // handled = pThis->ftlConfig.setConfig(name, value);
+    handled = pThis->requestConfig.setConfig(name, value);
   }
 
   if (!handled) {

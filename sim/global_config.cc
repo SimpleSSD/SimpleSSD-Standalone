@@ -94,7 +94,7 @@ uint64_t Config::readUint(uint32_t idx) {
 }
 
 std::string Config::readString(uint32_t idx) {
-  std::string ret;
+  std::string ret = "";
 
   switch (idx) {
     case GLOBAL_LOG_FILE:

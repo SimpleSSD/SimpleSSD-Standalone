@@ -21,6 +21,8 @@
 
 #include <regex>
 
+#include "simplessd/sim/trace.hh"
+
 const std::regex regexInteger("(\\d+)([kKmMgGtTpP]?)",
                               std::regex_constants::ECMAScript);
 const std::regex regexTime("(\\d+)([munp]?s?)",
@@ -90,7 +92,7 @@ uint64_t convertInteger(const char *value, bool *valid) {
           ret *= 1099511627776ul;
           break;
         default:
-          // TODO: warn("Invalid suffix detected");
+          SimpleSSD::warn("Invalid suffix detected");
           break;
       }
     }
@@ -132,7 +134,7 @@ uint64_t convertTime(const char *value, bool *valid) {
           // Do Nothing
           break;
         default:
-          // TODO: warn("Invalid suffix detected");
+          SimpleSSD::warn("Invalid suffix detected");
           break;
       }
     }
