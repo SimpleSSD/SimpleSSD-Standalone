@@ -95,7 +95,7 @@ uint64_t Engine::getCurrentTick() {
 }
 
 SimpleSSD::Event Engine::allocateEvent(SimpleSSD::EventFunction func) {
-  auto iter = eventList.insert({counter++, func});
+  auto iter = eventList.insert({++counter, func});
 
   if (!iter.second) {
     SimpleSSD::panic("Fail to allocate event");
