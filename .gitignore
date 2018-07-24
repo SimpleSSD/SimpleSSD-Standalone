@@ -3,6 +3,10 @@ CMakeFiles/
 *.cmake
 CMakeCache.txt
 
+# SimpleSSD output
+libsimplessd.a
+simplessd-standalone
+
 # Visual Studio Specific
 .vs/
 Debug/
