@@ -60,7 +60,6 @@ class RequestGenerator : public IOGenerator {
 
   bool time_based;
   uint64_t runtime;
-  uint64_t ramp_time;
 
   uint64_t ssdSize;
   uint64_t ssdBlocksize;

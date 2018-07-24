@@ -40,7 +40,6 @@ typedef enum {
   REQUEST_RANDOM_SEED,
   REQUEST_TIME_BASED,
   REQUEST_RUN_TIME,
-  REQUEST_RAMP_TIME,
 } REQUEST_CONFIG;
 
 typedef enum {
@@ -74,7 +73,6 @@ class RequestConfig : public SimpleSSD::BaseConfig {
   uint64_t randseed;
   bool time_based;
   uint64_t runtime;
-  uint64_t ramp_time;
 
  public:
   RequestConfig();

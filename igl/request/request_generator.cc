@@ -41,7 +41,6 @@ RequestGenerator::RequestGenerator(Engine &e, ConfigReader &c,
   randseed = c.readUint(CONFIG_REQ_GEN, REQUEST_RANDOM_SEED);
   time_based = c.readBoolean(CONFIG_REQ_GEN, REQUEST_TIME_BASED);
   runtime = c.readUint(CONFIG_REQ_GEN, REQUEST_RUN_TIME);
-  ramp_time = c.readUint(CONFIG_REQ_GEN, REQUEST_RAMP_TIME);
 
   if (blockalign == 0) {
     blockalign = blocksize;

@@ -37,7 +37,6 @@ const char NAME_THINKTIME[] = "thinktime";
 const char NAME_RANDOM_SEED[] = "randseed";
 const char NAME_TIME_BASED[] = "time_based";
 const char NAME_RUN_TIME[] = "runtime";
-const char NAME_RAMP_TIME[] = "ramp_time";
 
 RequestConfig::RequestConfig() {
   io_size = 0;
@@ -53,7 +52,6 @@ RequestConfig::RequestConfig() {
   randseed = 0;
   time_based = false;
   runtime = 0;
-  ramp_time = 0;
 }
 
 bool RequestConfig::setConfig(const char *name, const char *value) {
@@ -126,9 +124,6 @@ bool RequestConfig::setConfig(const char *name, const char *value) {
   else if (MATCH_NAME(NAME_RUN_TIME)) {
     runtime = convertInteger(value);
   }
-  else if (MATCH_NAME(NAME_RAMP_TIME)) {
-    ramp_time = convertInteger(value);
-  }
   else {
     ret = false;
   }
@@ -184,9 +179,6 @@ uint64_t RequestConfig::readUint(uint32_t idx) {
       break;
     case REQUEST_RUN_TIME:
       ret = runtime;
-      break;
-    case REQUEST_RAMP_TIME:
-      ret = ramp_time;
       break;
   }
 
