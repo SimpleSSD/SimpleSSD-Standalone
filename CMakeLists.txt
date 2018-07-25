@@ -54,9 +54,11 @@ if (MSVC)
   add_compile_options(/wd4819)
 else ()
   if (DEBUG_BUILD)
-    set(CMAKE_CXX_FLAGS "-O0 -g -rdynamic -Wall ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS
+      "-O0 -g -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   else ()
-    set(CMAKE_CXX_FLAGS "-O2 -rdynamic -Wall ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS
+      "-O2 -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   endif ()
 
   set(CMAKE_CXX_STANDARD 11)
