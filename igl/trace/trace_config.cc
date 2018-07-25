@@ -106,7 +106,33 @@ bool TraceConfig::setConfig(const char *name, const char *value) {
 }
 
 void TraceConfig::update() {
+  uint64_t idx = 0;
 
+  // Remove leading spaces
+  for (auto c : regex) {
+    if (c != ' ') {
+      break;
+    }
+
+    idx++;
+  }
+
+  // Check double quotes
+  if (regex[0] == '"') {
+    regex = regex.substr(idx + 1);
+  }
+  else {
+    regex = regex.substr(idx);
+  }
+
+  // Remove trailing spaces
+  while (regex.back() == ' ') {
+    regex.pop_back();
+  }
+
+  if (regex.back() == '"') {
+    regex.pop_back();
+  }
 }
 
 uint64_t TraceConfig::readUint(uint32_t idx) {
@@ -178,4 +204,4 @@ bool TraceConfig::readBoolean(uint32_t idx) {
   return ret;
 }
 
-}
+}  // namespace IGL
