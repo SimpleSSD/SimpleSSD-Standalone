@@ -245,6 +245,9 @@ void TraceReplayer::_submitIO(uint64_t) {
   iodepth++;
 
   bioEntry.submitIO(bio);
+
+  // Read next
+  handleNextLine();
 }
 
 void TraceReplayer::_iocallback(uint64_t) {
