@@ -20,14 +20,15 @@
 #include "util/print.hh"
 
 void print(std::ostream &out, std::string str, uint32_t width) {
-  out << str;
-
-  if (str.length() < width) {
+  if (str.length() >= width) {
+    out << str;
+  }
+  else {
     width -= str.length();
 
-    for (uint32_t i = 0; i < width; i++) {
-      out << ' ';
-    }
+    str.append(width, ' ');
+
+    out << str;
   }
 }
 
