@@ -42,6 +42,9 @@ void cleanup(int) {
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
+
+  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
+            << std::endl;
 }
 
 void statistics(uint64_t tick) {
@@ -208,9 +211,6 @@ int main(int argc, char *argv[]) {
   // Do Simulation
   while (engine.doNextEvent())
     ;
-
-  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
-            << std::endl;
 
   cleanup(0);
 
