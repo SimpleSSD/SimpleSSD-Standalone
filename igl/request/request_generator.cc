@@ -24,9 +24,13 @@
 
 namespace IGL {
 
-RequestGenerator::RequestGenerator(Engine &e, ConfigReader &c,
-                                   BIL::BlockIOEntry &b)
-    : IOGenerator(e, b), io_submitted(0), io_count(0), read_count(0) {
+RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
+                                   std::function<void()> &f, ConfigReader &c)
+    : IOGenerator(e, b, f),
+      io_submitted(0),
+      io_count(0),
+      read_count(0),
+      reserveTermination(false) {
   // Read config
   io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
   type = (IO_TYPE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_TYPE);
@@ -132,10 +136,10 @@ void RequestGenerator::_submitIO(uint64_t tick) {
   BIL::BIO bio;
 
   // We are done
-  if (!time_based && io_submitted >= io_size) {
-    return;
-  }
-  else if (time_based && runtime > (tick - initTime)) {
+  if ((!time_based && io_submitted >= io_size) ||
+      (time_based && runtime > (tick - initTime))) {
+    reserveTermination = true;
+
     return;
   }
 
@@ -178,8 +182,17 @@ void RequestGenerator::_iocallback(uint64_t id) {
     }
   }
 
-  // Check on-the-fly I/O depth
-  rescheduleSubmit(engine.getCurrentTick());
+  if (reserveTermination) {
+    // No I/O will be generated anymore
+    // If no pending I/O call endCallback
+    if (bioList.size() == 0) {
+      endCallback();
+    }
+  }
+  else {
+    // Check on-the-fly I/O depth
+    rescheduleSubmit(engine.getCurrentTick());
+  }
 }
 
 void RequestGenerator::rescheduleSubmit(uint64_t tick) {

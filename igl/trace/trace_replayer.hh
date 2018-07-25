@@ -33,7 +33,7 @@
 namespace IGL {
 
 class TraceReplayer : public IOGenerator {
-private:
+ private:
   enum {
     ID_OPERATION,
     ID_BYTE_OFFSET,
@@ -63,6 +63,9 @@ private:
   uint64_t initTime;
   uint64_t firstTick;
 
+  bool reserveTermination;
+  uint64_t lastIOID;
+
   BIL::BIO bio;
 
   uint64_t mergeTime(std::smatch &);
@@ -77,7 +80,8 @@ private:
   void _iocallback(uint64_t);
 
  public:
-  TraceReplayer(Engine &, ConfigReader &, BIL::BlockIOEntry &);
+  TraceReplayer(Engine &, BIL::BlockIOEntry &, std::function<void()> &,
+                ConfigReader &);
   ~TraceReplayer();
 
   void init(uint64_t, uint32_t) override;

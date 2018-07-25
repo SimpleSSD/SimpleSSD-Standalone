@@ -67,10 +67,6 @@ void statistics(uint64_t tick) {
   }
 
   out << "End of log @ tick " << tick << std::endl;
-
-  engine.scheduleEvent(
-      statEvent, tick + simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) *
-                            1000000000ULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -157,15 +153,23 @@ int main(int argc, char *argv[]) {
 
   // Create Block I/O Layer
   BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
+  std::function<void()> endCallback = []() {
+    // If stat printout is scheduled, delete it
+    engine.descheduleEvent(statEvent);
+
+    // Print last statistics
+    statistics(engine.getCurrentTick());
+  };
 
   // Create I/O generator
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_SIM_MODE)) {
     case MODE_REQUEST_GENERATOR:
-      pIOGen = new IGL::RequestGenerator(engine, simConfig, bioEntry);
+      pIOGen =
+          new IGL::RequestGenerator(engine, bioEntry, endCallback, simConfig);
 
       break;
     case MODE_TRACE_REPLAYER:
-      pIOGen = new IGL::TraceReplayer(engine, simConfig, bioEntry);
+      pIOGen = new IGL::TraceReplayer(engine, bioEntry, endCallback, simConfig);
 
       break;
     default:
@@ -178,10 +182,9 @@ int main(int argc, char *argv[]) {
 
   uint64_t bytesize;
   uint32_t bs;
+  std::function<void()> beginCallback = []() { pIOGen->begin(); };
 
-  std::function<void()> callback = []() { pIOGen->begin(); };
-
-  pInterface->init(callback);
+  pInterface->init(beginCallback);
   pInterface->getInfo(bytesize, bs);
   pIOGen->init(bytesize, bs);
 
@@ -189,7 +192,14 @@ int main(int argc, char *argv[]) {
   if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
     pInterface->initStats(statList);
 
-    statEvent = engine.allocateEvent([](uint64_t tick) { statistics(tick); });
+    statEvent = engine.allocateEvent([](uint64_t tick) {
+      statistics(tick);
+
+      engine.scheduleEvent(
+          statEvent,
+          tick + simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) *
+                     1000000000ULL);
+    });
     engine.scheduleEvent(
         statEvent,
         simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) * 1000000000ULL);

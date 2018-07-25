@@ -32,9 +32,11 @@ class IOGenerator {
  protected:
   Engine &engine;
   BIL::BlockIOEntry &bioEntry;
+  std::function<void()> &endCallback;
 
  public:
-  IOGenerator(Engine &e, BIL::BlockIOEntry &b) : engine(e), bioEntry(b) {}
+  IOGenerator(Engine &e, BIL::BlockIOEntry &b, std::function<void()> &c)
+      : engine(e), bioEntry(b), endCallback(c) {}
   virtual ~IOGenerator() {}
 
   virtual void init(uint64_t, uint32_t) = 0;

@@ -70,6 +70,7 @@ class RequestGenerator : public IOGenerator {
   std::list<BIL::BIO> bioList;
 
   uint64_t initTime;
+  bool reserveTermination;
 
   void generateAddress(uint64_t &, uint64_t &);
   bool nextIOIsRead();
@@ -83,7 +84,8 @@ class RequestGenerator : public IOGenerator {
   void _iocallback(uint64_t);
 
  public:
-  RequestGenerator(Engine &, ConfigReader &, BIL::BlockIOEntry &);
+  RequestGenerator(Engine &, BIL::BlockIOEntry &, std::function<void()> &,
+                   ConfigReader &);
   ~RequestGenerator();
 
   void init(uint64_t, uint32_t) override;

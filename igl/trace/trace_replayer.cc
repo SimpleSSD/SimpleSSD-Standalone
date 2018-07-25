@@ -24,8 +24,9 @@
 
 namespace IGL {
 
-TraceReplayer::TraceReplayer(Engine &e, ConfigReader &c, BIL::BlockIOEntry &b)
-    : IOGenerator(e, b) {
+TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
+                             std::function<void()> &f, ConfigReader &c)
+    : IOGenerator(e, b, f), reserveTermination(false) {
   // Check file
   auto filename = c.readString(CONFIG_TRACE, TRACE_FILE);
   file.open(filename);
@@ -183,8 +184,19 @@ void TraceReplayer::handleNextLine(bool begin) {
   std::string line;
   std::smatch match;
 
+  if (reserveTermination) {
+    // Nothing to do
+    return;
+  }
+
   // Read line
   while (true) {
+    if (file.eof()) {
+      reserveTermination = true;
+
+      return;
+    }
+
     std::getline(file, line);
 
     if (std::regex_match(line, match, regex)) {
@@ -225,11 +237,15 @@ void TraceReplayer::handleNextLine(bool begin) {
 }
 
 void TraceReplayer::_submitIO(uint64_t) {
+  lastIOID = bio.id;
   bioEntry.submitIO(bio);
 }
 
-void TraceReplayer::_iocallback(uint64_t) {
-  // TODO: This function is not used currently
+void TraceReplayer::_iocallback(uint64_t id) {
+  if (reserveTermination && id == lastIOID) {
+    // Everything is done
+    endCallback();
+  }
 }
 
 }  // namespace IGL
