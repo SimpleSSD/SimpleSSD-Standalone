@@ -92,6 +92,22 @@ void RequestGenerator::begin() {
   _submitIO(initTime);
 }
 
+void RequestGenerator::printStats() {
+  uint64_t tick = engine.getCurrentTick();
+
+  SimpleSSD::info("*** Statistics of Request Generator ***");
+  SimpleSSD::info("Tick: %" PRIu64, tick);
+  SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
+                  initTime, tick, tick - initTime);
+  SimpleSSD::info(
+      "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
+      (double)io_submitted / (tick - initTime) * 1000000000000.);
+  SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
+                  ", Write: %" PRIu64 ")",
+                  io_count, read_count, io_count - read_count);
+  SimpleSSD::info("*** End of statistics ***");
+}
+
 void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
   // This function generates address to access
   // based on I/O type, blocksize/align and offset/size
@@ -177,19 +193,6 @@ void RequestGenerator::_iocallback(uint64_t id) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
     if (bioList.size() == 0) {
-      uint64_t tick = engine.getCurrentTick();
-
-      SimpleSSD::info("*** Final statistics of Request Generator ***");
-      SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
-                      initTime, tick, tick - initTime);
-      SimpleSSD::info(
-          "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
-          (double)io_submitted / (tick - initTime) * 1000000000000.);
-      SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
-                      ", Write: %" PRIu64 ")",
-                      io_count, read_count, io_count - read_count);
-      SimpleSSD::info("*** End of final statistics ***");
-
       endCallback();
     }
   }

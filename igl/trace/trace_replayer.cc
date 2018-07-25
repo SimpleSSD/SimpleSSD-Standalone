@@ -119,6 +119,22 @@ void TraceReplayer::begin() {
   handleNextLine(true);
 }
 
+void TraceReplayer::printStats() {
+  uint64_t tick = engine.getCurrentTick();
+
+  SimpleSSD::info("*** Statistics of Trace Replayer ***");
+  SimpleSSD::info("Tick: %" PRIu64, tick);
+  SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
+                  firstTick - initTime, tick, tick - firstTick + initTime);
+  SimpleSSD::info(
+      "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
+      (double)io_submitted / (tick - firstTick + initTime) * 1000000000000.);
+  SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
+                  ", Write: %" PRIu64 ")",
+                  io_count, read_count, io_count - read_count);
+  SimpleSSD::info("*** End of statistics ***");
+}
+
 uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   uint64_t tick = 0;
   bool valid = true;
@@ -294,19 +310,6 @@ void TraceReplayer::_iocallback(uint64_t) {
   iodepth--;
 
   if (reserveTermination && iodepth == 0) {
-    uint64_t tick = engine.getCurrentTick();
-
-    SimpleSSD::info("*** Final statistics of Request Generator ***");
-    SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
-                    firstTick - initTime, tick, tick - firstTick + initTime);
-    SimpleSSD::info(
-        "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
-        (double)io_submitted / (tick - firstTick + initTime) * 1000000000000.);
-    SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
-                    ", Write: %" PRIu64 ")",
-                    io_count, read_count, io_count - read_count);
-    SimpleSSD::info("*** End of final statistics ***");
-
     // Everything is done
     endCallback();
   }
