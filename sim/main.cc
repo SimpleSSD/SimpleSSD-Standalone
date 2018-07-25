@@ -162,6 +162,9 @@ int main(int argc, char *argv[]) {
 
     // Print last statistics
     statistics(engine.getCurrentTick());
+
+    // Stop simulation
+    engine.stopEngine();
   };
 
   // Create I/O generator

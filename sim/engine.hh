@@ -31,6 +31,7 @@ class Engine : public SimpleSSD::Simulator {
  private:
   uint64_t simTick;
   SimpleSSD::Event counter;
+  bool forceStop;
   std::unordered_map<SimpleSSD::Event, SimpleSSD::EventFunction> eventList;
   std::list<std::pair<SimpleSSD::Event, uint64_t>> eventQueue;
 
@@ -51,6 +52,7 @@ class Engine : public SimpleSSD::Simulator {
   void deallocateEvent(SimpleSSD::Event) override;
 
   bool doNextEvent();
+  void stopEngine();
 };
 
 #endif

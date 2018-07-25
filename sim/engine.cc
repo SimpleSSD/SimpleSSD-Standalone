@@ -21,7 +21,8 @@
 
 #include "simplessd/sim/trace.hh"
 
-Engine::Engine() : SimpleSSD::Simulator(), simTick(0), counter(0) {}
+Engine::Engine()
+    : SimpleSSD::Simulator(), simTick(0), counter(0), forceStop(false) {}
 
 Engine::~Engine() {}
 
@@ -165,7 +166,9 @@ void Engine::deallocateEvent(SimpleSSD::Event eid) {
 }
 
 bool Engine::doNextEvent() {
-  bool ret = false;
+  if (forceStop) {
+    return false;
+  }
 
   if (eventQueue.size() > 0) {
     auto &now = eventQueue.front();
@@ -182,8 +185,12 @@ bool Engine::doNextEvent() {
       SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
     }
 
-    ret = true;
+    return true;
   }
 
-  return ret;
+  return false;
+}
+
+void Engine::stopEngine() {
+  forceStop = true;
 }
