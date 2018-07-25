@@ -202,7 +202,7 @@ void RequestGenerator::rescheduleSubmit(uint64_t tick) {
 
     // Check conflict
     if (engine.isScheduled(submitEvent, &scheduledTick)) {
-      if (scheduledTick > tick + asyncBreak) {
+      if (scheduledTick >= tick + asyncBreak) {
         doSchedule = false;
       }
     }
