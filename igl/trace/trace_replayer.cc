@@ -224,11 +224,11 @@ void TraceReplayer::handleNextLine(bool begin) {
   engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
 }
 
-void TraceReplayer::_submitIO(uint64_t tick) {
+void TraceReplayer::_submitIO(uint64_t) {
   bioEntry.submitIO(bio);
 }
 
-void TraceReplayer::_iocallback(uint64_t tick) {
+void TraceReplayer::_iocallback(uint64_t) {
   // TODO: This function is not used currently
 }
 

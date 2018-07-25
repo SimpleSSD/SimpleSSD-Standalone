@@ -5,6 +5,7 @@ CMakeCache.txt
 
 # SimpleSSD output
 libsimplessd.a
+libmcpat.a
 simplessd-standalone
 
 # Visual Studio Specific
