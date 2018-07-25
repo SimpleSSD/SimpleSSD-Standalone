@@ -131,16 +131,8 @@ bool RequestGenerator::nextIOIsRead() {
   return false;
 }
 
-void RequestGenerator::_submitIO(uint64_t tick) {
+void RequestGenerator::_submitIO(uint64_t) {
   BIL::BIO bio;
-
-  // We are done
-  if ((!time_based && io_submitted >= io_size) ||
-      (time_based && runtime > (tick - initTime))) {
-    reserveTermination = true;
-
-    return;
-  }
 
   // This function uses io_count (=0 at very beginning)
   generateAddress(bio.offset, bio.length);
@@ -164,7 +156,7 @@ void RequestGenerator::_submitIO(uint64_t tick) {
   bioList.push_back(bio);
 
   // Check on-the-fly I/O depth
-  rescheduleSubmit(tick, asyncBreak);
+  rescheduleSubmit(asyncBreak);
 
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
@@ -203,11 +195,21 @@ void RequestGenerator::_iocallback(uint64_t id) {
   }
   else {
     // Check on-the-fly I/O depth
-    rescheduleSubmit(engine.getCurrentTick(), syncBreak);
+    rescheduleSubmit(syncBreak);
   }
 }
 
-void RequestGenerator::rescheduleSubmit(uint64_t tick, uint64_t breakTime) {
+void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
+  uint64_t tick = engine.getCurrentTick();
+
+  // We are done
+  if ((!time_based && io_submitted >= io_size) ||
+      (time_based && runtime > (tick - initTime))) {
+    reserveTermination = true;
+
+    return;
+  }
+
   if (bioList.size() < iodepth) {
     uint64_t scheduledTick;
     bool doSchedule = true;

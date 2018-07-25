@@ -74,7 +74,7 @@ class RequestGenerator : public IOGenerator {
 
   void generateAddress(uint64_t &, uint64_t &);
   bool nextIOIsRead();
-  void rescheduleSubmit(uint64_t, uint64_t);
+  void rescheduleSubmit(uint64_t);
 
   SimpleSSD::Event submitEvent;
   SimpleSSD::EventFunction submitIO;
