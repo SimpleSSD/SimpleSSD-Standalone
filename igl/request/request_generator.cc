@@ -55,9 +55,8 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
     mode = IO_ASYNC;
   }
 
-  // TODO: make configurable
-  asyncBreak = 500000;  // 500ns
-  syncBreak = 1000000;  // 1us
+  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
+  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
 
   // Set random engine
   randengine.seed(randseed);

@@ -20,6 +20,7 @@
 #include "sim/global_config.hh"
 
 #include "simplessd/sim/trace.hh"
+#include "util/convert.hh"
 
 const char NAME_MODE[] = "Mode";
 const char NAME_LOG_PERIOD[] = "LogPeriod";
@@ -27,6 +28,8 @@ const char NAME_LOG_FILE[] = "LogFile";
 const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
 const char NAME_INTERFACE[] = "Interface";
 const char NAME_SCHEDULER[] = "Scheduler";
+const char NAME_BREAK_ASYNC[] = "BreakAsyncIO";
+const char NAME_BREAK_SYNC[] = "BreakSyncIO";
 
 Config::Config() {
   mode = MODE_REQUEST_GENERATOR;
@@ -55,6 +58,12 @@ bool Config::setConfig(const char *name, const char *value) {
   }
   else if (MATCH_NAME(NAME_SCHEDULER)) {
     scheduler = (SCHEDULER)strtoul(value, nullptr, 10);
+  }
+  else if (MATCH_NAME(NAME_BREAK_ASYNC)) {
+    asyncBreak = convertTime(value);
+  }
+  else if (MATCH_NAME(NAME_BREAK_SYNC)) {
+    syncBreak = convertTime(value);
   }
   else {
     ret = false;
@@ -87,6 +96,12 @@ uint64_t Config::readUint(uint32_t idx) {
       break;
     case GLOBAL_SCHEDULER:
       ret = scheduler;
+      break;
+    case GLOBAL_BREAK_ASYNC:
+      ret = asyncBreak;
+      break;
+    case GLOBAL_BREAK_SYNC:
+      ret = syncBreak;
       break;
   }
 
