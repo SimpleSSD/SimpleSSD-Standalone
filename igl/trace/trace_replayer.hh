@@ -64,7 +64,7 @@ class TraceReplayer : public IOGenerator {
   uint64_t firstTick;
 
   bool reserveTermination;
-  uint64_t lastIOID;
+  int64_t iodepth;
 
   BIL::BIO bio;
 
