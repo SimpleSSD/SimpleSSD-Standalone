@@ -164,7 +164,7 @@ void RequestGenerator::_submitIO(uint64_t tick) {
   bioList.push_back(bio);
 
   // Check on-the-fly I/O depth
-  rescheduleSubmit(tick);
+  rescheduleSubmit(tick, asyncBreak);
 
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
@@ -185,30 +185,43 @@ void RequestGenerator::_iocallback(uint64_t id) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
     if (bioList.size() == 0) {
+      uint64_t tick = engine.getCurrentTick();
+
+      SimpleSSD::info("*** Final statistics of Request Generator ***");
+      SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
+                      initTime, tick, tick - initTime);
+      SimpleSSD::info(
+          "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
+          (double)io_submitted / (tick - initTime) * 1000000000000.);
+      SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
+                      ", Write: %" PRIu64 ")",
+                      io_count, read_count, io_count - read_count);
+      SimpleSSD::info("*** End of final statistics ***");
+
       endCallback();
     }
   }
   else {
     // Check on-the-fly I/O depth
-    rescheduleSubmit(engine.getCurrentTick());
+    rescheduleSubmit(engine.getCurrentTick(), syncBreak);
   }
 }
 
-void RequestGenerator::rescheduleSubmit(uint64_t tick) {
+void RequestGenerator::rescheduleSubmit(uint64_t tick, uint64_t breakTime) {
   if (bioList.size() < iodepth) {
     uint64_t scheduledTick;
     bool doSchedule = true;
 
     // Check conflict
     if (engine.isScheduled(submitEvent, &scheduledTick)) {
-      if (scheduledTick >= tick + asyncBreak) {
+      if (scheduledTick >= tick + breakTime) {
         doSchedule = false;
       }
     }
 
     // We can schedule it
     if (doSchedule) {
-      engine.scheduleEvent(submitEvent, tick + asyncBreak);
+      engine.scheduleEvent(submitEvent, tick + breakTime);
     }
   }
 }
