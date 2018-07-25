@@ -173,14 +173,14 @@ bool Engine::doNextEvent() {
     simTick = now.second;
     auto iter = eventList.find(now.first);
 
+    eventQueue.pop_front();
+
     if (iter != eventList.end()) {
       iter->second(simTick);
     }
     else {
       SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
     }
-
-    eventQueue.pop_front();
 
     ret = true;
   }
