@@ -55,6 +55,9 @@ void cleanup(int) {
 
   std::cout << "End of simulation @ tick " << engine.getCurrentTick()
             << std::endl;
+
+  // Exit program
+  exit(0);
 }
 
 void statistics(uint64_t tick) {
