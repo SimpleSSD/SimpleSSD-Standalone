@@ -122,7 +122,7 @@ bool RequestConfig::setConfig(const char *name, const char *value) {
     time_based = convertBoolean(value);
   }
   else if (MATCH_NAME(NAME_RUN_TIME)) {
-    runtime = convertInteger(value);
+    runtime = convertTime(value);
   }
   else {
     ret = false;

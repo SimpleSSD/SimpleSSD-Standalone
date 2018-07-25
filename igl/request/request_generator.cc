@@ -209,7 +209,7 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
 
   // We are done
   if ((!time_based && io_submitted >= io_size) ||
-      (time_based && runtime > (tick - initTime))) {
+      (time_based && runtime <= (tick - initTime))) {
     reserveTermination = true;
 
     return;
