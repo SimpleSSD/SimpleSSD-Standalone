@@ -28,9 +28,9 @@ Engine::~Engine() {}
 bool Engine::insertEvent(SimpleSSD::Event eid, uint64_t tick,
                          uint64_t *pOldTick) {
   bool found = false;
-  bool valid = false;
+  bool flag = false;
   auto old = eventQueue.begin();
-  auto insert = eventQueue.begin();
+  auto insert = eventQueue.end();
 
   for (auto iter = eventQueue.begin(); iter != eventQueue.end(); iter++) {
     if (iter->first == eid) {
@@ -42,17 +42,15 @@ bool Engine::insertEvent(SimpleSSD::Event eid, uint64_t tick,
       }
     }
 
-    if (iter->second > tick && !valid) {
+    if (iter->second > tick && !flag) {
       insert = iter;
-      valid = true;
+      flag = true;
     }
   }
 
   // Iterator will not invalidated on insert
   // Do insert first
-  if (valid) {
-    eventQueue.insert(insert, {eid, tick});
-  }
+  eventQueue.insert(insert, {eid, tick});
 
   if (found) {
     eventQueue.erase(old);
