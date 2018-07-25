@@ -38,11 +38,20 @@ std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
 SimpleSSD::Event statEvent;
 std::vector<SimpleSSD::Stats> statList;
+std::ofstream logOut;
+std::ofstream debugLogOut;
 
 void cleanup(int) {
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
+
+  if (logOut.is_open()) {
+    logOut.close();
+  }
+  if (debugLogOut.is_open()) {
+    debugLogOut.close();
+  }
 
   std::cout << "End of simulation @ tick " << engine.getCurrentTick()
             << std::endl;
@@ -99,8 +108,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Log setting
-  std::ofstream logOut;
-  std::ofstream debugLogOut;
   std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
   std::string debugLogPath =
       simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
