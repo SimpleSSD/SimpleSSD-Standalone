@@ -69,6 +69,7 @@ class TraceReplayer : public IOGenerator {
   bool reserveTermination;
   int64_t iodepth;
 
+  uint64_t max_io;
   uint64_t io_submitted;
   uint64_t io_count;
   uint64_t read_count;

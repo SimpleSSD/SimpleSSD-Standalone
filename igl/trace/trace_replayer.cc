@@ -52,6 +52,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   // Fill flags
   mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
   syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
+  max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
   groupID[ID_OPERATION] = c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
   groupID[ID_BYTE_OFFSET] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_OFFSET);
   groupID[ID_BYTE_LENGTH] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_LENGTH);
@@ -268,8 +269,15 @@ void TraceReplayer::handleNextLine(bool begin) {
                          useHex ? 16 : 10);
   }
 
+  // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
   bio.callback = iocallback;
+
+  // Limit check
+  if (io_count >= max_io) {
+    reserveTermination = true;
+    // DO NOT RETURN HERE
+  }
 
   // Range check
   if (bio.offset + bio.length > ssdSize) {
