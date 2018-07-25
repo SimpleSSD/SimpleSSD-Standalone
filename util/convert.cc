@@ -109,7 +109,7 @@ uint64_t convertTime(const char *value, bool *valid) {
     *valid = false;
   }
 
-  if (std::regex_match(value, match, regexInteger)) {
+  if (std::regex_match(value, match, regexTime)) {
     if (valid) {
       *valid = true;
     }
