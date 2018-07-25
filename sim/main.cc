@@ -215,6 +215,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Do Simulation
+  std::cout << "Begin of simulation" << std::endl;
+
   while (engine.doNextEvent())
     ;
 
