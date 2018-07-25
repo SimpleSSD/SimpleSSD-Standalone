@@ -24,6 +24,7 @@
 namespace IGL {
 
 const char NAME_FILE[] = "File";
+const char NAME_TIMING_MODE[] = "TimingMode";
 const char NAME_LINE_REGEX[] = "Regex";
 const char NAME_GROUP_OPERATION[] = "Operation";
 const char NAME_GROUP_BYTE_OFFSET[] = "ByteOffset";
@@ -39,6 +40,7 @@ const char NAME_LBA_SIZE[] = "LBASize";
 const char NAME_USE_HEX[] = "UseHexadecimal";
 
 TraceConfig::TraceConfig() {
+  mode = MODE_NONE;
   groupOperation = 0;
   groupByteOffset = 0;
   groupByteLength = 0;
@@ -58,6 +60,9 @@ bool TraceConfig::setConfig(const char *name, const char *value) {
 
   if (MATCH_NAME(NAME_FILE)) {
     file = value;
+  }
+  else if (MATCH_NAME(NAME_TIMING_MODE)) {
+    mode = (TIMING_MODE)strtoul(value, nullptr, 10);
   }
   else if (MATCH_NAME(NAME_LINE_REGEX)) {
     regex = value;
@@ -133,12 +138,19 @@ void TraceConfig::update() {
   if (regex.back() == '"') {
     regex.pop_back();
   }
+
+  if (mode >= MODE_NUM) {
+    SimpleSSD::panic("Invalid timing mode specified");
+  }
 }
 
 uint64_t TraceConfig::readUint(uint32_t idx) {
   uint64_t ret = 0;
 
   switch (idx) {
+    case TRACE_TIMING_MODE:
+      ret = mode;
+      break;
     case TRACE_GROUP_OPERATION:
       ret = groupOperation;
       break;

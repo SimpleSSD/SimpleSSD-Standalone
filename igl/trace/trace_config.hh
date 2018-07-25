@@ -28,6 +28,7 @@ namespace IGL {
 
 typedef enum {
   TRACE_FILE,
+  TRACE_TIMING_MODE,
   TRACE_LINE_REGEX,
   TRACE_GROUP_OPERATION,
   TRACE_GROUP_BYTE_OFFSET,
@@ -43,9 +44,16 @@ typedef enum {
   TRACE_USE_HEX,
 } TRACE_CONFIG;
 
+typedef enum {
+  MODE_NONE,
+  MODE_STRICT,
+  MODE_NUM,
+} TIMING_MODE;
+
 class TraceConfig : public SimpleSSD::BaseConfig {
  private:
   std::string file;
+  TIMING_MODE mode;
   std::string regex;
   uint32_t groupOperation;
   uint32_t groupByteOffset;
