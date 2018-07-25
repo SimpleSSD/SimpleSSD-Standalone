@@ -95,7 +95,7 @@ class TraceReplayer : public IOGenerator {
 
   void init(uint64_t, uint32_t) override;
   void begin() override;
-  void printStats() override;
+  void printStats(std::ostream &) override;
 };
 
 }  // namespace IGL

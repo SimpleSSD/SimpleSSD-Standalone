@@ -41,7 +41,7 @@ class IOGenerator {
 
   virtual void init(uint64_t, uint32_t) = 0;
   virtual void begin() = 0;
-  virtual void printStats() = 0;
+  virtual void printStats(std::ostream &) = 0;
 };
 
 }  // namespace IGL

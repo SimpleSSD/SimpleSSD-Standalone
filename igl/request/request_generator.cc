@@ -19,6 +19,8 @@
 
 #include "igl/request/request_generator.hh"
 
+#include <iostream>
+
 #include "simplessd/sim/trace.hh"
 #include "simplessd/util/algorithm.hh"
 
@@ -92,20 +94,20 @@ void RequestGenerator::begin() {
   _submitIO(initTime);
 }
 
-void RequestGenerator::printStats() {
+void RequestGenerator::printStats(std::ostream &out) {
   uint64_t tick = engine.getCurrentTick();
 
-  SimpleSSD::info("*** Statistics of Request Generator ***");
-  SimpleSSD::info("Tick: %" PRIu64, tick);
-  SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
-                  initTime, tick, tick - initTime);
-  SimpleSSD::info(
-      "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
-      (double)io_submitted / (tick - initTime) * 1000000000000.);
-  SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
-                  ", Write: %" PRIu64 ")",
-                  io_count, read_count, io_count - read_count);
-  SimpleSSD::info("*** End of statistics ***");
+  out << "*** Statistics of Request Generator ***" << std::endl;
+  out << "Tick: " << tick << std::endl;
+  out << "Time (ps): " << initTime << " - " << tick << " ("
+      << tick - initTime << ")" << std::endl;
+  out << "I/O (bytes): " << io_submitted << " ("
+      << std::to_string((double)io_submitted / (tick - initTime) *
+                        1000000000000.)
+      << " B/s)" << std::endl;
+  out << "I/O (counts): " << io_count << " (Read: " << read_count
+      << ", Write: " << io_count - read_count << ")" << std::endl;
+  out << "*** End of statistics ***" << std::endl;
 }
 
 void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
