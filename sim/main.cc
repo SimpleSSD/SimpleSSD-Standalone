@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
   else {
     logOut.open(logPath);
 
-    if (~logOut.is_open()) {
+    if (!logOut.is_open()) {
       std::cerr << " Failed to open log file: " << logPath << std::endl;
 
       return 3;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
   else {
     debugLogOut.open(debugLogPath);
 
-    if (~debugLogOut.is_open()) {
+    if (!debugLogOut.is_open()) {
       std::cerr << " Failed to open log file: " << debugLogPath << std::endl;
 
       return 3;
