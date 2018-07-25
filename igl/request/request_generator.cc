@@ -99,8 +99,8 @@ void RequestGenerator::printStats(std::ostream &out) {
 
   out << "*** Statistics of Request Generator ***" << std::endl;
   out << "Tick: " << tick << std::endl;
-  out << "Time (ps): " << initTime << " - " << tick << " ("
-      << tick - initTime << ")" << std::endl;
+  out << "Time (ps): " << initTime << " - " << tick << " (" << tick - initTime
+      << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " ("
       << std::to_string((double)io_submitted / (tick - initTime) *
                         1000000000000.)

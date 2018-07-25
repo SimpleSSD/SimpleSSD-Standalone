@@ -25,10 +25,10 @@
 #include <cinttypes>
 #include <string>
 
-#include "simplessd/lib/inih/ini.h"
-#include "sim/global_config.hh"
-#include "igl/trace/trace_config.hh"
 #include "igl/request/request_config.hh"
+#include "igl/trace/trace_config.hh"
+#include "sim/global_config.hh"
+#include "simplessd/lib/inih/ini.h"
 
 typedef enum {
   CONFIG_GLOBAL,

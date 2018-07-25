@@ -85,6 +85,6 @@ class RequestConfig : public SimpleSSD::BaseConfig {
   bool readBoolean(uint32_t) override;
 };
 
-}
+}  // namespace IGL
 
 #endif

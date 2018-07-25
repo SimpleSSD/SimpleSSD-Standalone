@@ -17,12 +17,12 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "bil/entry.hh"
-#include "igl/trace/trace_replayer.hh"
 #include "igl/request/request_generator.hh"
+#include "igl/trace/trace_replayer.hh"
 #include "sil/none/none.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"

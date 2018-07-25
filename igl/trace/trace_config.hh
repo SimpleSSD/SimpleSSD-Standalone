@@ -81,6 +81,6 @@ class TraceConfig : public SimpleSSD::BaseConfig {
   bool readBoolean(uint32_t) override;
 };
 
-}
+}  // namespace IGL
 
 #endif
