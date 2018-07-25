@@ -41,51 +41,9 @@ std::vector<SimpleSSD::Stats> statList;
 std::ofstream logOut;
 std::ofstream debugLogOut;
 
-void cleanup(int) {
-  // Cleanup all here
-  delete pInterface;
-  delete pIOGen;
-
-  if (logOut.is_open()) {
-    logOut.close();
-  }
-  if (debugLogOut.is_open()) {
-    debugLogOut.close();
-  }
-
-  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
-            << std::endl;
-
-  // Exit program
-  exit(0);
-}
-
-void statistics(uint64_t tick) {
-  std::ostream &out = *pLog;
-  std::vector<double> stat;
-  uint64_t count = 0;
-
-  pInterface->getStats(stat);
-
-  count = statList.size();
-
-  if (count != stat.size()) {
-    out << "Stat list length mismatch" << std::endl;
-
-    std::terminate();
-  }
-
-  out << "Periodic log printout @ tick " << tick << std::endl;
-
-  for (uint64_t i = 0; i < count; i++) {
-    print(out, statList[i].name, 40);
-    out << "\t";
-    print(out, stat[i], 20);
-    out << "\t" << statList[i].desc << std::endl;
-  }
-
-  out << "End of log @ tick " << tick << std::endl;
-}
+// Declaration
+void cleanup(int);
+void statistics(uint64_t);
 
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
@@ -173,9 +131,6 @@ int main(int argc, char *argv[]) {
     // If stat printout is scheduled, delete it
     engine.descheduleEvent(statEvent);
 
-    // Print last statistics
-    statistics(engine.getCurrentTick());
-
     // Stop simulation
     engine.stopEngine();
   };
@@ -233,4 +188,55 @@ int main(int argc, char *argv[]) {
   cleanup(0);
 
   return 0;
+}
+
+void cleanup(int) {
+  // Print last statistics
+  statistics(engine.getCurrentTick());
+
+  pIOGen->printStats();
+
+  // Cleanup all here
+  delete pInterface;
+  delete pIOGen;
+
+  if (logOut.is_open()) {
+    logOut.close();
+  }
+  if (debugLogOut.is_open()) {
+    debugLogOut.close();
+  }
+
+  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
+            << std::endl;
+
+  // Exit program
+  exit(0);
+}
+
+void statistics(uint64_t tick) {
+  std::ostream &out = *pLog;
+  std::vector<double> stat;
+  uint64_t count = 0;
+
+  pInterface->getStats(stat);
+
+  count = statList.size();
+
+  if (count != stat.size()) {
+    out << "Stat list length mismatch" << std::endl;
+
+    std::terminate();
+  }
+
+  out << "Periodic log printout @ tick " << tick << std::endl;
+
+  for (uint64_t i = 0; i < count; i++) {
+    print(out, statList[i].name, 40);
+    out << "\t";
+    print(out, stat[i], 20);
+    out << "\t" << statList[i].desc << std::endl;
+  }
+
+  out << "End of log @ tick " << tick << std::endl;
 }
