@@ -217,7 +217,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   }
 
   // Fill BIO
-  bio.id++;  // BIO.id is inited as -1
+  bio.id++;  // BIO.id is inited as 0
 
   if (useLBA) {
     bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
@@ -239,7 +239,7 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   // Range check
   if (bio.offset + bio.length > ssdSize) {
-    SimpleSSD::warn("I/O out of range");
+    SimpleSSD::warn("I/O %" PRIu64 ": I/O out of range", bio.id);
 
     while (bio.offset >= ssdSize) {
       bio.offset -= ssdSize;

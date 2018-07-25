@@ -59,7 +59,7 @@ typedef struct _BIO {
   uint64_t completedAt;
 
   _BIO()
-      : id(-1),
+      : id(0),
         type(BIO_READ),
         offset(0),
         length(0),
