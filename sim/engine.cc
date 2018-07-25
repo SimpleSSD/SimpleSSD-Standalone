@@ -49,6 +49,13 @@ bool Engine::insertEvent(SimpleSSD::Event eid, uint64_t tick,
     }
   }
 
+  if (found && pOldTick) {
+    if (*pOldTick == tick) {
+      // Rescheduling to same tick. Ignore.
+      return false;
+    }
+  }
+
   // Iterator will not invalidated on insert
   // Do insert first
   eventQueue.insert(insert, {eid, tick});
