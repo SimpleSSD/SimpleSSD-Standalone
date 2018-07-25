@@ -237,6 +237,19 @@ void TraceReplayer::handleNextLine(bool begin) {
   bio.type = getType(match[groupID[ID_OPERATION]].str());
   bio.callback = iocallback;
 
+  // Range check
+  if (bio.offset + bio.length > ssdSize) {
+    SimpleSSD::warn("I/O out of range");
+
+    while (bio.offset >= ssdSize) {
+      bio.offset -= ssdSize;
+    }
+
+    if (bio.offset + bio.length > ssdSize) {
+      bio.length = ssdSize - bio.offset;
+    }
+  }
+
   // Schedule
   engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
 }
