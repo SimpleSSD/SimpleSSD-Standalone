@@ -51,6 +51,9 @@ class TraceReplayer : public IOGenerator {
   std::ifstream file;
   std::regex regex;
 
+  TIMING_MODE mode;
+  uint64_t syncBreak;
+
   bool useLBA;
   uint32_t lbaSize;
   uint32_t groupID[ID_NUM];

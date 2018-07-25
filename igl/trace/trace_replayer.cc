@@ -44,6 +44,8 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   }
 
   // Fill flags
+  mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
+  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
   groupID[ID_OPERATION] = c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
   groupID[ID_BYTE_OFFSET] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_OFFSET);
   groupID[ID_BYTE_LENGTH] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_LENGTH);
@@ -251,7 +253,12 @@ void TraceReplayer::handleNextLine(bool begin) {
   }
 
   // Schedule
-  engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
+  if (mode == MODE_NONE) {
+    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + syncBreak);
+  }
+  else if (mode == MODE_STRICT) {
+    engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
+  }
 }
 
 void TraceReplayer::_submitIO(uint64_t) {
@@ -260,7 +267,9 @@ void TraceReplayer::_submitIO(uint64_t) {
   bioEntry.submitIO(bio);
 
   // Read next
-  handleNextLine();
+  if (mode == MODE_STRICT) {
+    handleNextLine();
+  }
 }
 
 void TraceReplayer::_iocallback(uint64_t) {
@@ -269,6 +278,10 @@ void TraceReplayer::_iocallback(uint64_t) {
   if (reserveTermination && iodepth == 0) {
     // Everything is done
     endCallback();
+  }
+
+  if (mode == MODE_NONE) {
+    handleNextLine();
   }
 }
 
