@@ -51,6 +51,7 @@ include_directories(
 # Platform specific settings
 if (MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  add_compile_options(/wd4819)
 else ()
   if (DEBUG_BUILD)
     set(CMAKE_CXX_FLAGS "-O0 -g -rdynamic -Wall ${CMAKE_CXX_FLAGS}")
