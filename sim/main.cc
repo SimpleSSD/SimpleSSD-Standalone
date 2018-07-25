@@ -66,7 +66,7 @@ void statistics(uint64_t tick) {
   out << "Periodic log printout @ tick " << tick << std::endl;
 
   for (uint64_t i = 0; i < count; i++) {
-    print(out, statList[i].name, 60);
+    print(out, statList[i].name, 40);
     out << "\t";
     print(out, stat[i], 20);
     out << "\t" << statList[i].desc << std::endl;
