@@ -30,8 +30,8 @@ namespace IGL {
 
 class IOGenerator {
  protected:
-  Engine engine;
-  BIL::BlockIOEntry bioEntry;
+  Engine &engine;
+  BIL::BlockIOEntry &bioEntry;
 
  public:
   IOGenerator(Engine &e, BIL::BlockIOEntry &b) : engine(e), bioEntry(b) {}

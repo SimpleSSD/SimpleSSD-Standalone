@@ -31,7 +31,7 @@ namespace BIL {
 
 class DriverInterface {
  protected:
-  Engine engine;
+  Engine &engine;
 
  public:
   DriverInterface(Engine &e) : engine(e) {}

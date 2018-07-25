@@ -70,8 +70,8 @@ typedef struct _BIO {
 
 class BlockIOEntry {
  private:
-  ConfigReader conf;
-  Engine engine;
+  ConfigReader &conf;
+  Engine &engine;
   std::list<BIO> ioQueue;
 
   Scheduler *pScheduler;

@@ -28,7 +28,7 @@ namespace BIL {
 
 class Scheduler {
  protected:
-  Engine engine;
+  Engine &engine;
   DriverInterface *pInterface;
 
  public:
