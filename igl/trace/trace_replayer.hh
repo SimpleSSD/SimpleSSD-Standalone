@@ -69,6 +69,11 @@ class TraceReplayer : public IOGenerator {
   bool reserveTermination;
   int64_t iodepth;
 
+  uint64_t io_submitted;
+  uint64_t io_count;
+  uint64_t read_count;
+  uint64_t write_count;
+
   BIL::BIO bio;
 
   uint64_t mergeTime(std::smatch &);

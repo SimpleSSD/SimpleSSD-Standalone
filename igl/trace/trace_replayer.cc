@@ -26,7 +26,13 @@ namespace IGL {
 
 TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
                              std::function<void()> &f, ConfigReader &c)
-    : IOGenerator(e, b, f), reserveTermination(false), iodepth(0) {
+    : IOGenerator(e, b, f),
+      reserveTermination(false),
+      iodepth(0),
+      io_submitted(0),
+      io_count(0),
+      read_count(0),
+      write_count(0) {
   // Check file
   auto filename = c.readString(CONFIG_TRACE, TRACE_FILE);
   file.open(filename);
@@ -164,12 +170,18 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
 }
 
 BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
+  io_count++;
+
   switch (type[0]) {
     case 'r':
     case 'R':
+      read_count++;
+
       return BIL::BIO_READ;
     case 'w':
     case 'W':
+      write_count++;
+
       return BIL::BIO_WRITE;
     case 'f':
     case 'F':
@@ -216,6 +228,10 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   if (begin) {
     firstTick = tick;
+
+    if (mode == MODE_NONE) {
+      firstTick += syncBreak;
+    }
   }
 
   // Fill BIO
@@ -252,6 +268,8 @@ void TraceReplayer::handleNextLine(bool begin) {
     }
   }
 
+  io_submitted += bio.length;
+
   // Schedule
   if (mode == MODE_NONE) {
     engine.scheduleEvent(submitEvent, engine.getCurrentTick() + syncBreak);
@@ -276,6 +294,19 @@ void TraceReplayer::_iocallback(uint64_t) {
   iodepth--;
 
   if (reserveTermination && iodepth == 0) {
+    uint64_t tick = engine.getCurrentTick();
+
+    SimpleSSD::info("*** Final statistics of Request Generator ***");
+    SimpleSSD::info("Time (ps): %" PRIu64 " - %" PRIu64 " (%" PRIu64 ")",
+                    firstTick - initTime, tick, tick - firstTick + initTime);
+    SimpleSSD::info(
+        "I/O (bytes): %" PRIu64 " (%lf B/s)", io_submitted,
+        (double)io_submitted / (tick - firstTick + initTime) * 1000000000000.);
+    SimpleSSD::info("I/O (counts): %" PRIu64 " (Read: %" PRIu64
+                    ", Write: %" PRIu64 ")",
+                    io_count, read_count, io_count - read_count);
+    SimpleSSD::info("*** End of final statistics ***");
+
     // Everything is done
     endCallback();
   }
