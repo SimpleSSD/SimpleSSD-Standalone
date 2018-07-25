@@ -98,7 +98,7 @@ void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
     len = blocksize;
   }
   else {
-    off = io_submitted * blockalign;
+    off = io_count * blockalign;
     len = blocksize;
   }
 
@@ -139,8 +139,12 @@ void RequestGenerator::_submitIO(uint64_t tick) {
     return;
   }
 
+  // This function uses io_count (=0 at very beginning)
+  generateAddress(bio.offset, bio.length);
+
   bio.id = io_count++;
 
+  // This function also uses io_count (=1 at very beginning)
   if (nextIOIsRead()) {
     bio.type = BIL::BIO_READ;
     read_count++;
@@ -148,8 +152,6 @@ void RequestGenerator::_submitIO(uint64_t tick) {
   else {
     bio.type = BIL::BIO_WRITE;
   }
-
-  generateAddress(bio.offset, bio.length);
 
   io_submitted += bio.length;
 

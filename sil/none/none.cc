@@ -19,6 +19,8 @@
 
 #include "sil/none/none.hh"
 
+#include "simplessd/util/algorithm.hh"
+
 namespace SIL {
 
 NoneDriver::NoneDriver(Engine &e, SimpleSSD::ConfigReader &conf)
@@ -52,7 +54,7 @@ void NoneDriver::submitIO(BIL::BIO &bio) {
   // Convert to request
   req.reqID = bio.id;
   req.range.slpn = bio.offset / logicalPageSize;
-  req.range.nlp = bio.length / logicalPageSize;
+  req.range.nlp = DIVCEIL(bio.length, logicalPageSize);
   req.offset = bio.offset % logicalPageSize;
   req.length = bio.length;
   req.context = (void *)bio.id;
