@@ -274,7 +274,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   bio.callback = iocallback;
 
   // Limit check
-  if (io_count >= max_io) {
+  if (io_count == max_io) {
     reserveTermination = true;
     // DO NOT RETURN HERE
   }
