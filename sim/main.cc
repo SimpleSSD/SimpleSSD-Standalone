@@ -27,6 +27,7 @@
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
+#include "util/print.hh"
 
 // Global objects
 Engine engine;
@@ -65,8 +66,10 @@ void statistics(uint64_t tick) {
   out << "Periodic log printout @ tick " << tick << std::endl;
 
   for (uint64_t i = 0; i < count; i++) {
-    out << statList[i].name << "\t" << stat[i] << "\t" << statList[i].desc
-        << std::endl;
+    print(out, statList[i].name, 60);
+    out << "\t";
+    print(out, stat[i], 20);
+    out << "\t" << statList[i].desc << std::endl;
   }
 
   out << "End of log @ tick " << tick << std::endl;

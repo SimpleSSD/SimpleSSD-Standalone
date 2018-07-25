@@ -17,15 +17,20 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "util/print.hh"
 
-#ifndef __UTIL_CONVERT__
-#define __UTIL_CONVERT__
+void print(std::ostream &out, std::string str, uint32_t width) {
+  out << str;
 
-#include <cinttypes>
+  if (str.length() < width) {
+    width -= str.length();
 
-bool convertBoolean(const char *);
-uint64_t convertInteger(const char *, bool * = nullptr);
-uint64_t convertTime(const char *, bool * = nullptr);
+    for (uint32_t i = 0; i < width; i++) {
+      out << ' ';
+    }
+  }
+}
 
-#endif
+void print(std::ostream &out, double val, uint32_t width) {
+  print(out, std::to_string(val), width);
+}

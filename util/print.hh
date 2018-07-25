@@ -19,13 +19,13 @@
 
 #pragma once
 
-#ifndef __UTIL_CONVERT__
-#define __UTIL_CONVERT__
+#ifndef __UTIL_PRINT__
+#define __UTIL_PRINT__
 
 #include <cinttypes>
+#include <iostream>
 
-bool convertBoolean(const char *);
-uint64_t convertInteger(const char *, bool * = nullptr);
-uint64_t convertTime(const char *, bool * = nullptr);
+void print(std::ostream &, std::string, uint32_t);
+void print(std::ostream &, double, uint32_t);
 
 #endif
