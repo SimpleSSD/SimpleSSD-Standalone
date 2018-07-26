@@ -197,6 +197,8 @@ void cleanup(int) {
   pIOGen->printStats(std::cout);
   engine.printStats(std::cout);
 
+  releaseSimpleSSDEngine();
+
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
