@@ -116,6 +116,7 @@ set(SRC_SIM
 set(SRC_UTIL
   util/convert.cc
   util/print.cc
+  util/stopwatch.cc
 )
 
 # Source group for MSVC
