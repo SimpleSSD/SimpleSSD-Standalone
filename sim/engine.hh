@@ -24,8 +24,10 @@
 
 #include <list>
 #include <unordered_map>
+#include <iostream>
 
 #include "simplessd/sim/simulator.hh"
+#include "util/stopwatch.hh"
 
 class Engine : public SimpleSSD::Simulator {
  private:
@@ -34,6 +36,9 @@ class Engine : public SimpleSSD::Simulator {
   bool forceStop;
   std::unordered_map<SimpleSSD::Event, SimpleSSD::EventFunction> eventList;
   std::list<std::pair<SimpleSSD::Event, uint64_t>> eventQueue;
+
+  Stopwatch watch;
+  uint64_t eventHandled;
 
   bool insertEvent(SimpleSSD::Event, uint64_t, uint64_t * = nullptr);
   bool removeEvent(SimpleSSD::Event);
@@ -53,6 +58,7 @@ class Engine : public SimpleSSD::Simulator {
 
   bool doNextEvent();
   void stopEngine();
+  void printStats(std::ostream &);
 };
 
 #endif

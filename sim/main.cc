@@ -195,6 +195,7 @@ void cleanup(int) {
   statistics(engine.getCurrentTick());
 
   pIOGen->printStats(std::cout);
+  engine.printStats(std::cout);
 
   // Cleanup all here
   delete pInterface;

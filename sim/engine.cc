@@ -22,7 +22,13 @@
 #include "simplessd/sim/trace.hh"
 
 Engine::Engine()
-    : SimpleSSD::Simulator(), simTick(0), counter(0), forceStop(false) {}
+    : SimpleSSD::Simulator(),
+      simTick(0),
+      counter(0),
+      forceStop(false),
+      eventHandled(0) {
+  watch.start();
+}
 
 Engine::~Engine() {}
 
@@ -192,6 +198,8 @@ bool Engine::doNextEvent() {
       SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
     }
 
+    eventHandled++;
+
     return true;
   }
 
@@ -200,4 +208,17 @@ bool Engine::doNextEvent() {
 
 void Engine::stopEngine() {
   forceStop = true;
+}
+
+void Engine::printStats(std::ostream &out) {
+  watch.stop();
+
+  double duration = watch.getDuration();
+
+  out << "*** Statistics of Event Engine ***" << std::endl;
+  out << "Simulation Tick (ps): " << simTick << std::endl;
+  out << "Host time duration (sec): " << std::to_string(duration) << std::endl;
+  out << "Event handled: " << eventHandled << " ("
+      << std::to_string(eventHandled / duration) << " ops)" << std::endl;
+  out << "*** End of statistics ***" << std::endl;
 }
