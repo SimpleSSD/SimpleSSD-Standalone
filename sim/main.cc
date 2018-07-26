@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <thread>
 
 #include "bil/entry.hh"
 #include "igl/request/request_generator.hh"
@@ -36,6 +37,8 @@ BIL::DriverInterface *pInterface = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
+std::thread *pThread = nullptr;
+std::mutex killLock;
 SimpleSSD::Event statEvent;
 std::vector<SimpleSSD::Stats> statList;
 std::ofstream logOut;
@@ -44,6 +47,7 @@ std::ofstream debugLogOut;
 // Declaration
 void cleanup(int);
 void statistics(uint64_t);
+void threadFunc();
 
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
@@ -69,14 +73,18 @@ int main(int argc, char *argv[]) {
   }
 
   // Log setting
+  bool noLogPrintOnScreen = true;
+
   std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
   std::string debugLogPath =
       simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
 
   if (logPath.compare("STDOUT") == 0) {
+    noLogPrintOnScreen = false;
     pLog = &std::cout;
   }
   else if (logPath.compare("STDERR") == 0) {
+    noLogPrintOnScreen = false;
     pLog = &std::cerr;
   }
   else {
@@ -92,9 +100,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (debugLogPath.compare("STDOUT") == 0) {
+    noLogPrintOnScreen = false;
     pDebugLog = &std::cout;
   }
   else if (debugLogPath.compare("STDERR") == 0) {
+    noLogPrintOnScreen = false;
     pDebugLog = &std::cerr;
   }
   else {
@@ -182,6 +192,10 @@ int main(int argc, char *argv[]) {
   // Do Simulation
   std::cout << "********** Begin of simulation **********" << std::endl;
 
+  if (noLogPrintOnScreen) {
+    pThread = new std::thread(threadFunc);
+  }
+
   while (engine.doNextEvent())
     ;
 
@@ -191,17 +205,22 @@ int main(int argc, char *argv[]) {
 }
 
 void cleanup(int) {
+  killLock.lock();
+
   // Print last statistics
   statistics(engine.getCurrentTick());
 
+  std::cout << std::endl;
   pIOGen->printStats(std::cout);
   engine.printStats(std::cout);
 
   releaseSimpleSSDEngine();
+  pThread->join();
 
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
+  delete pThread;
 
   if (logOut.is_open()) {
     logOut.close();
@@ -242,4 +261,29 @@ void statistics(uint64_t tick) {
   }
 
   out << "End of log @ tick " << tick << std::endl;
+}
+
+void threadFunc() {
+  uint64_t current;
+  uint64_t old = 0;
+  const int tick = 2;
+  auto duration = std::chrono::seconds(tick);
+
+  while (true) {
+    std::this_thread::sleep_for(duration);
+
+    if (killLock.try_lock()) {
+      killLock.unlock();
+    }
+    else {
+      break;
+    }
+
+    engine.getStat(current);
+
+    printf("*** Engine performance: %lf ops\r", (double)(current - old) / tick);
+    fflush(stdout);
+
+    old = current;
+  }
 }

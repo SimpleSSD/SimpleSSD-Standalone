@@ -198,7 +198,10 @@ bool Engine::doNextEvent() {
       SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
     }
 
-    eventHandled++;
+    {
+      std::lock_guard<std::mutex> guard(m);
+      eventHandled++;
+    }
 
     return true;
   }
@@ -221,4 +224,9 @@ void Engine::printStats(std::ostream &out) {
   out << "Event handled: " << eventHandled << " ("
       << std::to_string(eventHandled / duration) << " ops)" << std::endl;
   out << "*** End of statistics ***" << std::endl;
+}
+
+void Engine::getStat(uint64_t &val) {
+  std::lock_guard<std::mutex> guard(m);
+  val = eventHandled;
 }

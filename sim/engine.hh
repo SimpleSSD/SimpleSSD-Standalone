@@ -22,9 +22,11 @@
 #ifndef __SIM_ENGINE__
 #define __SIM_ENGINE__
 
-#include <list>
-#include <unordered_map>
 #include <iostream>
+#include <list>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
 
 #include "simplessd/sim/simulator.hh"
 #include "util/stopwatch.hh"
@@ -38,6 +40,8 @@ class Engine : public SimpleSSD::Simulator {
   std::list<std::pair<SimpleSSD::Event, uint64_t>> eventQueue;
 
   Stopwatch watch;
+
+  std::mutex m;
   uint64_t eventHandled;
 
   bool insertEvent(SimpleSSD::Event, uint64_t, uint64_t * = nullptr);
@@ -59,6 +63,7 @@ class Engine : public SimpleSSD::Simulator {
   bool doNextEvent();
   void stopEngine();
   void printStats(std::ostream &);
+  void getStat(uint64_t &);
 };
 
 #endif
