@@ -97,7 +97,7 @@ uint64_t Config::readUint(uint32_t idx) {
       ret = logPeriod;
       break;
     case GLOBAL_PROGRESS_PERIOD:
-    ret = progressPeriod;
+      ret = progressPeriod;
       break;
     case GLOBAL_INTERFACE:
       ret = interface;

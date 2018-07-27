@@ -23,9 +23,9 @@
 #define __IGL_TRACE_REPLAYER__
 
 #include <fstream>
+#include <mutex>
 #include <regex>
 #include <thread>
-#include <mutex>
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"

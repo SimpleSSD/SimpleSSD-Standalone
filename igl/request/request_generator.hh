@@ -23,9 +23,9 @@
 #define __IGL_REQUEST_GENERATOR__
 
 #include <list>
+#include <mutex>
 #include <random>
 #include <thread>
-#include <mutex>
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"

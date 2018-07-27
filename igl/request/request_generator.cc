@@ -127,7 +127,7 @@ void RequestGenerator::getProgress(float &val) {
     return;
   }
 
-  if (time_based) { // Read-only variable after init
+  if (time_based) {                           // Read-only variable after init
     uint64_t tick = engine.getCurrentTick();  // Thread-safe
 
     // initTime is read-only after begin() called
