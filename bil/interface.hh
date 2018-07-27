@@ -33,6 +33,8 @@ class DriverInterface {
  protected:
   Engine &engine;
 
+  std::function<void()> beginFunction;
+
  public:
   DriverInterface(Engine &e) : engine(e) {}
   virtual ~DriverInterface() {}

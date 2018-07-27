@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
   // Create Driver
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
     case INTERFACE_NONE:
-      pInterface = new SIL::NoneDriver(engine, ssdConfig);
+      pInterface = new SIL::None::Driver(engine, ssdConfig);
 
       break;
     default:

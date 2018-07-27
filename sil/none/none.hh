@@ -27,18 +27,18 @@
 
 namespace SIL {
 
-class NoneDriver : public BIL::DriverInterface {
+namespace None {
+
+class Driver : public BIL::DriverInterface {
  private:
   SimpleSSD::HIL::HIL *pHIL;
 
   uint64_t totalLogicalPages;
   uint32_t logicalPageSize;
 
-  std::function<void()> beginFunction;
-
  public:
-  NoneDriver(Engine &, SimpleSSD::ConfigReader &);
-  ~NoneDriver();
+  Driver(Engine &, SimpleSSD::ConfigReader &);
+  ~Driver();
 
   void init(std::function<void()> &) override;
   void getInfo(uint64_t &, uint32_t &) override;
@@ -47,6 +47,8 @@ class NoneDriver : public BIL::DriverInterface {
   void initStats(std::vector<SimpleSSD::Stats> &) override;
   void getStats(std::vector<double> &) override;
 };
+
+}
 
 }  // namespace SIL
 

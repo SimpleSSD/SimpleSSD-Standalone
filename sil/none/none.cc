@@ -23,16 +23,18 @@
 
 namespace SIL {
 
-NoneDriver::NoneDriver(Engine &e, SimpleSSD::ConfigReader &conf)
+namespace None {
+
+Driver::Driver(Engine &e, SimpleSSD::ConfigReader &conf)
     : BIL::DriverInterface(e), totalLogicalPages(0), logicalPageSize(0) {
   pHIL = new SimpleSSD::HIL::HIL(conf);
 }
 
-NoneDriver::~NoneDriver() {
+Driver::~Driver() {
   delete pHIL;
 }
 
-void NoneDriver::init(std::function<void()> &func) {
+void Driver::init(std::function<void()> &func) {
   pHIL->getLPNInfo(totalLogicalPages, logicalPageSize);
 
   // No initialization process is needed for NoneDriver
@@ -47,12 +49,12 @@ void NoneDriver::init(std::function<void()> &func) {
                   logicalPageSize);
 }
 
-void NoneDriver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
   bytesize = totalLogicalPages * logicalPageSize;
   minbs = 512;
 }
 
-void NoneDriver::submitIO(BIL::BIO &bio) {
+void Driver::submitIO(BIL::BIO &bio) {
   SimpleSSD::HIL::Request req;
   auto *pFunc = new std::function<void(uint64_t)>(bio.callback);
 
@@ -87,12 +89,14 @@ void NoneDriver::submitIO(BIL::BIO &bio) {
   }
 }
 
-void NoneDriver::initStats(std::vector<SimpleSSD::Stats> &list) {
+void Driver::initStats(std::vector<SimpleSSD::Stats> &list) {
   pHIL->getStatList(list, "");
 }
 
-void NoneDriver::getStats(std::vector<double> &values) {
+void Driver::getStats(std::vector<double> &values) {
   pHIL->getStatValues(values);
+}
+
 }
 
 }  // namespace SIL
