@@ -110,6 +110,36 @@ void RequestGenerator::printStats(std::ostream &out) {
   out << "*** End of statistics ***" << std::endl;
 }
 
+void RequestGenerator::getProgress(float &val) {
+  bool zero = false;
+
+  {
+    std::lock_guard<std::mutex> guard(m);
+
+    if (io_submitted == 0) {
+      zero = true;
+    }
+  }
+
+  if (zero) {
+    val = 0.f;
+
+    return;
+  }
+
+  if (time_based) { // Read-only variable after init
+    uint64_t tick = engine.getCurrentTick();  // Thread-safe
+
+    // initTime is read-only after begin() called
+    val = (float)(tick - initTime) / runtime;
+  }
+  else {
+    std::lock_guard<std::mutex> guard(m);
+
+    val = (float)io_submitted / io_size;
+  }
+}
+
 void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
   // This function generates address to access
   // based on I/O type, blocksize/align and offset/size

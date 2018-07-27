@@ -103,6 +103,8 @@ bool Engine::isEventExist(SimpleSSD::Event eid, uint64_t *pTick) {
 }
 
 uint64_t Engine::getCurrentTick() {
+  std::lock_guard<std::mutex> guard(mTick);
+
   return simTick;
 }
 
@@ -120,12 +122,19 @@ void Engine::scheduleEvent(SimpleSSD::Event eid, uint64_t tick) {
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
-    if (tick < simTick) {
+    uint64_t tickCopy;
+
+    {
+      std::lock_guard<std::mutex> guard(mTick);
+      tickCopy = simTick;
+    }
+
+    if (tick < tickCopy) {
       SimpleSSD::warn("Tried to schedule %" PRIu64
                       " < simTick to event %" PRIu64 ". Set tick as simTick.",
                       tick, eid);
 
-      tick = simTick;
+      tick = tickCopy;
     }
 
     uint64_t oldTick;
@@ -179,6 +188,8 @@ void Engine::deallocateEvent(SimpleSSD::Event eid) {
 }
 
 bool Engine::doNextEvent() {
+  uint64_t tickCopy;
+
   if (forceStop) {
     return false;
   }
@@ -186,13 +197,19 @@ bool Engine::doNextEvent() {
   if (eventQueue.size() > 0) {
     auto &now = eventQueue.front();
 
-    simTick = now.second;
+    {
+      std::lock_guard<std::mutex> guard(mTick);
+
+      simTick = now.second;
+      tickCopy = simTick;
+    }
+
     auto iter = eventList.find(now.first);
 
     eventQueue.pop_front();
 
     if (iter != eventList.end()) {
-      iter->second(simTick);
+      iter->second(tickCopy);
     }
     else {
       SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
@@ -219,7 +236,11 @@ void Engine::printStats(std::ostream &out) {
   double duration = watch.getDuration();
 
   out << "*** Statistics of Event Engine ***" << std::endl;
-  out << "Simulation Tick (ps): " << simTick << std::endl;
+  {
+    std::lock_guard<std::mutex> guard(mTick);
+
+    out << "Simulation Tick (ps): " << simTick << std::endl;
+  }
   out << "Host time duration (sec): " << std::to_string(duration) << std::endl;
   out << "Event handled: " << eventHandled << " ("
       << std::to_string(eventHandled / duration) << " ops)" << std::endl;

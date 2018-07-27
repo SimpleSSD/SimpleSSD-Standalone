@@ -274,6 +274,7 @@ void statistics(uint64_t tick) {
 void threadFunc(int tick) {
   uint64_t current;
   uint64_t old = 0;
+  float progress;
   auto duration = std::chrono::seconds(tick);
 
   while (true) {
@@ -287,8 +288,9 @@ void threadFunc(int tick) {
     }
 
     engine.getStat(current);
+    pIOGen->getProgress(progress);
 
-    printf("*** Engine performance: %lf ops\r",
+    printf("*** Progress: %f %% (%lf ops)\r", progress * 100.f,
            (double)(current - old) / tick);
     fflush(stdout);
 

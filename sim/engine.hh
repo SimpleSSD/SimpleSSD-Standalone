@@ -33,6 +33,7 @@
 
 class Engine : public SimpleSSD::Simulator {
  private:
+  std::mutex mTick;
   uint64_t simTick;
   SimpleSSD::Event counter;
   bool forceStop;

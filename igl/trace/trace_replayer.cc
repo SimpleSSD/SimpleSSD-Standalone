@@ -41,6 +41,10 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
     SimpleSSD::panic("Failed to open trace file %s!", filename.c_str());
   }
 
+  file.seekg(0, std::ios::end);
+  fileSize = file.tellg();
+  file.seekg(0, std::ios::beg);
+
   // Create regex
   try {
     regex = std::regex(c.readString(CONFIG_TRACE, TRACE_LINE_REGEX));
@@ -136,6 +140,17 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "*** End of statistics ***" << std::endl;
 }
 
+void TraceReplayer::getProgress(float &val) {
+  uint64_t ptr;
+
+  {
+    std::lock_guard<std::mutex> guard(m);
+    ptr = file.tellg();
+  }
+
+  val = (float)ptr / fileSize;
+}
+
 uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   uint64_t tick = 0;
   bool valid = true;
@@ -222,7 +237,16 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   // Read line
   while (true) {
-    if (file.eof()) {
+    bool eof = false;
+
+    {
+      std::lock_guard<std::mutex> guard(m);
+
+      eof = file.eof();
+      std::getline(file, line);
+    }
+
+    if (eof) {
       reserveTermination = true;
 
       if (iodepth == 0) {
@@ -232,8 +256,6 @@ void TraceReplayer::handleNextLine(bool begin) {
 
       return;
     }
-
-    std::getline(file, line);
 
     if (std::regex_match(line, match, regex)) {
       break;
