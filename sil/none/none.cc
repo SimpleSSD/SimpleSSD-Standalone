@@ -91,10 +91,12 @@ void Driver::submitIO(BIL::BIO &bio) {
 
 void Driver::initStats(std::vector<SimpleSSD::Stats> &list) {
   pHIL->getStatList(list, "");
+  SimpleSSD::getCPUStatList(list, "cpu");
 }
 
 void Driver::getStats(std::vector<double> &values) {
   pHIL->getStatValues(values);
+  SimpleSSD::getCPUStatValues(values);
 }
 
 }
