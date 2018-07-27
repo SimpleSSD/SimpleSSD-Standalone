@@ -26,6 +26,7 @@ const char NAME_MODE[] = "Mode";
 const char NAME_LOG_PERIOD[] = "LogPeriod";
 const char NAME_LOG_FILE[] = "LogFile";
 const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
+const char NAME_PROGRESS_PERIOD[] = "ProgressPeriod";
 const char NAME_INTERFACE[] = "Interface";
 const char NAME_SCHEDULER[] = "Scheduler";
 const char NAME_BREAK_ASYNC[] = "BreakAsyncIO";
@@ -34,6 +35,7 @@ const char NAME_BREAK_SYNC[] = "BreakSyncIO";
 Config::Config() {
   mode = MODE_REQUEST_GENERATOR;
   logPeriod = 0;
+  progressPeriod = 0;
   interface = INTERFACE_NVME;
   scheduler = SCHEDULER_NOOP;
 }
@@ -52,6 +54,9 @@ bool Config::setConfig(const char *name, const char *value) {
   }
   else if (MATCH_NAME(NAME_DEBUG_LOG_FILE)) {
     logDebugFile = value;
+  }
+  else if (MATCH_NAME(NAME_PROGRESS_PERIOD)) {
+    progressPeriod = strtoul(value, nullptr, 10);
   }
   else if (MATCH_NAME(NAME_INTERFACE)) {
     interface = (INTERFACE)strtoul(value, nullptr, 10);
@@ -90,6 +95,9 @@ uint64_t Config::readUint(uint32_t idx) {
       break;
     case GLOBAL_LOG_PERIOD:
       ret = logPeriod;
+      break;
+    case GLOBAL_PROGRESS_PERIOD:
+    ret = progressPeriod;
       break;
     case GLOBAL_INTERFACE:
       ret = interface;

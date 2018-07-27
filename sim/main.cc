@@ -47,7 +47,7 @@ std::ofstream debugLogOut;
 // Declaration
 void cleanup(int);
 void statistics(uint64_t);
-void threadFunc();
+void threadFunc(int);
 
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
@@ -193,7 +193,11 @@ int main(int argc, char *argv[]) {
   std::cout << "********** Begin of simulation **********" << std::endl;
 
   if (noLogPrintOnScreen) {
-    pThread = new std::thread(threadFunc);
+    int period = (int)simConfig.readUint(CONFIG_GLOBAL, GLOBAL_PROGRESS_PERIOD);
+
+    if (period > 0) {
+      pThread = new std::thread(threadFunc, period);
+    }
   }
 
   while (engine.doNextEvent())
@@ -215,12 +219,16 @@ void cleanup(int) {
   engine.printStats(std::cout);
 
   releaseSimpleSSDEngine();
-  pThread->join();
 
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
-  delete pThread;
+
+  if (pThread) {
+    pThread->join();
+
+    delete pThread;
+  }
 
   if (logOut.is_open()) {
     logOut.close();
@@ -263,10 +271,9 @@ void statistics(uint64_t tick) {
   out << "End of log @ tick " << tick << std::endl;
 }
 
-void threadFunc() {
+void threadFunc(int tick) {
   uint64_t current;
   uint64_t old = 0;
-  const int tick = 2;
   auto duration = std::chrono::seconds(tick);
 
   while (true) {
@@ -281,7 +288,8 @@ void threadFunc() {
 
     engine.getStat(current);
 
-    printf("*** Engine performance: %lf ops\r", (double)(current - old) / tick);
+    printf("*** Engine performance: %lf ops\r",
+           (double)(current - old) / tick);
     fflush(stdout);
 
     old = current;

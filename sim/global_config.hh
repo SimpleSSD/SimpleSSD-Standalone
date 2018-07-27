@@ -29,6 +29,7 @@ typedef enum {
   GLOBAL_LOG_PERIOD,
   GLOBAL_LOG_FILE,
   GLOBAL_DEBUG_LOG_FILE,
+  GLOBAL_PROGRESS_PERIOD,
   GLOBAL_INTERFACE,
   GLOBAL_SCHEDULER,
   GLOBAL_BREAK_ASYNC,
@@ -60,6 +61,7 @@ class Config : public SimpleSSD::BaseConfig {
   uint64_t logPeriod;
   std::string logFile;
   std::string logDebugFile;
+  uint64_t progressPeriod;
   INTERFACE interface;
   SCHEDULER scheduler;
   uint64_t asyncBreak;
