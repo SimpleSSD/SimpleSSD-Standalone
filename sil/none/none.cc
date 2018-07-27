@@ -99,6 +99,6 @@ void Driver::getStats(std::vector<double> &values) {
   SimpleSSD::getCPUStatValues(values);
 }
 
-}
+}  // namespace None
 
 }  // namespace SIL

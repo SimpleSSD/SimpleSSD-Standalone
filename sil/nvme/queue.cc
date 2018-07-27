@@ -67,6 +67,14 @@ void Queue::setData(uint8_t *buffer, uint16_t length) {
   }
 }
 
+uint16_t Queue::getHead() {
+  return head;
+}
+
+uint16_t Queue::getTail() {
+  return tail;
+}
+
 }  // namespace NVMe
 
 }  // namespace SIL

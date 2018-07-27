@@ -48,7 +48,7 @@ class Driver : public BIL::DriverInterface {
   void getStats(std::vector<double> &) override;
 };
 
-}
+}  // namespace None
 
 }  // namespace SIL
 

@@ -45,6 +45,8 @@ class Queue {
   void getBaseAddress(uint64_t &);
   void getData(uint8_t *, uint16_t);  // Increase head
   void setData(uint8_t *, uint16_t);  // Increase tail
+  uint16_t getHead();
+  uint16_t getTail();
 };
 
 }  // namespace NVMe
