@@ -214,7 +214,9 @@ void cleanup(int) {
   // Print last statistics
   statistics(engine.getCurrentTick());
 
-  std::cout << std::endl;
+  // Erase progress
+  printf("                                                                 \r");
+
   pIOGen->printStats(std::cout);
   engine.printStats(std::cout);
 
@@ -290,7 +292,7 @@ void threadFunc(int tick) {
     engine.getStat(current);
     pIOGen->getProgress(progress);
 
-    printf("*** Progress: %f %% (%lf ops)\r", progress * 100.f,
+    printf("*** Progress: %.2f %% (%lf ops)\r", progress * 100.f,
            (double)(current - old) / tick);
     fflush(stdout);
 
