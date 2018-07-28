@@ -119,7 +119,7 @@ void PRP::getPointer(uint64_t &prp1, uint64_t &prp2) {
   prp2 = ptr2;
 }
 
-void PRP::accessData(uint64_t offset, uint64_t size, uint8_t *buffer) {
+void PRP::readData(uint64_t offset, uint64_t size, uint8_t *buffer) {
   uint64_t begin = offset / PAGE_SIZE;
   uint64_t end = DIVCEIL(offset + size, PAGE_SIZE);
   uint64_t copied = 0;
@@ -129,6 +129,21 @@ void PRP::accessData(uint64_t offset, uint64_t size, uint8_t *buffer) {
     uint64_t len = MIN((i + 1) * PAGE_SIZE - offset, size - copied);
 
     memcpy(buffer, (uint8_t *)ptr, len);
+
+    copied += len;
+  }
+}
+
+void PRP::writeData(uint64_t offset, uint64_t size, uint8_t *buffer) {
+  uint64_t begin = offset / PAGE_SIZE;
+  uint64_t end = DIVCEIL(offset + size, PAGE_SIZE);
+  uint64_t copied = 0;
+
+  for (uint64_t i = begin; i < end; i++) {
+    uint64_t ptr = ptrList[i] + (offset - i * PAGE_SIZE);
+    uint64_t len = MIN((i + 1) * PAGE_SIZE - offset, size - copied);
+
+    memcpy((uint8_t *)ptr, buffer, len);
 
     copied += len;
   }

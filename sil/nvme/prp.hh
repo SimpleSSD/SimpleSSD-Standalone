@@ -46,7 +46,8 @@ class PRP {
   ~PRP();
 
   void getPointer(uint64_t &, uint64_t &);
-  void accessData(uint64_t, uint64_t, uint8_t *);
+  void readData(uint64_t, uint64_t, uint8_t *);
+  void writeData(uint64_t, uint64_t, uint8_t *);
 };
 
 }  // namespace NVMe
