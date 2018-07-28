@@ -53,7 +53,7 @@ void Queue::peekData(uint8_t *buffer, uint16_t length) {
 }
 
 void Queue::getData(uint8_t *buffer, uint16_t length) {
-  peekData(buffer,length);
+  peekData(buffer, length);
 
   incrHead();
 }

@@ -154,7 +154,7 @@ void Driver::_init1(uint16_t, void *context) {
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
-  cmd[1] = 1; //NSID
+  cmd[1] = 1;                                      // NSID
   prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_NAMESPACE;           // CNS
 
@@ -229,7 +229,7 @@ void Driver::_init3(uint16_t, uint32_t dw0, void *) {
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_CREATE_IO_CQUEUE;  // CID, FUSE, OPC
   ioCQ->getBaseAddress(*(uint64_t *)(cmd + 6));            // DPTR.PRP1
-  cmd[10] = ((uint32_t)entries << 16) | 0x0001;            // QSIZE, QID
+  cmd[10] = ((uint32_t)(entries - 1) << 16) | 0x0001;      // QSIZE, QID
   cmd[11] = 0x00010003;                                    // IV, IEN, PC
 
   submitCommand(0, (uint8_t *)cmd, callback, nullptr);
@@ -253,12 +253,12 @@ void Driver::_init4(uint16_t status, void *) {
     entries = maxQueueEntries;
   }
 
-  ioSQ = new Queue(entries, 16);
+  ioSQ = new Queue(entries, 64);
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_CREATE_IO_SQUEUE;  // CID, FUSE, OPC
   ioSQ->getBaseAddress(*(uint64_t *)(cmd + 6));            // DPTR.PRP1
-  cmd[10] = ((uint32_t)entries << 16) | 0x0001;            // QSIZE, QID
+  cmd[10] = ((uint32_t)(entries - 1) << 16) | 0x0001;      // QSIZE, QID
   cmd[11] = 0x00010001;                                    // CQID, QPRIO, PC
 
   submitCommand(0, (uint8_t *)cmd, callback, nullptr);
@@ -339,7 +339,7 @@ void Driver::submitIO(BIL::BIO &bio) {
   uint64_t slba = bio.offset / LBAsize;
   uint32_t nlb = (uint32_t)DIVCEIL(bio.length, LBAsize);
 
-  cmd[1] = 1; // NSID
+  cmd[1] = 1;  // NSID
 
   if (bio.type == BIL::BIO_READ) {
     cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_READ;  // CID, FUSE, OPC
@@ -525,6 +525,7 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
 
   if (post) {
     uint64_t tick = engine.getCurrentTick();
+    uint16_t count = 0;
     Queue *queue = nullptr;
 
     if (iv == 0) {
@@ -543,6 +544,11 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
 
       // Check phase tag
       if (((cqdata[3] >> 16) & 0x01) == phase) {
+        bool found = false;
+
+        queue->incrTail();
+        count++;
+
         // Search pending command list
         for (auto iter = pendingCommandList.begin();
              iter != pendingCommandList.end(); iter++) {
@@ -551,15 +557,28 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
                            iter->context);
 
             pendingCommandList.erase(iter);
+            found = true;
 
             break;
           }
         }
 
-        queue->incrHead();
+        if (found) {
+          queue->incrHead();
+
+          if (queue->getHead() == 0) {
+            // Inverted
+            phase = !phase;
+          }
+        }
+        else {
+          SimpleSSD::panic("Invalid interrupt");
+        }
       }
       else {
-        pController->ringCQHeadDoorbell(iv, queue->getHead(), tick);
+        if (count > 0) {
+          pController->ringCQHeadDoorbell(iv, queue->getHead(), tick);
+        }
 
         break;
       }
