@@ -104,6 +104,7 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
   uint16_t maxQueueEntries;
   uint16_t adminCommandID;
   uint16_t ioCommandID;
+  bool phase;
   Queue *adminSQ;
   Queue *adminCQ;
   Queue *ioSQ;

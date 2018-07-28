@@ -31,6 +31,7 @@ Driver::Driver(Engine &e, SimpleSSD::ConfigReader &conf)
     : BIL::DriverInterface(e),
       dmaReadPending(false),
       dmaWritePending(false),
+      phase(true),
       adminSQ(nullptr),
       adminCQ(nullptr),
       ioSQ(nullptr),
@@ -102,7 +103,8 @@ void Driver::init(std::function<void()> &func) {
 
   // Step 4. Configure controller
   // Step 5. Enable controller
-  temp.value = 1;  // 4K page, NVM command set, Round Robin, Enable
+  temp.value = 1;            // Round Robin, 4K page, NVM command set, Enable
+  temp.value |= 0x00460000;  // 64B SQEntry, 16B CQEntry
   pController->writeRegister(SimpleSSD::HIL::NVMe::REG_CONTROLLER_CONFIG, 4,
                              temp.buffer, tick);
 
@@ -279,29 +281,33 @@ void Driver::submitCommand(uint16_t iv, uint8_t *cmd, ResponseHandler &func,
   uint16_t opcode = cmd[0];
   uint16_t tail = 0;
   uint64_t tick = engine.getCurrentTick();
+  Queue *queue = nullptr;
 
   // Push to queue
   if (iv == 0) {
-    adminSQ->setData(cmd, 64);
     increaseCommandID(adminCommandID);
     cid = adminCommandID;
-    tail = adminSQ->getTail();
+    queue = adminSQ;
   }
   else if (iv == 1 && ioSQ) {
-    ioSQ->setData(cmd, 64);
     increaseCommandID(ioCommandID);
     cid = ioCommandID;
-    tail = ioSQ->getTail();
+    queue = ioSQ;
   }
   else {
     SimpleSSD::panic("I/O Submission Queue is not initialized");
   }
+
+  memcpy(cmd + 2, &cid, 2);
+  queue->setData(cmd, 64);
+  tail = queue->getTail();
 
   // Push to pending cmd list
   pendingCommandList.push_back(CommandEntry(iv, opcode, cid, context, func));
 
   // Ring doorbell
   pController->ringSQTailDoorbell(iv, tail, tick);
+  queue->incrHead();
 }
 
 void Driver::increaseCommandID(uint16_t &id) {
@@ -515,23 +521,42 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
   uint32_t cqdata[4];
 
   if (post) {
+    uint64_t tick = engine.getCurrentTick();
+    Queue *queue = nullptr;
+
     if (iv == 0) {
-      adminCQ->getData((uint8_t *)cqdata, 16);
+      queue = adminCQ;
     }
     else if (iv == 1 && ioCQ) {
-      ioCQ->getData((uint8_t *)cqdata, 16);
+      queue = ioCQ;
     }
     else {
       SimpleSSD::panic("I/O Completion Queue is not initialized");
     }
 
-    // Search pending command list
-    for (auto iter = pendingCommandList.begin();
-         iter != pendingCommandList.end(); iter++) {
-      if (iter->iv == iv && iter->cid == (cqdata[3] & 0xFFFF)) {
-        iter->callback((uint16_t)(cqdata[3] >> 17), cqdata[0], iter->context);
+    // Peek queue for count how many requests are finished
+    while (true) {
+      queue->peekData((uint8_t *)cqdata, 16);
 
-        pendingCommandList.erase(iter);
+      // Check phase tag
+      if (((cqdata[3] >> 16) & 0x01) == phase) {
+        // Search pending command list
+        for (auto iter = pendingCommandList.begin();
+             iter != pendingCommandList.end(); iter++) {
+          if (iter->iv == iv && iter->cid == (cqdata[3] & 0xFFFF)) {
+            iter->callback((uint16_t)(cqdata[3] >> 17), cqdata[0],
+                           iter->context);
+
+            pendingCommandList.erase(iter);
+
+            break;
+          }
+        }
+
+        queue->incrHead();
+      }
+      else {
+        pController->ringCQHeadDoorbell(iv, queue->getHead(), tick);
 
         break;
       }

@@ -47,6 +47,9 @@ class Queue {
   void setData(uint8_t *, uint16_t);  // Increase tail
   uint16_t getHead();
   uint16_t getTail();
+  void incrHead();
+  void incrTail();
+  void peekData(uint8_t *, uint16_t); // Get data without increasing head
 };
 
 }  // namespace NVMe

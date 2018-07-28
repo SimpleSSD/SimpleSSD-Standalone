@@ -48,24 +48,20 @@ void Queue::getBaseAddress(uint64_t &ptr) {
   ptr = (uint64_t)memory;
 }
 
-void Queue::getData(uint8_t *buffer, uint16_t length) {
+void Queue::peekData(uint8_t *buffer, uint16_t length) {
   memcpy(buffer, memory + head * stride, length);
+}
 
-  head++;
+void Queue::getData(uint8_t *buffer, uint16_t length) {
+  peekData(buffer,length);
 
-  if (head == entries) {
-    head = 0;
-  }
+  incrHead();
 }
 
 void Queue::setData(uint8_t *buffer, uint16_t length) {
   memcpy(memory + tail * stride, buffer, length);
 
-  tail++;
-
-  if (tail == entries) {
-    tail = 0;
-  }
+  incrTail();
 }
 
 uint16_t Queue::getHead() {
@@ -74,6 +70,22 @@ uint16_t Queue::getHead() {
 
 uint16_t Queue::getTail() {
   return tail;
+}
+
+void Queue::incrHead() {
+  head++;
+
+  if (head == entries) {
+    head = 0;
+  }
+}
+
+void Queue::incrTail() {
+  tail++;
+
+  if (tail == entries) {
+    tail = 0;
+  }
 }
 
 }  // namespace NVMe
