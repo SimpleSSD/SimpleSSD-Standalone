@@ -58,18 +58,28 @@ typedef struct _DMAEntry {
         func(f) {}
 } DMAEntry;
 
+typedef std::function<void(uint16_t, uint32_t, void *)> ResponseHandler;
+
 typedef struct _CommandEntry {
   uint16_t iv;  // Same as Queue ID
   uint16_t opcode;
   uint16_t cid;
   void *context;
 
-  std::function<void(uint16_t, void *)> callback;
+  ResponseHandler callback;
 
-  _CommandEntry(uint16_t i, uint16_t o, uint16_t c, void *p,
-                std::function<void(uint16_t, void *)> &f)
+  _CommandEntry(uint16_t i, uint16_t o, uint16_t c, void *p, ResponseHandler &f)
       : iv(i), opcode(o), cid(c), context(p), callback(f) {}
 } CommandEntry;
+
+typedef struct _IOWrapper {
+  uint64_t id;
+  PRP *prp;
+  std::function<void(uint64_t)> bioCallback;
+
+  _IOWrapper(uint64_t i, PRP *p, std::function<void(uint64_t)> &f)
+      : id(i), prp(p), bioCallback(f) {}
+} IOWrapper;
 
 class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
  private:
@@ -88,6 +98,7 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
   // NVMe Identify
   uint64_t capacity;
   uint32_t LBAsize;
+  uint32_t namespaces;
 
   // Queue
   uint16_t maxQueueEntries;
@@ -107,9 +118,14 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
   void increaseCommandID(uint16_t &);
 
   void _init1(uint16_t, void *);
+  void _init2(uint16_t, void *);
+  void _init3(uint16_t, uint32_t, void *);
+  void _init4(uint16_t, void *);
+  void _init5(uint16_t, void *);
 
-  void submitCommand(uint16_t, uint8_t *,
-                     std::function<void(uint16_t, void *)> &, void *);
+  void _io(uint16_t, void *);
+
+  void submitCommand(uint16_t, uint8_t *, ResponseHandler &, void *);
 
  public:
   Driver(Engine &, SimpleSSD::ConfigReader &);

@@ -107,24 +107,173 @@ void Driver::init(std::function<void()> &func) {
                              temp.buffer, tick);
 
   // Step 6. Wait for CSTS.RDY = 1
-  // Step 7. Send Identify Controller
+  // Step 7. Send Identify
+  // Step 7-1. Submit Identify Controller
   uint32_t cmd[16];
   PRP *prp = new PRP(4096);
-  std::function<void(uint16_t, void *)> callback =
-      [this](uint16_t status, void *context) { _init1(status, context); };
+  ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
+    _init1(status, context);
+  };
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
   prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
-  cmd[10] = 1;                                                      // CNS
+  cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_CONTROLLER;          // CNS
 
   submitCommand(0, (uint8_t *)cmd, callback, prp);
 }
 
-void Driver::_init1(uint16_t status, void *prp) {}
+void Driver::_init1(uint16_t status, void *context) {
+  union {
+    uint64_t value;
+    uint8_t buffer[8];
+  } temp;
+  PRP *prp = (PRP *)context;
 
-void Driver::submitCommand(uint16_t iv, uint8_t *cmd,
-                           std::function<void(uint16_t, void *)> &func,
+  // Step 7-2. Check structures
+  prp->readData(0x204, 4, temp.buffer);
+  namespaces = (uint32_t)temp.value;
+
+  if (namespaces == 0) {
+    SimpleSSD::panic("This NVMe SSD does not have any namespaces.");
+  }
+  else if (namespaces > 1) {
+    SimpleSSD::warn("This NVMe SSD has namespaces more than one.");
+    SimpleSSD::warn("All I/O will occur on namespace ID 1.");
+  }
+
+  // Step 7-3. Send Identify Namespace
+  // NOTE: You may want to send Identify Active Namepace first.
+  // Reuse PRP here
+  uint32_t cmd[16];
+  ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
+    _init2(status, context);
+  };
+
+  memset(cmd, 0, 64);
+  cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
+  prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
+  cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_NAMESPACE;           // CNS
+
+  submitCommand(0, (uint8_t *)cmd, callback, prp);
+}
+
+void Driver::_init2(uint16_t status, void *context) {
+  union {
+    uint64_t value;
+    uint8_t buffer[8];
+  } temp;
+  PRP *prp = (PRP *)context;
+  uint8_t nFormat, currentFormat;
+  uint32_t formatData;
+
+  // Step 7-4. Check structures
+  prp->readData(0, 8, temp.buffer);
+  capacity = temp.value;
+
+  prp->readData(25, 1, &nFormat);
+  nFormat++;
+
+  prp->readData(26, 1, &currentFormat);
+  prp->readData(128 + currentFormat * 4ull, 4, (uint8_t *)&formatData);
+
+  LBAsize = (uint32_t)powf(2.f, (float)((formatData >> 16) & 0xFF));
+  capacity *= LBAsize;
+
+  delete prp;
+
+  SimpleSSD::info("SIL::NVMe::Driver: Total SSD capacity: %" PRIu64 " bytes",
+                  capacity);
+  SimpleSSD::info("SIL::NVMe::Driver: Logical Block Size: %" PRIu32 " bytes",
+                  LBAsize);
+
+  // Step 8. Determine I/O queue count
+  // Step 8-1. Send Set Feature
+  uint32_t cmd[16];
+  ResponseHandler callback = [this](uint16_t status, uint32_t dw0,
+                                    void *context) {
+    _init3(status, dw0, context);
+  };
+
+  memset(cmd, 0, 64);
+  cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_SET_FEATURES;        // CID, FUSE, OPC
+  cmd[10] = SimpleSSD::HIL::NVMe::FEATURE_NUMBER_OF_QUEUES;  // FID
+  cmd[11] = 0x00000000;  // One I/O SQ, One I/O CQ
+
+  submitCommand(0, (uint8_t *)cmd, callback, nullptr);
+}
+
+void Driver::_init3(uint16_t status, uint32_t dw0, void *context) {
+  // Step 8-2. Check response
+  if (dw0 != 0x00000000) {
+    SimpleSSD::warn("NVMe SSD responsed too many I/O queue");
+  }
+
+  // Step 9. Allocate I/O Completion Queue
+  // Step 9-1. Send Create I/O Completion Queue
+  uint32_t cmd[16];
+  uint16_t entries = QUEUE_ENTRY_IO;
+  ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
+    _init4(status, context);
+  };
+
+  if (entries > maxQueueEntries) {
+    entries = maxQueueEntries;
+  }
+
+  ioCQ = new Queue(entries, 16);
+
+  memset(cmd, 0, 64);
+  cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_CREATE_IO_CQUEUE;  // CID, FUSE, OPC
+  ioCQ->getBaseAddress(*(uint64_t *)(cmd + 6));            // DPTR.PRP1
+  cmd[10] = ((uint32_t)entries << 16) | 0x0001;            // QSIZE, QID
+  cmd[11] = 0x00010003;                                    // IV, IEN, PC
+
+  submitCommand(0, (uint8_t *)cmd, callback, nullptr);
+}
+
+void Driver::_init4(uint16_t status, void *context) {
+  // Step 9-2. Check result
+  if (status != 0) {
+    SimpleSSD::panic("Failed to create I/O Completion Queue");
+  }
+
+  // Step 10. Allocate I/O Submission Queue
+  // Step 10-1. Send Create I/O Submission Queue
+  uint32_t cmd[16];
+  uint16_t entries = QUEUE_ENTRY_IO;
+  ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
+    _init5(status, context);
+  };
+
+  if (entries > maxQueueEntries) {
+    entries = maxQueueEntries;
+  }
+
+  ioSQ = new Queue(entries, 16);
+
+  memset(cmd, 0, 64);
+  cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_CREATE_IO_SQUEUE;  // CID, FUSE, OPC
+  ioSQ->getBaseAddress(*(uint64_t *)(cmd + 6));            // DPTR.PRP1
+  cmd[10] = ((uint32_t)entries << 16) | 0x0001;            // QSIZE, QID
+  cmd[11] = 0x00010001;                                    // CQID, QPRIO, PC
+
+  submitCommand(0, (uint8_t *)cmd, callback, nullptr);
+}
+
+void Driver::_init5(uint16_t status, void *context) {
+  // Step 10-2. Check result
+  if (status != 0) {
+    SimpleSSD::panic("Failed to create I/O Submission Queue");
+  }
+
+  SimpleSSD::info("SIL::NVMe::Driver: Initialization finished");
+
+  // Now we initialized NVMe SSD
+  beginFunction();
+}
+
+void Driver::submitCommand(uint16_t iv, uint8_t *cmd, ResponseHandler &func,
                            void *context) {
   uint16_t cid;
   uint16_t opcode = cmd[0];
@@ -149,14 +298,14 @@ void Driver::submitCommand(uint16_t iv, uint8_t *cmd,
   }
 
   // Push to pending cmd list
-  pendingCommandList.push_back(CommandEntry(iv, opcode, cid, func, context));
+  pendingCommandList.push_back(CommandEntry(iv, opcode, cid, context, func));
 
   // Ring doorbell
   pController->ringSQTailDoorbell(iv, tail, tick);
 }
 
 void Driver::increaseCommandID(uint16_t &id) {
-  static const uint16_t maxID = MAX(QUEUE_ENTRY_ADMIN, QUEUE_ENTRY_IO);
+  static const uint16_t maxID = 32767;
 
   id++;
 
@@ -165,9 +314,80 @@ void Driver::increaseCommandID(uint16_t &id) {
   }
 }
 
-void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {}
+void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+  bytesize = capacity;
+  minbs = LBAsize;
+}
 
-void Driver::submitIO(BIL::BIO &bio) {}
+void Driver::submitIO(BIL::BIO &bio) {
+  uint32_t cmd[16];
+  PRP *prp = nullptr;
+  static ResponseHandler callback = [this](uint16_t status, uint32_t,
+                                           void *context) {
+    _io(status, context);
+  };
+
+  memset(cmd, 0, 64);
+
+  uint64_t slba = bio.offset / LBAsize;
+  uint32_t nlb = (uint32_t)DIVCEIL(bio.length, LBAsize);
+
+  if (bio.type == BIL::BIO_READ) {
+    cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_READ;  // CID, FUSE, OPC
+    cmd[10] = (uint32_t)slba;
+    cmd[11] = slba >> 32;
+    cmd[12] = nlb;  // LR, FUA, PRINFO, NLB
+
+    prp = new PRP(bio.length);
+    prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
+  }
+  else if (bio.type == BIL::BIO_WRITE) {
+    cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_WRITE;  // CID, FUSE, OPC
+    cmd[10] = (uint32_t)slba;
+    cmd[11] = slba >> 32;
+    cmd[12] = nlb;  // LR, FUA, PRINFO, DTYPE, NLB
+
+    prp = new PRP(bio.length);
+    prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
+  }
+  else if (bio.type == BIL::BIO_FLUSH) {
+    cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_FLUSH;  // CID, FUSE, OPC
+  }
+  else if (bio.type == BIL::BIO_TRIM) {
+    cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_DATASET_MANAGEMEMT;  // CID, FUSE, OPC
+    cmd[10] = 0;                                               // NR
+    cmd[11] = 0x04;                                            // AD
+
+    prp = new PRP(16);
+    prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
+
+    // Fill range definition
+    uint8_t data[16];
+
+    memset(data, 0, 16);
+    memcpy(data + 4, &nlb, 4);
+    memcpy(data + 8, &slba, 8);
+
+    prp->writeData(0, 16, data);
+  }
+
+  submitCommand(1, (uint8_t *)cmd, callback,
+                new IOWrapper(bio.id, prp, bio.callback));
+}
+
+void Driver::_io(uint16_t status, void *context) {
+  IOWrapper *wrapper = (IOWrapper *)context;
+  PRP *prp = wrapper->prp;
+
+  if (status != 0) {
+    SimpleSSD::warn("I/O error: %04X", status);
+  }
+
+  wrapper->bioCallback(wrapper->id);
+
+  delete prp;
+  delete wrapper;
+}
 
 void Driver::initStats(std::vector<SimpleSSD::Stats> &list) {
   pController->getStatList(list, "");
@@ -309,7 +529,7 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
     for (auto iter = pendingCommandList.begin();
          iter != pendingCommandList.end(); iter++) {
       if (iter->iv == iv && iter->cid == cqdata[7]) {
-        iter->callback(cqdata[6] >> 1, iter->context);
+        iter->callback(cqdata[6] >> 1, *(uint32_t *)(cqdata), iter->context);
 
         pendingCommandList.erase(iter);
 
