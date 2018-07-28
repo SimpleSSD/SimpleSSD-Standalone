@@ -17,36 +17,27 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "util/stopwatch.hh"
 
-#ifndef __BIL_DRIVER_INTERFACE__
-#define __BIL_DRIVER_INTERFACE__
+Stopwatch::Stopwatch() {}
 
-#include <functional>
+Stopwatch::~Stopwatch() {}
 
-#include "bil/entry.hh"
-#include "simplessd/sim/statistics.hh"
+double Stopwatch::getTime() {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(
+             std::chrono::high_resolution_clock::now().time_since_epoch())
+      .count();
+}
 
-namespace BIL {
+void Stopwatch::start() {
+  begin = std::chrono::high_resolution_clock::now();
+}
 
-class DriverInterface {
- protected:
-  Engine &engine;
+void Stopwatch::stop() {
+  end = std::chrono::high_resolution_clock::now();
+}
 
-  std::function<void()> beginFunction;
-
- public:
-  DriverInterface(Engine &e) : engine(e) {}
-  virtual ~DriverInterface() {}
-
-  virtual void init(std::function<void()> &) = 0;
-  virtual void getInfo(uint64_t &, uint32_t &) = 0;
-  virtual void submitIO(BIO &) = 0;
-
-  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
-};
-
-}  // namespace BIL
-
-#endif
+double Stopwatch::getDuration() {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(end - begin)
+      .count();
+}

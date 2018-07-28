@@ -23,7 +23,9 @@
 #define __IGL_TRACE_REPLAYER__
 
 #include <fstream>
+#include <mutex>
 #include <regex>
+#include <thread>
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
@@ -48,8 +50,12 @@ class TraceReplayer : public IOGenerator {
     ID_NUM
   };
 
+  std::mutex m;
+
   std::ifstream file;
   std::regex regex;
+
+  uint64_t fileSize;
 
   TIMING_MODE mode;
   uint64_t syncBreak;
@@ -96,6 +102,7 @@ class TraceReplayer : public IOGenerator {
   void init(uint64_t, uint32_t) override;
   void begin() override;
   void printStats(std::ostream &) override;
+  void getProgress(float &) override;
 };
 
 }  // namespace IGL

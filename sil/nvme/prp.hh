@@ -19,34 +19,39 @@
 
 #pragma once
 
-#ifndef __BIL_DRIVER_INTERFACE__
-#define __BIL_DRIVER_INTERFACE__
+#ifndef __DRIVERS_NVME_PRP__
+#define __DRIVERS_NVME_PRP__
 
-#include <functional>
+#include <cinttypes>
+#include <vector>
 
-#include "bil/entry.hh"
-#include "simplessd/sim/statistics.hh"
+#define PAGE_SIZE 4096
 
-namespace BIL {
+namespace SIL {
 
-class DriverInterface {
- protected:
-  Engine &engine;
+namespace NVMe {
 
-  std::function<void()> beginFunction;
+class PRP {
+ private:
+  uint8_t *memory;
+  uint64_t capacity;
+
+  uint64_t ptr1;
+  uint64_t ptr2;
+
+  std::vector<uint64_t> ptrList;  // For faster access
 
  public:
-  DriverInterface(Engine &e) : engine(e) {}
-  virtual ~DriverInterface() {}
+  PRP(uint64_t);
+  ~PRP();
 
-  virtual void init(std::function<void()> &) = 0;
-  virtual void getInfo(uint64_t &, uint32_t &) = 0;
-  virtual void submitIO(BIO &) = 0;
-
-  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
+  void getPointer(uint64_t &, uint64_t &);
+  void readData(uint64_t, uint64_t, uint8_t *);
+  void writeData(uint64_t, uint64_t, uint8_t *);
 };
 
-}  // namespace BIL
+}  // namespace NVMe
+
+}  // namespace SIL
 
 #endif

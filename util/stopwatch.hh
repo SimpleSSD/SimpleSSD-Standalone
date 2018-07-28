@@ -17,36 +17,27 @@
  * along with SimpleSSD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#ifndef __UTIL_STOPWATCH__
+#define __UTIL_STOPWATCH__
 
-#ifndef __BIL_DRIVER_INTERFACE__
-#define __BIL_DRIVER_INTERFACE__
+#include <chrono>
 
-#include <functional>
-
-#include "bil/entry.hh"
-#include "simplessd/sim/statistics.hh"
-
-namespace BIL {
-
-class DriverInterface {
- protected:
-  Engine &engine;
-
-  std::function<void()> beginFunction;
+class Stopwatch {
+ private:
+  std::chrono::high_resolution_clock::time_point begin;
+  std::chrono::high_resolution_clock::time_point end;
 
  public:
-  DriverInterface(Engine &e) : engine(e) {}
-  virtual ~DriverInterface() {}
+  Stopwatch();
+  ~Stopwatch();
 
-  virtual void init(std::function<void()> &) = 0;
-  virtual void getInfo(uint64_t &, uint32_t &) = 0;
-  virtual void submitIO(BIO &) = 0;
+  // Get timepoint
+  double getTime();
 
-  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
+  // Stopwatch
+  void start();
+  void stop();
+  double getDuration();
 };
-
-}  // namespace BIL
 
 #endif

@@ -23,7 +23,9 @@
 #define __IGL_REQUEST_GENERATOR__
 
 #include <list>
+#include <mutex>
 #include <random>
+#include <thread>
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
@@ -34,6 +36,8 @@ namespace IGL {
 
 class RequestGenerator : public IOGenerator {
  private:
+  std::mutex m;
+
   uint64_t io_size;
   uint64_t io_submitted;
 
@@ -91,6 +95,7 @@ class RequestGenerator : public IOGenerator {
   void init(uint64_t, uint32_t) override;
   void begin() override;
   void printStats(std::ostream &) override;
+  void getProgress(float &) override;
 };
 
 }  // namespace IGL

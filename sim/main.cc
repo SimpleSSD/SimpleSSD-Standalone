@@ -19,11 +19,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <thread>
 
 #include "bil/entry.hh"
 #include "igl/request/request_generator.hh"
 #include "igl/trace/trace_replayer.hh"
 #include "sil/none/none.hh"
+#include "sil/nvme/nvme.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
@@ -36,6 +38,8 @@ BIL::DriverInterface *pInterface = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
+std::thread *pThread = nullptr;
+std::mutex killLock;
 SimpleSSD::Event statEvent;
 std::vector<SimpleSSD::Stats> statList;
 std::ofstream logOut;
@@ -44,6 +48,7 @@ std::ofstream debugLogOut;
 // Declaration
 void cleanup(int);
 void statistics(uint64_t);
+void threadFunc(int);
 
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
@@ -69,14 +74,18 @@ int main(int argc, char *argv[]) {
   }
 
   // Log setting
+  bool noLogPrintOnScreen = true;
+
   std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
   std::string debugLogPath =
       simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
 
   if (logPath.compare("STDOUT") == 0) {
+    noLogPrintOnScreen = false;
     pLog = &std::cout;
   }
   else if (logPath.compare("STDERR") == 0) {
+    noLogPrintOnScreen = false;
     pLog = &std::cerr;
   }
   else {
@@ -92,9 +101,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (debugLogPath.compare("STDOUT") == 0) {
+    noLogPrintOnScreen = false;
     pDebugLog = &std::cout;
   }
   else if (debugLogPath.compare("STDERR") == 0) {
+    noLogPrintOnScreen = false;
     pDebugLog = &std::cerr;
   }
   else {
@@ -116,7 +127,11 @@ int main(int argc, char *argv[]) {
   // Create Driver
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
     case INTERFACE_NONE:
-      pInterface = new SIL::NoneDriver(engine, ssdConfig);
+      pInterface = new SIL::None::Driver(engine, ssdConfig);
+
+      break;
+    case INTERFACE_NVME:
+      pInterface = new SIL::NVMe::Driver(engine, ssdConfig);
 
       break;
     default:
@@ -154,13 +169,14 @@ int main(int argc, char *argv[]) {
       return 5;
   }
 
-  uint64_t bytesize;
-  uint32_t bs;
-  std::function<void()> beginCallback = []() { pIOGen->begin(); };
+  std::function<void()> beginCallback = []() {
+    uint64_t bytesize;
+    uint32_t bs;
 
-  pInterface->init(beginCallback);
-  pInterface->getInfo(bytesize, bs);
-  pIOGen->init(bytesize, bs);
+    pInterface->getInfo(bytesize, bs);
+    pIOGen->init(bytesize, bs);
+    pIOGen->begin();
+  };
 
   // Insert stat event
   if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
@@ -182,6 +198,16 @@ int main(int argc, char *argv[]) {
   // Do Simulation
   std::cout << "********** Begin of simulation **********" << std::endl;
 
+  pInterface->init(beginCallback);
+
+  if (noLogPrintOnScreen) {
+    int period = (int)simConfig.readUint(CONFIG_GLOBAL, GLOBAL_PROGRESS_PERIOD);
+
+    if (period > 0) {
+      pThread = new std::thread(threadFunc, period);
+    }
+  }
+
   while (engine.doNextEvent())
     ;
 
@@ -191,14 +217,28 @@ int main(int argc, char *argv[]) {
 }
 
 void cleanup(int) {
+  killLock.lock();
+
   // Print last statistics
   statistics(engine.getCurrentTick());
 
+  // Erase progress
+  printf("                                                                 \r");
+
+  releaseSimpleSSDEngine();
+
   pIOGen->printStats(std::cout);
+  engine.printStats(std::cout);
 
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
+
+  if (pThread) {
+    pThread->join();
+
+    delete pThread;
+  }
 
   if (logOut.is_open()) {
     logOut.close();
@@ -239,4 +279,31 @@ void statistics(uint64_t tick) {
   }
 
   out << "End of log @ tick " << tick << std::endl;
+}
+
+void threadFunc(int tick) {
+  uint64_t current;
+  uint64_t old = 0;
+  float progress;
+  auto duration = std::chrono::seconds(tick);
+
+  while (true) {
+    std::this_thread::sleep_for(duration);
+
+    if (killLock.try_lock()) {
+      killLock.unlock();
+    }
+    else {
+      break;
+    }
+
+    engine.getStat(current);
+    pIOGen->getProgress(progress);
+
+    printf("*** Progress: %.2f %% (%lf ops)\r", progress * 100.f,
+           (double)(current - old) / tick);
+    fflush(stdout);
+
+    old = current;
+  }
 }

@@ -19,34 +19,41 @@
 
 #pragma once
 
-#ifndef __BIL_DRIVER_INTERFACE__
-#define __BIL_DRIVER_INTERFACE__
+#ifndef __DRIVERS_NVME_QUEUE__
+#define __DRIVERS_NVME_QUEUE__
 
-#include <functional>
+#include <cinttypes>
 
-#include "bil/entry.hh"
-#include "simplessd/sim/statistics.hh"
+namespace SIL {
 
-namespace BIL {
+namespace NVMe {
 
-class DriverInterface {
- protected:
-  Engine &engine;
+class Queue {
+ private:
+  uint8_t *memory;
+  uint64_t capacity;
 
-  std::function<void()> beginFunction;
+  uint16_t stride;
+  uint16_t entries;
+  uint16_t head;
+  uint16_t tail;
 
  public:
-  DriverInterface(Engine &e) : engine(e) {}
-  virtual ~DriverInterface() {}
+  Queue(uint16_t, uint16_t);
+  ~Queue();
 
-  virtual void init(std::function<void()> &) = 0;
-  virtual void getInfo(uint64_t &, uint32_t &) = 0;
-  virtual void submitIO(BIO &) = 0;
-
-  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
+  void getBaseAddress(uint64_t &);
+  void getData(uint8_t *, uint16_t);  // Increase head
+  void setData(uint8_t *, uint16_t);  // Increase tail
+  uint16_t getHead();
+  uint16_t getTail();
+  void incrHead();
+  void incrTail();
+  void peekData(uint8_t *, uint16_t);  // Get data without increasing head
 };
 
-}  // namespace BIL
+}  // namespace NVMe
+
+}  // namespace SIL
 
 #endif
