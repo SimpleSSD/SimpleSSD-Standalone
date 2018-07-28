@@ -178,8 +178,6 @@ int main(int argc, char *argv[]) {
     pIOGen->begin();
   };
 
-  pInterface->init(beginCallback);
-
   // Insert stat event
   if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
     pInterface->initStats(statList);
@@ -199,6 +197,8 @@ int main(int argc, char *argv[]) {
 
   // Do Simulation
   std::cout << "********** Begin of simulation **********" << std::endl;
+
+  pInterface->init(beginCallback);
 
   if (noLogPrintOnScreen) {
     int period = (int)simConfig.readUint(CONFIG_GLOBAL, GLOBAL_PROGRESS_PERIOD);
