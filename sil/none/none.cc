@@ -43,9 +43,9 @@ void Driver::init(std::function<void()> &func) {
   auto eid = engine.allocateEvent([this](uint64_t) { beginFunction(); });
   engine.scheduleEvent(eid, 0);
 
-  SimpleSSD::info("SIL::NoneDriver: Total SSD capacity: %" PRIu64 " bytes",
+  SimpleSSD::info("SIL::None::Driver: Total SSD capacity: %" PRIu64 " bytes",
                   totalLogicalPages * logicalPageSize);
-  SimpleSSD::info("SIL::NoneDriver: Logical Page Size: %" PRIu32 " bytes",
+  SimpleSSD::info("SIL::None::Driver: Logical Page Size: %" PRIu32 " bytes",
                   logicalPageSize);
 }
 
