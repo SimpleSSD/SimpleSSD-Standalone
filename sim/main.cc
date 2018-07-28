@@ -225,10 +225,10 @@ void cleanup(int) {
   // Erase progress
   printf("                                                                 \r");
 
+  releaseSimpleSSDEngine();
+
   pIOGen->printStats(std::cout);
   engine.printStats(std::cout);
-
-  releaseSimpleSSDEngine();
 
   // Cleanup all here
   delete pInterface;
