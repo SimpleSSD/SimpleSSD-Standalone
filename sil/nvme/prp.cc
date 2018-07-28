@@ -69,7 +69,7 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
     }
   }
 
-  memory = (uint8_t *)aligned_alloc(16, capacity);
+  memory = (uint8_t *)aligned_alloc(PAGE_SIZE, capacity);
 
   if (memory == nullptr) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");
