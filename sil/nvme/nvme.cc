@@ -345,7 +345,7 @@ void Driver::submitIO(BIL::BIO &bio) {
     cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_READ;  // CID, FUSE, OPC
     cmd[10] = (uint32_t)slba;
     cmd[11] = slba >> 32;
-    cmd[12] = nlb;  // LR, FUA, PRINFO, NLB
+    cmd[12] = nlb - 1;  // LR, FUA, PRINFO, NLB
 
     prp = new PRP(bio.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
@@ -354,7 +354,7 @@ void Driver::submitIO(BIL::BIO &bio) {
     cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_WRITE;  // CID, FUSE, OPC
     cmd[10] = (uint32_t)slba;
     cmd[11] = slba >> 32;
-    cmd[12] = nlb;  // LR, FUA, PRINFO, DTYPE, NLB
+    cmd[12] = nlb - 1;  // LR, FUA, PRINFO, DTYPE, NLB
 
     prp = new PRP(bio.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
