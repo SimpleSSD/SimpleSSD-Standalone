@@ -23,6 +23,7 @@
 #define __DRIVERS_NVME_PRP__
 
 #include <cinttypes>
+#include <vector>
 
 #define PAGE_SIZE 4096
 
@@ -38,11 +39,14 @@ class PRP {
   uint64_t ptr1;
   uint64_t ptr2;
 
+  std::vector<uint64_t> ptrList;  // For faster access
+
  public:
   PRP(uint64_t);
   ~PRP();
 
   void getPointer(uint64_t &, uint64_t &);
+  void accessData(uint64_t, uint64_t, uint8_t *);
 };
 
 }  // namespace NVMe

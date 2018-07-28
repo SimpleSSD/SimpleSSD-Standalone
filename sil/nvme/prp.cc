@@ -20,6 +20,7 @@
 #include "sil/nvme/prp.hh"
 
 #include <cstdlib>
+#include <cstring>
 
 #include "simplessd/sim/trace.hh"
 #include "simplessd/util/algorithm.hh"
@@ -76,10 +77,13 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
 
   if (ptr1 == 1) {
     ptr1 = (uint64_t)memory;
+    ptrList.push_back(ptr1);
   }
   else {
     ptr1 = (uint64_t)memory;
     ptr2 = (uint64_t)(memory + PAGE_SIZE);
+    ptrList.push_back(ptr1);
+    ptrList.push_back(ptr2);
 
     if (ptr1 == 3) {
       uint8_t *listPtr = (uint8_t *)ptr2;
@@ -88,6 +92,7 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
 
       while (true) {
         *((uint64_t *)listPtr + entry++) = (uint64_t)page;
+        ptrList.push_back((uint64_t)page);
         page += PAGE_SIZE;
 
         if (listCount == 1 && entry == lastEntryCount) {
@@ -112,6 +117,21 @@ PRP::~PRP() {
 void PRP::getPointer(uint64_t &prp1, uint64_t &prp2) {
   prp1 = ptr1;
   prp2 = ptr2;
+}
+
+void PRP::accessData(uint64_t offset, uint64_t size, uint8_t *buffer) {
+  uint64_t begin = offset / PAGE_SIZE;
+  uint64_t end = DIVCEIL(offset + size, PAGE_SIZE);
+  uint64_t copied = 0;
+
+  for (uint64_t i = begin; i < end; i++) {
+    uint64_t ptr = ptrList[i] + (offset - i * PAGE_SIZE);
+    uint64_t len = MIN((i + 1) * PAGE_SIZE - offset, size - copied);
+
+    memcpy(buffer, (uint8_t *)ptr, len);
+
+    copied += len;
+  }
 }
 
 }  // namespace NVMe
