@@ -154,6 +154,7 @@ void Driver::_init1(uint16_t, void *context) {
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
+  cmd[1] = 1; //NSID
   prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_NAMESPACE;           // CNS
 
@@ -337,6 +338,8 @@ void Driver::submitIO(BIL::BIO &bio) {
 
   uint64_t slba = bio.offset / LBAsize;
   uint32_t nlb = (uint32_t)DIVCEIL(bio.length, LBAsize);
+
+  cmd[1] = 1; // NSID
 
   if (bio.type == BIL::BIO_READ) {
     cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_READ;  // CID, FUSE, OPC
