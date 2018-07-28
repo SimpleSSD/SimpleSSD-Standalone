@@ -25,6 +25,7 @@
 #include "igl/request/request_generator.hh"
 #include "igl/trace/trace_replayer.hh"
 #include "sil/none/none.hh"
+#include "sil/nvme/nvme.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
 #include "simplessd/util/simplessd.hh"
@@ -127,6 +128,10 @@ int main(int argc, char *argv[]) {
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
     case INTERFACE_NONE:
       pInterface = new SIL::None::Driver(engine, ssdConfig);
+
+      break;
+    case INTERFACE_NVME:
+      pInterface = new SIL::NVMe::Driver(engine, ssdConfig);
 
       break;
     default:
