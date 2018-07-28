@@ -169,13 +169,16 @@ int main(int argc, char *argv[]) {
       return 5;
   }
 
-  uint64_t bytesize;
-  uint32_t bs;
-  std::function<void()> beginCallback = []() { pIOGen->begin(); };
+  std::function<void()> beginCallback = []() {
+    uint64_t bytesize;
+    uint32_t bs;
+
+    pInterface->getInfo(bytesize, bs);
+    pIOGen->init(bytesize, bs);
+    pIOGen->begin();
+  };
 
   pInterface->init(beginCallback);
-  pInterface->getInfo(bytesize, bs);
-  pIOGen->init(bytesize, bs);
 
   // Insert stat event
   if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
