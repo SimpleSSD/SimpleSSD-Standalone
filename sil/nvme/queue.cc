@@ -29,7 +29,7 @@ namespace SIL {
 namespace NVMe {
 
 Queue::Queue(uint16_t e, uint16_t s)
-    : memory(nullptr), entries(e), stride(s), head(0), tail(0) {
+    : memory(nullptr), stride(s), entries(e), head(0), tail(0) {
   capacity = stride * entries;
 
   memory = (uint8_t *)aligned_alloc(16, capacity);

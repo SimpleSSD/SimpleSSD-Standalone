@@ -72,7 +72,7 @@ void Driver::init(std::function<void()> &func) {
   // MPSMAX/MIN is setted to 4KB
   // DSTRD is setted to 0 (4bytes)
   // Check MQES
-  maxQueueEntries = temp.value & 0xFFFF + 1;
+  maxQueueEntries = (temp.value & 0xFFFF) + 1;
 
   // Step 2. Wait for CSTS.RDY = 0
   // Step 3. Configure admin queue
@@ -123,7 +123,7 @@ void Driver::init(std::function<void()> &func) {
   submitCommand(0, (uint8_t *)cmd, callback, prp);
 }
 
-void Driver::_init1(uint16_t status, void *context) {
+void Driver::_init1(uint16_t, void *context) {
   union {
     uint64_t value;
     uint8_t buffer[8];
@@ -158,7 +158,7 @@ void Driver::_init1(uint16_t status, void *context) {
   submitCommand(0, (uint8_t *)cmd, callback, prp);
 }
 
-void Driver::_init2(uint16_t status, void *context) {
+void Driver::_init2(uint16_t, void *context) {
   union {
     uint64_t value;
     uint8_t buffer[8];
@@ -203,7 +203,7 @@ void Driver::_init2(uint16_t status, void *context) {
   submitCommand(0, (uint8_t *)cmd, callback, nullptr);
 }
 
-void Driver::_init3(uint16_t status, uint32_t dw0, void *context) {
+void Driver::_init3(uint16_t, uint32_t dw0, void *) {
   // Step 8-2. Check response
   if (dw0 != 0x00000000) {
     SimpleSSD::warn("NVMe SSD responsed too many I/O queue");
@@ -232,7 +232,7 @@ void Driver::_init3(uint16_t status, uint32_t dw0, void *context) {
   submitCommand(0, (uint8_t *)cmd, callback, nullptr);
 }
 
-void Driver::_init4(uint16_t status, void *context) {
+void Driver::_init4(uint16_t status, void *) {
   // Step 9-2. Check result
   if (status != 0) {
     SimpleSSD::panic("Failed to create I/O Completion Queue");
@@ -261,7 +261,7 @@ void Driver::_init4(uint16_t status, void *context) {
   submitCommand(0, (uint8_t *)cmd, callback, nullptr);
 }
 
-void Driver::_init5(uint16_t status, void *context) {
+void Driver::_init5(uint16_t status, void *) {
   // Step 10-2. Check result
   if (status != 0) {
     SimpleSSD::panic("Failed to create I/O Submission Queue");
@@ -275,9 +275,9 @@ void Driver::_init5(uint16_t status, void *context) {
 
 void Driver::submitCommand(uint16_t iv, uint8_t *cmd, ResponseHandler &func,
                            void *context) {
-  uint16_t cid;
+  uint16_t cid = 0;
   uint16_t opcode = cmd[0];
-  uint16_t tail;
+  uint16_t tail = 0;
   uint64_t tick = engine.getCurrentTick();
 
   // Push to queue
@@ -512,7 +512,7 @@ void Driver::submitDMAWrite() {
 }
 
 void Driver::updateInterrupt(uint16_t iv, bool post) {
-  uint16_t cqdata[8];
+  uint32_t cqdata[4];
 
   if (post) {
     if (iv == 0) {
@@ -528,8 +528,8 @@ void Driver::updateInterrupt(uint16_t iv, bool post) {
     // Search pending command list
     for (auto iter = pendingCommandList.begin();
          iter != pendingCommandList.end(); iter++) {
-      if (iter->iv == iv && iter->cid == cqdata[7]) {
-        iter->callback(cqdata[6] >> 1, *(uint32_t *)(cqdata), iter->context);
+      if (iter->iv == iv && iter->cid == (cqdata[3] & 0xFFFF)) {
+        iter->callback((uint16_t)(cqdata[3] >> 17), cqdata[0], iter->context);
 
         pendingCommandList.erase(iter);
 
