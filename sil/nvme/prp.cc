@@ -30,6 +30,7 @@ namespace SIL {
 namespace NVMe {
 
 PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
+  uint8_t mode = 0;
   uint32_t listCount = 1;
   uint32_t lastEntryCount = 0;
   const uint32_t maxEntryCount = PAGE_SIZE / 8;
@@ -38,19 +39,19 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
   if (size <= PAGE_SIZE) {
     // PRP1 is PRP pointer, PRP2 is not used
     capacity = PAGE_SIZE;
-    ptr1 = 1;
+    mode = 1;
   }
   else if (size <= PAGE_SIZE * 2) {
     // Both are PRP pointer
     capacity = PAGE_SIZE * 2;
-    ptr1 = 2;
+    mode = 2;
   }
   else {
     // We need to create PRPList
     // PRP1 is PRP pointer (always)
-    ptr1 = 3;
+    mode = 3;
     size -= PAGE_SIZE;
-    capacity = PAGE_SIZE;
+    capacity = PAGE_SIZE * 2;
 
     while (true) {
       if (size > PAGE_SIZE * maxEntryCount) {
@@ -75,7 +76,7 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");
   }
 
-  if (ptr1 == 1) {
+  if (mode == 1) {
     ptr1 = (uint64_t)memory;
     ptrList.push_back(ptr1);
   }
@@ -85,22 +86,24 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
     ptrList.push_back(ptr1);
     ptrList.push_back(ptr2);
 
-    if (ptr1 == 3) {
-      uint8_t *listPtr = (uint8_t *)ptr2;
+    if (mode == 3) {
+      uint64_t *listPtr = (uint64_t *)ptr2;
       uint8_t *page = memory + PAGE_SIZE * 2;
       uint32_t entry = 0;
 
       while (true) {
-        *((uint64_t *)listPtr + entry++) = (uint64_t)page;
+        *(listPtr + entry++) = (uint64_t)page;
         ptrList.push_back((uint64_t)page);
         page += PAGE_SIZE;
 
         if (listCount == 1 && entry == lastEntryCount) {
+          *(listPtr + entry) = 0;
+
           break;
         }
         else if (listCount > 1 && entry == maxEntryCount - 1) {
-          *((uint64_t *)listPtr + entry) = (uint64_t)page;
-          listPtr = page;
+          *(listPtr + entry) = (uint64_t)page;
+          listPtr = (uint64_t *)page;
           page += PAGE_SIZE;
           listCount--;
           entry = 0;
