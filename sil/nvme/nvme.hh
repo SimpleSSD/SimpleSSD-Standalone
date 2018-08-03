@@ -98,7 +98,7 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
   // NVMe Identify
   uint64_t capacity;
   uint32_t LBAsize;
-  uint32_t namespaces;
+  uint32_t namespaceID;
 
   // Queue
   uint16_t maxQueueEntries;
@@ -118,6 +118,7 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
 
   void increaseCommandID(uint16_t &);
 
+  void _init0(uint16_t, void *);
   void _init1(uint16_t, void *);
   void _init2(uint16_t, void *);
   void _init3(uint16_t, uint32_t, void *);

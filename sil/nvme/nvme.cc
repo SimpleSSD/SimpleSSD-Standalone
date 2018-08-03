@@ -114,7 +114,7 @@ void Driver::init(std::function<void()> &func) {
   uint32_t cmd[16];
   PRP *prp = new PRP(4096);
   ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
-    _init1(status, context);
+    _init0(status, context);
   };
 
   memset(cmd, 0, 64);
@@ -125,27 +125,53 @@ void Driver::init(std::function<void()> &func) {
   submitCommand(0, (uint8_t *)cmd, callback, prp);
 }
 
-void Driver::_init1(uint16_t, void *context) {
-  union {
-    uint64_t value;
-    uint8_t buffer[8];
-  } temp;
+void Driver::_init0(uint16_t, void *context) {
   PRP *prp = (PRP *)context;
 
-  // Step 7-2. Check structures
-  prp->readData(0x204, 4, temp.buffer);
-  namespaces = (uint32_t)temp.value;
+  // Step 7-2. Send Identify Active Namespace List
+  // Reuse PRP here
+  uint32_t cmd[16];
+  ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
+    _init1(status, context);
+  };
 
-  if (namespaces == 0) {
+  memset(cmd, 0, 64);
+  cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
+  prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
+  cmd[10] = SimpleSSD::HIL::NVMe::CNS_ACTIVE_NAMESPACE_LIST;        // CNS
+
+  submitCommand(0, (uint8_t *)cmd, callback, prp);
+}
+
+void Driver::_init1(uint16_t, void *context) {
+  PRP *prp = (PRP *)context;
+
+  // Step 7-3. Check active Namespace
+  // We will perform I/O on first Namespace
+  uint32_t count = 0;
+  uint32_t nsid = 0;
+
+  for (count = 0; count < 1024; count++) {
+    prp->readData(count * 4, 4, (uint8_t *)&nsid);
+
+    if (nsid == 0) {
+      break;
+    }
+
+    if (count == 0) {
+      namespaceID = nsid;
+    }
+  }
+
+  if (count == 0) {
     SimpleSSD::panic("This NVMe SSD does not have any namespaces.");
   }
-  else if (namespaces > 1) {
-    SimpleSSD::warn("This NVMe SSD has namespaces more than one.");
-    SimpleSSD::warn("All I/O will occur on namespace ID 1.");
+  else if (count > 1) {
+    SimpleSSD::warn("This NVMe SSD has %u namespaces.", count);
+    SimpleSSD::warn("All I/O will performed on namespace ID %u.", namespaceID);
   }
 
-  // Step 7-3. Send Identify Namespace
-  // NOTE: You may want to send Identify Active Namepace first.
+  // Step 7-4. Send Identify Namespace
   // Reuse PRP here
   uint32_t cmd[16];
   ResponseHandler callback = [this](uint16_t status, uint32_t, void *context) {
@@ -154,7 +180,7 @@ void Driver::_init1(uint16_t, void *context) {
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
-  cmd[1] = 1;                                      // NSID
+  cmd[1] = namespaceID;                                      // NSID
   prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_NAMESPACE;           // CNS
 
@@ -339,7 +365,7 @@ void Driver::submitIO(BIL::BIO &bio) {
   uint64_t slba = bio.offset / LBAsize;
   uint32_t nlb = (uint32_t)DIVCEIL(bio.length, LBAsize);
 
-  cmd[1] = 1;  // NSID
+  cmd[1] = namespaceID;  // NSID
 
   if (bio.type == BIL::BIO_READ) {
     cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_READ;  // CID, FUSE, OPC
