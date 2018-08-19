@@ -51,7 +51,8 @@ include_directories(
 # Platform specific settings
 if (MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_compile_options(/wd4819)
+  add_compile_options(/wd4819)  # Surpress unicode warning
+  add_compile_options(/wd4305)  # Surpress truncation warning
 else ()
   if (DEBUG_BUILD)
     set(CMAKE_CXX_FLAGS
@@ -61,8 +62,6 @@ else ()
       "-O2 -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   endif ()
 
-  set(CMAKE_CXX_STANDARD 11)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${CMAKE_EXE_LINKER_FLAGS}")
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -72,6 +71,9 @@ Please update your compiler.")
     endif ()
   endif ()
 endif ()
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specify source files
 set(SRC_BIL

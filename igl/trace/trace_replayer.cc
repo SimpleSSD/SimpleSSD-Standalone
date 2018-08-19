@@ -57,16 +57,25 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
   syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
   max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
-  groupID[ID_OPERATION] = c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
-  groupID[ID_BYTE_OFFSET] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_OFFSET);
-  groupID[ID_BYTE_LENGTH] = c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_LENGTH);
-  groupID[ID_LBA_OFFSET] = c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_OFFSET);
-  groupID[ID_LBA_LENGTH] = c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_LENGTH);
-  groupID[ID_TIME_SEC] = c.readUint(CONFIG_TRACE, TRACE_GROUP_SEC);
-  groupID[ID_TIME_MS] = c.readUint(CONFIG_TRACE, TRACE_GROUP_MILI_SEC);
-  groupID[ID_TIME_US] = c.readUint(CONFIG_TRACE, TRACE_GROUP_MICRO_SEC);
-  groupID[ID_TIME_NS] = c.readUint(CONFIG_TRACE, TRACE_GROUP_NANO_SEC);
-  groupID[ID_TIME_PS] = c.readUint(CONFIG_TRACE, TRACE_GROUP_PICO_SEC);
+  groupID[ID_OPERATION] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
+  groupID[ID_BYTE_OFFSET] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_OFFSET);
+  groupID[ID_BYTE_LENGTH] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_LENGTH);
+  groupID[ID_LBA_OFFSET] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_OFFSET);
+  groupID[ID_LBA_LENGTH] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_LENGTH);
+  groupID[ID_TIME_SEC] = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_SEC);
+  groupID[ID_TIME_MS] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_MILI_SEC);
+  groupID[ID_TIME_US] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_MICRO_SEC);
+  groupID[ID_TIME_NS] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_NANO_SEC);
+  groupID[ID_TIME_PS] =
+      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_PICO_SEC);
   useHex = c.readBoolean(CONFIG_TRACE, TRACE_USE_HEX);
 
   if (groupID[ID_OPERATION] == 0) {
@@ -75,7 +84,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   if (groupID[ID_LBA_OFFSET] > 0 && groupID[ID_LBA_LENGTH] > 0) {
     useLBA = true;
-    lbaSize = c.readUint(CONFIG_TRACE, TRACE_LBA_SIZE);
+    lbaSize = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_LBA_SIZE);
 
     if (SimpleSSD::popcount(lbaSize) != 1) {
       SimpleSSD::panic("LBA size should be power of 2");

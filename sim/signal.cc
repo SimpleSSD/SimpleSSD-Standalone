@@ -73,11 +73,62 @@
 #include <cstring>
 #include <iostream>
 
-#include <execinfo.h>
 #include <signal.h>
+
+#ifdef _MSC_VER
+
+#pragma comment(lib, "dbghelp.lib")
+
+#include <Windows.h>
+// Windows.h should be included before DbgHelp.h
+#include <DbgHelp.h>
+
+#ifndef _M_X64
+#error "Only x86_64 (AMD64) is supported."
+#endif
+
+void (*closeHandler)(int) = nullptr;
+
+void print_backtrace();
+
+BOOL consoleHandler(DWORD type) {
+  if (closeHandler) {
+    closeHandler(0);
+  }
+
+  return TRUE;
+}
+
+LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
+  switch (pExceptionInfo->ExceptionRecord->ExceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+    case EXCEPTION_IN_PAGE_ERROR:
+      std::cerr << "Program has encountered a segmentation fault." << std::endl;
+      break;
+    case EXCEPTION_INT_OVERFLOW:
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+      std::cerr << "Program has encountered a floating point exception."
+                << std::endl;
+      break;
+    default:
+      std::cerr << "Program aborted." << std::endl;
+  }
+
+  print_backtrace();
+
+  return EXCEPTION_EXECUTE_HANDLER;
+}
+
+#else
+
+#include <execinfo.h>
 #include <unistd.h>
 
+#define FRAMECOUNT 32
+
 static uint8_t stack[SIGSTKSZ * 2];
+
+void print_backtrace();
 
 static bool setupStack() {
   stack_t st;
@@ -107,22 +158,6 @@ static void installHandler(int sig, void (*handler)(int),
   sigaction(sig, &sa, nullptr);
 }
 
-void print_backtrace() {
-  void *buffer[32];
-  int size;
-
-  size = backtrace(buffer, sizeof(buffer) / sizeof(*buffer));
-
-  std::cerr << "--- BEGIN LIBC BACKTRACE ---" << std::endl;
-
-  backtrace_symbols_fd(buffer, size, STDERR_FILENO);
-
-  if (size == sizeof(buffer))
-    std::cerr << "Warning: Backtrace may have been truncated." << std::endl;
-
-  std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
-}
-
 void abortHandler(int sig) {
   std::cerr << "Program aborted." << std::endl;
 
@@ -145,7 +180,96 @@ void fpeHandler(int sig) {
   raiseSignal(sig);
 }
 
+#endif
+
+void print_backtrace() {
+  std::cerr << "--- BEGIN LIBC BACKTRACE ---" << std::endl;
+
+#ifdef _MSC_VER
+  CONTEXT context;
+  STACKFRAME64 frame;
+  DWORD type;
+  HANDLE hProcess = GetCurrentProcess();
+  HANDLE hThread = GetCurrentThread();
+  char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(char)];
+  PSYMBOL_INFO symInfo = (PSYMBOL_INFO)buffer;
+  IMAGEHLP_MODULE modInfo;
+  DWORD64 displacement;
+
+  RtlCaptureContext(&context);
+
+  memset(&frame, 0, sizeof(STACKFRAME64));
+  type = IMAGE_FILE_MACHINE_AMD64;
+  frame.AddrPC.Offset = context.Rip;
+  frame.AddrPC.Mode = AddrModeFlat;
+  frame.AddrFrame.Offset = context.Rsp;
+  frame.AddrFrame.Mode = AddrModeFlat;
+  frame.AddrStack.Offset = context.Rsp;
+  frame.AddrStack.Mode = AddrModeFlat;
+
+  symInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+  symInfo->MaxNameLen = MAX_SYM_NAME;
+  modInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
+
+  if (!SymInitialize(hProcess, nullptr, true)) {
+    std::cerr << "Failed to initialize symbol table." << std::endl;
+    std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
+
+    return;
+  }
+
+  while (true) {
+    if (!StackWalk64(type, hProcess, hThread, &frame, &context, nullptr,
+                     SymFunctionTableAccess64, SymGetModuleBase64, nullptr)) {
+      break;
+    }
+
+    if (frame.AddrPC.Offset != 0) {
+      // Get Module Name
+      if (SymGetModuleInfo(hProcess, frame.AddrPC.Offset, &modInfo)) {
+        std::cerr << modInfo.ModuleName;
+      }
+      else {
+        std::cerr << "<Unknown Module>";
+      }
+
+      // Get Symbole Name
+      if (SymFromAddr(hProcess, frame.AddrPC.Offset, &displacement, symInfo)) {
+        std::cerr << "(" << symInfo->Name << "+0x" << std::hex << displacement
+                  << ")";
+      }
+
+      std::cerr << "[0x" << std::hex << frame.AddrPC.Offset << "]" << std::endl;
+    }
+    else {
+      break;
+    }
+  }
+
+  SymCleanup(hProcess);
+  CloseHandle(hThread);
+  CloseHandle(hProcess);
+#else
+  void *buffer[FRAMECOUNT];
+  int size;
+
+  size = backtrace(buffer, sizeof(buffer) / sizeof(*buffer));
+
+  backtrace_symbols_fd(buffer, size, STDERR_FILENO);
+
+  if (size == sizeof(buffer))
+    std::cerr << "Warning: Backtrace may have been truncated." << std::endl;
+#endif
+
+  std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
+}
+
 void installSignalHandler(void (*handler)(int)) {
+#ifdef _MSC_VER
+  closeHandler = handler;
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
+  SetUnhandledExceptionFilter(exceptionHandler);
+#else
   installHandler(SIGINT, handler);
   installHandler(SIGABRT, abortHandler, SA_RESETHAND | SA_NODEFER);
 
@@ -154,4 +278,5 @@ void installSignalHandler(void (*handler)(int)) {
   installHandler(SIGSEGV, segfaultHandler,
                  SA_RESETHAND | SA_NODEFER | SA_ONSTACK);
   installHandler(SIGFPE, fpeHandler, SA_RESETHAND | SA_NODEFER | SA_ONSTACK);
+#endif
 }

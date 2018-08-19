@@ -24,6 +24,7 @@
 
 #include <cinttypes>
 #include <iostream>
+#include <string>
 
 void print(std::ostream &, std::string, uint32_t);
 void print(std::ostream &, double, uint32_t);

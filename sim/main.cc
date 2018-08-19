@@ -51,7 +51,7 @@ void statistics(uint64_t);
 void threadFunc(int);
 
 int main(int argc, char *argv[]) {
-  std::cout << "SimpleSSD Standalone v2.1" << std::endl;
+  std::cout << "SimpleSSD Standalone v2.0" << std::endl;
 
   // Check argument
   if (argc != 3) {
@@ -300,7 +300,7 @@ void threadFunc(int tick) {
     engine.getStat(current);
     pIOGen->getProgress(progress);
 
-    printf("*** Progress: %.2f %% (%lf ops)\r", progress * 100.f,
+    printf("*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
            (double)(current - old) / tick);
     fflush(stdout);
 

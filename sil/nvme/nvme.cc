@@ -180,7 +180,7 @@ void Driver::_init1(uint16_t, void *context) {
 
   memset(cmd, 0, 64);
   cmd[0] = SimpleSSD::HIL::NVMe::OPCODE_IDENTIFY;  // CID, FUSE, OPC
-  cmd[1] = namespaceID;                                      // NSID
+  cmd[1] = namespaceID;                            // NSID
   prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   cmd[10] = SimpleSSD::HIL::NVMe::CNS_IDENTIFY_NAMESPACE;           // CNS
 
