@@ -71,7 +71,7 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
   }
 
 #ifdef _MSC_VER
-  memory = (uint8_t *)_aligned_malloc(PAGE_SIZE, capacity);
+  memory = (uint8_t *)_aligned_malloc(capacity, PAGE_SIZE);
 #else
   memory = (uint8_t *)aligned_alloc(PAGE_SIZE, capacity);
 #endif
