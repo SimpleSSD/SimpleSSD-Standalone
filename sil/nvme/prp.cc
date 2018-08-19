@@ -80,6 +80,8 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");
   }
 
+  memset(memory, 0, capacity);
+
   if (mode == 1) {
     ptr1 = (uint64_t)memory;
     ptrList.push_back(ptr1);
@@ -118,7 +120,11 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
 }
 
 PRP::~PRP() {
+#ifdef _MSC_VER
+  _aligned_free(memory);
+#else
   free(memory);
+#endif
 }
 
 void PRP::getPointer(uint64_t &prp1, uint64_t &prp2) {

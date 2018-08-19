@@ -42,10 +42,16 @@ Queue::Queue(uint16_t e, uint16_t s)
   if (memory == nullptr) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");
   }
+
+  memset(memory, 0, capacity);
 }
 
 Queue::~Queue() {
+#ifdef _MSC_VER
+  _aligned_free(memory);
+#else
   free(memory);
+#endif
 }
 
 void Queue::getBaseAddress(uint64_t &ptr) {
