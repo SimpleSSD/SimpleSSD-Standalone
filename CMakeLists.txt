@@ -61,8 +61,6 @@ else ()
       "-O2 -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   endif ()
 
-  set(CMAKE_CXX_STANDARD 11)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${CMAKE_EXE_LINKER_FLAGS}")
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -72,6 +70,9 @@ Please update your compiler.")
     endif ()
   endif ()
 endif ()
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specify source files
 set(SRC_BIL
