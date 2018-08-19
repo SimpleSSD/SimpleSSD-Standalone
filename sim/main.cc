@@ -300,7 +300,7 @@ void threadFunc(int tick) {
     engine.getStat(current);
     pIOGen->getProgress(progress);
 
-    printf("*** Progress: %.2f %% (%lf ops)\r", progress * 100.f,
+    printf("*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
            (double)(current - old) / tick);
     fflush(stdout);
 
