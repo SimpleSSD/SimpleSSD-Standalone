@@ -24,7 +24,7 @@ void print(std::ostream &out, std::string str, uint32_t width) {
     out << str;
   }
   else {
-    width -= str.length();
+    width -= (uint32_t)str.length();
 
     str.append(width, ' ');
 

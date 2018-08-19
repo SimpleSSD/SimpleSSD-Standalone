@@ -33,7 +33,11 @@ Queue::Queue(uint16_t e, uint16_t s)
     : memory(nullptr), stride(s), entries(e), head(0), tail(0) {
   capacity = stride * entries;
 
+#ifdef _MSC_VER
+  memory = (uint8_t *)_aligned_malloc(PAGE_SIZE, capacity);
+#else
   memory = (uint8_t *)aligned_alloc(PAGE_SIZE, capacity);
+#endif
 
   if (memory == nullptr) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");

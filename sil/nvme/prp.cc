@@ -62,7 +62,7 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
         capacity += PAGE_SIZE * maxEntryCount;
       }
       else {
-        lastEntryCount = DIVCEIL(size, PAGE_SIZE);
+        lastEntryCount = (uint32_t)DIVCEIL(size, PAGE_SIZE);
         capacity += PAGE_SIZE * lastEntryCount;
 
         break;
@@ -70,7 +70,11 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
     }
   }
 
+#ifdef _MSC_VER
+  memory = (uint8_t *)_aligned_malloc(PAGE_SIZE, capacity);
+#else
   memory = (uint8_t *)aligned_alloc(PAGE_SIZE, capacity);
+#endif
 
   if (memory == nullptr) {
     SimpleSSD::panic("Failed to allocate memory for PRP region");
