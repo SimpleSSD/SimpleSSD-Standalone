@@ -56,13 +56,11 @@ if (MSVC)
 else ()
   if (DEBUG_BUILD)
     set(CMAKE_CXX_FLAGS
-      "-O0 -g -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+      "-O0 -g -rdynamic -pthread -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   else ()
     set(CMAKE_CXX_FLAGS
-      "-O2 -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+      "-O2 -rdynamic -pthread -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
   endif ()
-
-  set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${CMAKE_EXE_LINKER_FLAGS}")
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9")
