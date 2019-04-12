@@ -56,6 +56,8 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   // Fill flags
   mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
   syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
+  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
+  maxQueueDepth = c.readUint(CONFIG_TRACE, TRACE_QUEUE_DEPTH);
   max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
   groupID[ID_OPERATION] =
       (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
@@ -229,6 +231,8 @@ BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
       return BIL::BIO_FLUSH;
     case 't':
     case 'T':
+    case 'd':
+    case 'D':
       return BIL::BIO_TRIM;
   }
 
@@ -277,7 +281,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   if (begin) {
     firstTick = tick;
 
-    if (mode == MODE_NONE) {
+    if (mode == MODE_SYNC) {
       firstTick += syncBreak;
     }
   }
@@ -326,8 +330,11 @@ void TraceReplayer::handleNextLine(bool begin) {
   io_submitted += bio.length;
 
   // Schedule
-  if (mode == MODE_NONE) {
+  if (mode == MODE_SYNC) {
     engine.scheduleEvent(submitEvent, engine.getCurrentTick() + syncBreak);
+  }
+  else if (mode == MODE_ASYNC) {
+    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + asyncBreak);
   }
   else if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
@@ -340,7 +347,7 @@ void TraceReplayer::_submitIO(uint64_t) {
   bioEntry.submitIO(bio);
 
   // Read next
-  if (mode == MODE_STRICT) {
+  if ((mode == MODE_ASYNC && iodepth < maxQueueDepth) || mode == MODE_STRICT) {
     handleNextLine();
   }
 }
@@ -353,7 +360,7 @@ void TraceReplayer::_iocallback(uint64_t) {
     endCallback();
   }
 
-  if (mode == MODE_NONE) {
+  if (mode == MODE_ASYNC || mode == MODE_SYNC) {
     handleNextLine();
   }
 }

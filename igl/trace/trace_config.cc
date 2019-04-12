@@ -25,6 +25,7 @@ namespace IGL {
 
 const char NAME_FILE[] = "File";
 const char NAME_TIMING_MODE[] = "TimingMode";
+const char NAME_QUEUE_DEPTH[] = "QueueDepth";
 const char NAME_IO_LIMIT[] = "IOLimit";
 const char NAME_LINE_REGEX[] = "Regex";
 const char NAME_GROUP_OPERATION[] = "Operation";
@@ -41,7 +42,8 @@ const char NAME_LBA_SIZE[] = "LBASize";
 const char NAME_USE_HEX[] = "UseHexadecimal";
 
 TraceConfig::TraceConfig() {
-  mode = MODE_NONE;
+  mode = MODE_SYNC;
+  queueDepth = 1;
   iolimit = 0;
   groupOperation = 0;
   groupByteOffset = 0;
@@ -65,6 +67,9 @@ bool TraceConfig::setConfig(const char *name, const char *value) {
   }
   else if (MATCH_NAME(NAME_TIMING_MODE)) {
     mode = (TIMING_MODE)strtoul(value, nullptr, 10);
+  }
+  else if (MATCH_NAME(NAME_QUEUE_DEPTH)) {
+    queueDepth = strtoul(value, nullptr, 10);
   }
   else if (MATCH_NAME(NAME_IO_LIMIT)) {
     iolimit = strtoul(value, nullptr, 10);
@@ -155,6 +160,9 @@ uint64_t TraceConfig::readUint(uint32_t idx) {
   switch (idx) {
     case TRACE_TIMING_MODE:
       ret = mode;
+      break;
+    case TRACE_QUEUE_DEPTH:
+      ret = queueDepth;
       break;
     case TRACE_IO_LIMIT:
       ret = iolimit;
