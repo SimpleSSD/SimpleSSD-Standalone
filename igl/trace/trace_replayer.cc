@@ -27,8 +27,9 @@ namespace IGL {
 TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
                              std::function<void()> &f, ConfigReader &c)
     : IOGenerator(e, b, f),
+      nextIOIsSync(false),
       reserveTermination(false),
-      iodepth(0),
+      io_depth(0),
       io_submitted(0),
       io_count(0),
       read_count(0),
@@ -110,7 +111,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
     SimpleSSD::panic("No valid time field specified");
   }
 
-  submitIO = [this](uint64_t tick) { _submitIO(tick); };
+  submitIO = [this](uint64_t) { _submitIO(); };
   iocallback = [this](uint64_t id) { _iocallback(id); };
 
   submitEvent = engine.allocateEvent(submitIO);
@@ -132,7 +133,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 void TraceReplayer::begin() {
   initTime = engine.getCurrentTick();
 
-  _submitIO(initTime);
+  handleNextLine(true);
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
@@ -262,7 +263,7 @@ void TraceReplayer::handleNextLine(bool begin) {
     if (eof) {
       reserveTermination = true;
 
-      if (iodepth == 0) {
+      if (io_depth <= 0) {
         // No on-the-fly I/O
         endCallback();
       }
@@ -278,19 +279,15 @@ void TraceReplayer::handleNextLine(bool begin) {
   uint64_t tick = mergeTime(match);
 
   if (begin) {
-    firstTick = tick;
-
-    if (mode == MODE_SYNC) {
-      firstTick += syncBreak;
+    if (mode == MODE_STRICT) {
+      firstTick = tick;  // Only used by MODE_STRICT
     }
-    if (mode == MODE_ASYNC) {
-      firstTick += asyncBreak;
+    else {
+      firstTick = initTime;
     }
   }
 
   // Fill BIO
-  bio.id++;  // BIO.id is inited as 0
-
   if (useLBA) {
     bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
                          useHex ? 16 : 10) *
@@ -309,6 +306,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
   bio.callback = iocallback;
+  bio.id = io_count;
 
   // Limit check
   if (io_count == max_io) {
@@ -331,71 +329,64 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   io_submitted += bio.length;
 
-  bioList.push_back(bio);
-
+  if (mode == MODE_STRICT) {
+    engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
+  }
+  else {
+    _submitIO();
+  }
 }
 
-void TraceReplayer::_submitIO(uint64_t) {
+void TraceReplayer::_submitIO() {
+  if (mode == MODE_ASYNC) {
+    if (nextIOIsSync) {
+      nextIOIsSync = false;
 
-  handleNextLine();
-  
-  if (mode == MODE_SYNC) {
-    rescheduleSubmit (syncBreak);
-  }
-  else if (mode == MODE_ASYNC) {
-    rescheduleSubmit (asyncBreak);
-  }
-  else if (mode == MODE_STRICT) {
-    rescheduleSubmit (initTime - firstTick);
+      rescheduleSubmit(syncBreak);
+    }
+    else {
+      rescheduleSubmit(asyncBreak);
+    }
   }
 
-  bioEntry.submitIO(bio);
+  if (bio.id != 0) {
+    bioEntry.submitIO(bio);
 
+    io_depth++;
+    bio.id = 0;
+  }
 }
 
 void TraceReplayer::_iocallback(uint64_t id) {
+  io_depth--;
 
-  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
-    if (iter->id == id) {
-        bioList.erase(iter);
-        break;
-    }
-  }
   if (reserveTermination) {
     // Everything is done
-    if (bioList.size() == 0) {
+    if (io_depth <= 0) {
       endCallback();
     }
   }
-  else {
-    if (mode == MODE_SYNC) {
-      rescheduleSubmit (syncBreak);
-    }
-    else if (mode == MODE_ASYNC) {
-      rescheduleSubmit (asyncBreak);
-    }
-    else if (mode == MODE_STRICT) {
-      rescheduleSubmit (initTime - firstTick);
-    }
+
+  if (mode == MODE_SYNC) {
+    rescheduleSubmit(syncBreak);
   }
 }
 
 void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
-  uint64_t tick = engine.getCurrentTick();
+  if (mode == MODE_ASYNC) {
+    if (io_depth >= maxQueueDepth) {
+      nextIOIsSync = true;
 
-  if (bioList.size() < maxQueueDepth) {
-    uint64_t scheduledTick;
-    bool doSchedule = true;
-
-    if (engine.isScheduled(submitEvent, &scheduledTick)) {
-      if (scheduledTick >= tick + breakTime) {
-        doSchedule = false;
-      }
-    }
-    if (doSchedule) {
-      engine.scheduleEvent(submitEvent, tick + breakTime);      
+      return;
     }
   }
+  else if (mode == MODE_STRICT) {
+    return;
+  }
+
+  handleNextLine();
+
+  engine.scheduleEvent(submitEvent, engine.getCurrentTick() + breakTime);
 }
 
 }  // namespace IGL

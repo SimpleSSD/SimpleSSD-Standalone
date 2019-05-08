@@ -22,8 +22,8 @@
 #ifndef __IGL_TRACE_REPLAYER__
 #define __IGL_TRACE_REPLAYER__
 
-#include <list>
 #include <fstream>
+#include <list>
 #include <mutex>
 #include <regex>
 #include <thread>
@@ -59,9 +59,9 @@ class TraceReplayer : public IOGenerator {
   uint64_t fileSize;
 
   TIMING_MODE mode;
-  uint64_t syncBreak;
-  uint64_t asyncBreak;
-  uint32_t maxQueueDepth;
+  uint64_t syncBreak;      // Used in MODE_SYNC and MODE_ASYNC
+  uint64_t asyncBreak;     // Only used in MODE_ASYNC
+  uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
 
   bool useLBA;
   uint32_t lbaSize;
@@ -72,11 +72,12 @@ class TraceReplayer : public IOGenerator {
   uint64_t ssdSize;
   uint32_t blocksize;
 
-  uint64_t initTime;
-  uint64_t firstTick;
+  uint64_t initTime;   // Only used in MODE_STRICT
+  uint64_t firstTick;  // Only used in MODE_STRICT
+  bool nextIOIsSync;   // Only used in MODE_ASYNC
 
   bool reserveTermination;
-  int64_t iodepth;
+  int32_t io_depth;
 
   uint64_t max_io;
   uint64_t io_submitted;
@@ -85,7 +86,6 @@ class TraceReplayer : public IOGenerator {
   uint64_t write_count;
 
   BIL::BIO bio;
-  std::list<BIL::BIO> bioList;
 
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);
@@ -96,7 +96,7 @@ class TraceReplayer : public IOGenerator {
   SimpleSSD::EventFunction submitIO;
   SimpleSSD::EventFunction iocallback;
 
-  void _submitIO(uint64_t);
+  void _submitIO();
   void _iocallback(uint64_t);
 
  public:
