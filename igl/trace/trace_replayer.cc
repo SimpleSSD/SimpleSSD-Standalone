@@ -332,28 +332,21 @@ void TraceReplayer::handleNextLine(bool begin) {
   if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
   }
-  else {
+  else if (begin) {
     _submitIO();
   }
 }
 
 void TraceReplayer::_submitIO() {
-  if (mode == MODE_ASYNC) {
-    if (nextIOIsSync) {
-      nextIOIsSync = false;
-
-      rescheduleSubmit(syncBreak);
-    }
-    else {
-      rescheduleSubmit(asyncBreak);
-    }
-  }
-
   if (bio.id != 0) {
     bioEntry.submitIO(bio);
 
     io_depth++;
     bio.id = 0;
+  }
+
+  if (mode == MODE_ASYNC) {
+    rescheduleSubmit(asyncBreak);
   }
 }
 
@@ -367,7 +360,11 @@ void TraceReplayer::_iocallback(uint64_t) {
     }
   }
 
-  if (mode == MODE_SYNC) {
+  if (mode == MODE_SYNC || nextIOIsSync) {
+    // MODE_ASYNC submission blocked by I/O depth limitation
+    // Let's submit here
+    nextIOIsSync = false;
+
     rescheduleSubmit(syncBreak);
   }
 }
