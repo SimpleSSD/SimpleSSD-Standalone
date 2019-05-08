@@ -27,8 +27,11 @@ namespace IGL {
 TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
                              std::function<void()> &f, ConfigReader &c)
     : IOGenerator(e, b, f),
+      useLBAOffset(false),
+      useLBALength(false),
+      nextIOIsSync(false),
       reserveTermination(false),
-      iodepth(0),
+      io_depth(0),
       io_submitted(0),
       io_count(0),
       read_count(0),
@@ -84,19 +87,26 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
     SimpleSSD::panic("Operation group ID cannot be 0");
   }
 
-  if (groupID[ID_LBA_OFFSET] > 0 && groupID[ID_LBA_LENGTH] > 0) {
-    useLBA = true;
+  if (groupID[ID_LBA_OFFSET] > 0) {
+    useLBAOffset = true;
+  }
+  if (groupID[ID_LBA_LENGTH] > 0) {
+    useLBALength = true;
+  }
+
+  if (useLBALength || useLBAOffset) {
     lbaSize = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_LBA_SIZE);
 
     if (SimpleSSD::popcount(lbaSize) != 1) {
       SimpleSSD::panic("LBA size should be power of 2");
     }
   }
-  else if (groupID[ID_BYTE_OFFSET] > 0 && groupID[ID_BYTE_LENGTH] > 0) {
-    useLBA = false;
+
+  if (!useLBAOffset && groupID[ID_BYTE_OFFSET] == 0) {
+    SimpleSSD::panic("Both LBA Offset and Byte Offset group ID cannot be 0");
   }
-  else {
-    SimpleSSD::panic("Group ID of offset and length are invalid");
+  if (!useLBALength && groupID[ID_BYTE_LENGTH] == 0) {
+    SimpleSSD::panic("Both LBA Length and Byte Length group ID cannot be 0");
   }
 
   timeValids[0] = groupID[ID_TIME_SEC] > 0 ? true : false;
@@ -107,10 +117,12 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   if (!(timeValids[0] || timeValids[1] || timeValids[2] || timeValids[3] ||
         timeValids[4])) {
-    SimpleSSD::panic("No valid time field specified");
+    if (mode == MODE_STRICT) {
+      SimpleSSD::panic("No valid time field specified");
+    }
   }
 
-  submitIO = [this](uint64_t tick) { _submitIO(tick); };
+  submitIO = [this](uint64_t) { _submitIO(); };
   iocallback = [this](uint64_t id) { _iocallback(id); };
 
   submitEvent = engine.allocateEvent(submitIO);
@@ -124,7 +136,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
   ssdSize = bytesize;
   blocksize = bs;
 
-  if (useLBA && lbaSize < bs) {
+  if ((useLBALength || useLBAOffset) && lbaSize < bs) {
     SimpleSSD::warn("LBA size of trace file is smaller than SSD's LBA size");
   }
 }
@@ -141,11 +153,10 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "*** Statistics of Trace Replayer ***" << std::endl;
   out << "Tick: " << tick << std::endl;
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
-      << tick - firstTick + initTime << ")" << std::endl;
+      << tick + firstTick - initTime << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " ("
-      << std::to_string((double)io_submitted / (tick - firstTick + initTime) *
-                        1000000000000.)
-      << " B/s)" << std::endl;
+      << std::to_string((double)io_submitted / tick * 1000000000000.) << " B/s)"
+      << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
@@ -262,14 +273,13 @@ void TraceReplayer::handleNextLine(bool begin) {
     if (eof) {
       reserveTermination = true;
 
-      if (iodepth == 0) {
+      if (io_depth == 0) {
         // No on-the-fly I/O
         endCallback();
       }
 
       return;
     }
-
     if (std::regex_match(line, match, regex)) {
       break;
     }
@@ -279,27 +289,31 @@ void TraceReplayer::handleNextLine(bool begin) {
   uint64_t tick = mergeTime(match);
 
   if (begin) {
-    firstTick = tick;
-
-    if (mode == MODE_SYNC) {
-      firstTick += syncBreak;
+    if (mode == MODE_STRICT) {
+      firstTick = tick;  // Only used by MODE_STRICT
+    }
+    else {
+      firstTick = initTime;
     }
   }
 
   // Fill BIO
-  bio.id++;  // BIO.id is inited as 0
-
-  if (useLBA) {
+  if (useLBAOffset) {
     bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
-    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
                          useHex ? 16 : 10) *
                  lbaSize;
   }
   else {
     bio.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(), nullptr,
                          useHex ? 16 : 10);
+  }
+
+  if (useLBALength) {
+    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
+                         useHex ? 16 : 10) *
+                 lbaSize;
+  }
+  else {
     bio.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(), nullptr,
                          useHex ? 16 : 10);
   }
@@ -307,6 +321,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
   bio.callback = iocallback;
+  bio.id = io_count;
 
   // Limit check
   if (io_count == max_io) {
@@ -329,40 +344,64 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   io_submitted += bio.length;
 
-  // Schedule
-  if (mode == MODE_SYNC) {
-    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + syncBreak);
-  }
-  else if (mode == MODE_ASYNC) {
-    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + asyncBreak);
-  }
-  else if (mode == MODE_STRICT) {
+  if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
+  }
+  else if (begin) {
+    _submitIO();
   }
 }
 
-void TraceReplayer::_submitIO(uint64_t) {
-  iodepth++;
+void TraceReplayer::_submitIO() {
+  if (bio.id != 0) {
+    bioEntry.submitIO(bio);
 
-  bioEntry.submitIO(bio);
+    io_depth++;
+    bio.id = 0;
+  }
 
-  // Read next
-  if ((mode == MODE_ASYNC && iodepth < maxQueueDepth) || mode == MODE_STRICT) {
+  if (mode == MODE_ASYNC) {
+    rescheduleSubmit(asyncBreak);
+  }
+  else if (mode == MODE_STRICT) {
     handleNextLine();
   }
 }
 
 void TraceReplayer::_iocallback(uint64_t) {
-  iodepth--;
+  io_depth--;
 
-  if (reserveTermination && iodepth == 0) {
+  if (reserveTermination) {
     // Everything is done
-    endCallback();
+    if (io_depth == 0) {
+      endCallback();
+    }
   }
 
-  if (mode == MODE_ASYNC || mode == MODE_SYNC) {
-    handleNextLine();
+  if (mode == MODE_SYNC || nextIOIsSync) {
+    // MODE_ASYNC submission blocked by I/O depth limitation
+    // Let's submit here
+    nextIOIsSync = false;
+
+    rescheduleSubmit(syncBreak);
   }
+}
+
+void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
+  if (mode == MODE_ASYNC) {
+    if (io_depth >= maxQueueDepth) {
+      nextIOIsSync = true;
+
+      return;
+    }
+  }
+  else if (mode == MODE_STRICT) {
+    return;
+  }
+
+  handleNextLine();
+
+  engine.scheduleEvent(submitEvent, engine.getCurrentTick() + breakTime);
 }
 
 }  // namespace IGL
