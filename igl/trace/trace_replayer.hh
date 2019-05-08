@@ -22,6 +22,7 @@
 #ifndef __IGL_TRACE_REPLAYER__
 #define __IGL_TRACE_REPLAYER__
 
+#include <list>
 #include <fstream>
 #include <mutex>
 #include <regex>
@@ -84,10 +85,12 @@ class TraceReplayer : public IOGenerator {
   uint64_t write_count;
 
   BIL::BIO bio;
+  std::list<BIL::BIO> bioList;
 
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);
   void handleNextLine(bool = false);
+  void rescheduleSubmit(uint64_t);
 
   SimpleSSD::Event submitEvent;
   SimpleSSD::EventFunction submitIO;

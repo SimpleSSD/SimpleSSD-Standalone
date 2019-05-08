@@ -132,7 +132,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 void TraceReplayer::begin() {
   initTime = engine.getCurrentTick();
 
-  handleNextLine(true);
+  _submitIO(initTime);
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
@@ -269,7 +269,6 @@ void TraceReplayer::handleNextLine(bool begin) {
 
       return;
     }
-
     if (std::regex_match(line, match, regex)) {
       break;
     }
@@ -283,6 +282,9 @@ void TraceReplayer::handleNextLine(bool begin) {
 
     if (mode == MODE_SYNC) {
       firstTick += syncBreak;
+    }
+    if (mode == MODE_ASYNC) {
+      firstTick += asyncBreak;
     }
   }
 
@@ -329,39 +331,70 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   io_submitted += bio.length;
 
-  // Schedule
-  if (mode == MODE_SYNC) {
-    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + syncBreak);
-  }
-  else if (mode == MODE_ASYNC) {
-    engine.scheduleEvent(submitEvent, engine.getCurrentTick() + asyncBreak);
-  }
-  else if (mode == MODE_STRICT) {
-    engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
-  }
+  bioList.push_back(bio);
+
 }
 
 void TraceReplayer::_submitIO(uint64_t) {
-  iodepth++;
+
+  handleNextLine();
+  
+  if (mode == MODE_SYNC) {
+    rescheduleSubmit (syncBreak);
+  }
+  else if (mode == MODE_ASYNC) {
+    rescheduleSubmit (asyncBreak);
+  }
+  else if (mode == MODE_STRICT) {
+    rescheduleSubmit (initTime - firstTick);
+  }
 
   bioEntry.submitIO(bio);
 
-  // Read next
-  if ((mode == MODE_ASYNC && iodepth < maxQueueDepth) || mode == MODE_STRICT) {
-    handleNextLine();
+}
+
+void TraceReplayer::_iocallback(uint64_t id) {
+
+  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
+    if (iter->id == id) {
+        bioList.erase(iter);
+        break;
+    }
+  }
+  if (reserveTermination) {
+    // Everything is done
+    if (bioList.size() == 0) {
+      endCallback();
+    }
+  }
+  else {
+    if (mode == MODE_SYNC) {
+      rescheduleSubmit (syncBreak);
+    }
+    else if (mode == MODE_ASYNC) {
+      rescheduleSubmit (asyncBreak);
+    }
+    else if (mode == MODE_STRICT) {
+      rescheduleSubmit (initTime - firstTick);
+    }
   }
 }
 
-void TraceReplayer::_iocallback(uint64_t) {
-  iodepth--;
+void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
+  uint64_t tick = engine.getCurrentTick();
 
-  if (reserveTermination && iodepth == 0) {
-    // Everything is done
-    endCallback();
-  }
+  if (bioList.size() < maxQueueDepth) {
+    uint64_t scheduledTick;
+    bool doSchedule = true;
 
-  if (mode == MODE_ASYNC || mode == MODE_SYNC) {
-    handleNextLine();
+    if (engine.isScheduled(submitEvent, &scheduledTick)) {
+      if (scheduledTick >= tick + breakTime) {
+        doSchedule = false;
+      }
+    }
+    if (doSchedule) {
+      engine.scheduleEvent(submitEvent, tick + breakTime);      
+    }
   }
 }
 
