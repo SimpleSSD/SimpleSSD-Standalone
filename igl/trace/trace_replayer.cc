@@ -27,6 +27,8 @@ namespace IGL {
 TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
                              std::function<void()> &f, ConfigReader &c)
     : IOGenerator(e, b, f),
+      useLBAOffset(false),
+      useLBALength(false),
       nextIOIsSync(false),
       reserveTermination(false),
       io_depth(0),
@@ -85,19 +87,26 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
     SimpleSSD::panic("Operation group ID cannot be 0");
   }
 
-  if (groupID[ID_LBA_OFFSET] > 0 && groupID[ID_LBA_LENGTH] > 0) {
-    useLBA = true;
+  if (groupID[ID_LBA_OFFSET] > 0) {
+    useLBAOffset = true;
+  }
+  if (groupID[ID_LBA_LENGTH] > 0) {
+    useLBALength = true;
+  }
+
+  if (useLBALength || useLBAOffset) {
     lbaSize = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_LBA_SIZE);
 
     if (SimpleSSD::popcount(lbaSize) != 1) {
       SimpleSSD::panic("LBA size should be power of 2");
     }
   }
-  else if (groupID[ID_BYTE_OFFSET] > 0 && groupID[ID_BYTE_LENGTH] > 0) {
-    useLBA = false;
+
+  if (!useLBAOffset && groupID[ID_BYTE_OFFSET] == 0) {
+    SimpleSSD::panic("Both LBA Offset and Byte Offset group ID cannot be 0");
   }
-  else {
-    SimpleSSD::panic("Group ID of offset and length are invalid");
+  if (!useLBALength && groupID[ID_BYTE_LENGTH] == 0) {
+    SimpleSSD::panic("Both LBA Length and Byte Length group ID cannot be 0");
   }
 
   timeValids[0] = groupID[ID_TIME_SEC] > 0 ? true : false;
@@ -108,7 +117,9 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   if (!(timeValids[0] || timeValids[1] || timeValids[2] || timeValids[3] ||
         timeValids[4])) {
-    SimpleSSD::panic("No valid time field specified");
+    if (mode == MODE_STRICT) {
+      SimpleSSD::panic("No valid time field specified");
+    }
   }
 
   submitIO = [this](uint64_t) { _submitIO(); };
@@ -125,7 +136,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
   ssdSize = bytesize;
   blocksize = bs;
 
-  if (useLBA && lbaSize < bs) {
+  if ((useLBALength || useLBAOffset) && lbaSize < bs) {
     SimpleSSD::warn("LBA size of trace file is smaller than SSD's LBA size");
   }
 }
@@ -144,9 +155,8 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
       << tick + firstTick - initTime << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " ("
-      << std::to_string((double)io_submitted / tick *
-                        1000000000000.)
-      << " B/s)" << std::endl;
+      << std::to_string((double)io_submitted / tick * 1000000000000.) << " B/s)"
+      << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
@@ -288,17 +298,22 @@ void TraceReplayer::handleNextLine(bool begin) {
   }
 
   // Fill BIO
-  if (useLBA) {
+  if (useLBAOffset) {
     bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
-    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
                          useHex ? 16 : 10) *
                  lbaSize;
   }
   else {
     bio.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(), nullptr,
                          useHex ? 16 : 10);
+  }
+
+  if (useLBALength) {
+    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
+                         useHex ? 16 : 10) *
+                 lbaSize;
+  }
+  else {
     bio.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(), nullptr,
                          useHex ? 16 : 10);
   }

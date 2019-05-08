@@ -63,7 +63,8 @@ class TraceReplayer : public IOGenerator {
   uint64_t asyncBreak;     // Only used in MODE_ASYNC
   uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
 
-  bool useLBA;
+  bool useLBAOffset;
+  bool useLBALength;
   uint32_t lbaSize;
   uint32_t groupID[ID_NUM];
   bool timeValids[5];
