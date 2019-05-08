@@ -142,9 +142,9 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "*** Statistics of Trace Replayer ***" << std::endl;
   out << "Tick: " << tick << std::endl;
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
-      << tick - firstTick + initTime << ")" << std::endl;
+      << tick + firstTick - initTime << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " ("
-      << std::to_string((double)io_submitted / (tick - firstTick + initTime) *
+      << std::to_string((double)io_submitted / tick *
                         1000000000000.)
       << " B/s)" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
@@ -347,6 +347,9 @@ void TraceReplayer::_submitIO() {
 
   if (mode == MODE_ASYNC) {
     rescheduleSubmit(asyncBreak);
+  }
+  else if (mode == MODE_STRICT) {
+    handleNextLine();
   }
 }
 
