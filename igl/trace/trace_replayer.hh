@@ -77,7 +77,7 @@ class TraceReplayer : public IOGenerator {
   bool nextIOIsSync;   // Only used in MODE_ASYNC
 
   bool reserveTermination;
-  int32_t io_depth;
+  uint32_t io_depth;
 
   uint64_t max_io;
   uint64_t io_submitted;

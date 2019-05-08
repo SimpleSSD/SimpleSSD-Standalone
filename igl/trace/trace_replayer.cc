@@ -263,7 +263,7 @@ void TraceReplayer::handleNextLine(bool begin) {
     if (eof) {
       reserveTermination = true;
 
-      if (io_depth <= 0) {
+      if (io_depth == 0) {
         // No on-the-fly I/O
         endCallback();
       }
@@ -357,12 +357,12 @@ void TraceReplayer::_submitIO() {
   }
 }
 
-void TraceReplayer::_iocallback(uint64_t id) {
+void TraceReplayer::_iocallback(uint64_t) {
   io_depth--;
 
   if (reserveTermination) {
     // Everything is done
-    if (io_depth <= 0) {
+    if (io_depth == 0) {
       endCallback();
     }
   }
