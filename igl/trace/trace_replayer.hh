@@ -81,8 +81,8 @@ class TraceReplayer : public IOGenerator {
   uint32_t io_depth;
 
   uint64_t max_io;
-  uint64_t io_submitted;
-  uint64_t io_count;
+  uint64_t io_submitted;  // Submitted I/O in bytes
+  uint64_t io_count;      // I/O count created and submitted
   uint64_t read_count;
   uint64_t write_count;
 
