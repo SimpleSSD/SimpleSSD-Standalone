@@ -217,10 +217,19 @@ int main(int argc, char *argv[]) {
 }
 
 void cleanup(int) {
+  uint64_t tick;
+
   killLock.lock();
 
+  tick = engine.getCurrentTick();
+
+  if (tick == 0) {
+    // Exit program
+    exit(0);
+  }
+
   // Print last statistics
-  statistics(engine.getCurrentTick());
+  statistics(tick);
 
   // Erase progress
   printf("                                                                 \r");
@@ -247,8 +256,7 @@ void cleanup(int) {
     debugLogOut.close();
   }
 
-  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
-            << std::endl;
+  std::cout << "End of simulation @ tick " << tick << std::endl;
 
   // Exit program
   exit(0);
