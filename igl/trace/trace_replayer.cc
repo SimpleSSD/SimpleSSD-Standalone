@@ -52,7 +52,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   try {
     regex = std::regex(c.readString(CONFIG_TRACE, TRACE_LINE_REGEX));
   }
-  catch (std::regex_error e) {
+  catch (std::regex_error &e) {
     SimpleSSD::panic("Invalid regular expression!");
   }
 
