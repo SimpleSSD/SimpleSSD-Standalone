@@ -181,9 +181,9 @@ int main(int argc, char *argv[]) {
   };
 
   // Insert stat event
-  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
-    pInterface->initStats(statList);
+  pInterface->initStats(statList);
 
+  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
     statEvent = engine.allocateEvent([](uint64_t tick) {
       statistics(tick);
 
@@ -274,7 +274,7 @@ void statistics(uint64_t tick) {
   count = statList.size();
 
   if (count != stat.size()) {
-    out << "Stat list length mismatch" << std::endl;
+    std::cerr << " Stat list length mismatch" << std::endl;
 
     std::terminate();
   }
