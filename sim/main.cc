@@ -144,7 +144,9 @@ int main(int argc, char *argv[]) {
   BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
   std::function<void()> endCallback = []() {
     // If stat printout is scheduled, delete it
-    engine.descheduleEvent(statEvent);
+    if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
+      engine.descheduleEvent(statEvent);
+    }
 
     // Stop simulation
     engine.stopEngine();
