@@ -52,7 +52,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   try {
     regex = std::regex(c.readString(CONFIG_TRACE, TRACE_LINE_REGEX));
   }
-  catch (std::regex_error e) {
+  catch (std::regex_error &e) {
     SimpleSSD::panic("Invalid regular expression!");
   }
 
@@ -163,14 +163,23 @@ void TraceReplayer::printStats(std::ostream &out) {
 }
 
 void TraceReplayer::getProgress(float &val) {
-  uint64_t ptr;
+  if (max_io == 0) {
+    // If I/O count is unlimited, use file pointer for fast progress calculation
+    uint64_t ptr;
 
-  {
-    std::lock_guard<std::mutex> guard(m);
-    ptr = file.tellg();
+    {
+      std::lock_guard<std::mutex> guard(m);
+      ptr = file.tellg();
+    }
+
+    val = (float)ptr / fileSize;
   }
-
-  val = (float)ptr / fileSize;
+  else {
+    // Use submitted I/O count in progress calculation
+    // If trace file contains I/O requests smaller than max_io, progress value
+    // cannot reach 1.0 (100%)
+    val = (float)io_count / max_io;
+  }
 }
 
 uint64_t TraceReplayer::mergeTime(std::smatch &match) {

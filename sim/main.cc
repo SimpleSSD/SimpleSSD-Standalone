@@ -144,7 +144,9 @@ int main(int argc, char *argv[]) {
   BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
   std::function<void()> endCallback = []() {
     // If stat printout is scheduled, delete it
-    engine.descheduleEvent(statEvent);
+    if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
+      engine.descheduleEvent(statEvent);
+    }
 
     // Stop simulation
     engine.stopEngine();
@@ -179,9 +181,9 @@ int main(int argc, char *argv[]) {
   };
 
   // Insert stat event
-  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
-    pInterface->initStats(statList);
+  pInterface->initStats(statList);
 
+  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
     statEvent = engine.allocateEvent([](uint64_t tick) {
       statistics(tick);
 
@@ -217,10 +219,19 @@ int main(int argc, char *argv[]) {
 }
 
 void cleanup(int) {
+  uint64_t tick;
+
   killLock.lock();
 
+  tick = engine.getCurrentTick();
+
+  if (tick == 0) {
+    // Exit program
+    exit(0);
+  }
+
   // Print last statistics
-  statistics(engine.getCurrentTick());
+  statistics(tick);
 
   // Erase progress
   printf("                                                                 \r");
@@ -247,8 +258,7 @@ void cleanup(int) {
     debugLogOut.close();
   }
 
-  std::cout << "End of simulation @ tick " << engine.getCurrentTick()
-            << std::endl;
+  std::cout << "End of simulation @ tick " << tick << std::endl;
 
   // Exit program
   exit(0);
@@ -264,7 +274,7 @@ void statistics(uint64_t tick) {
   count = statList.size();
 
   if (count != stat.size()) {
-    out << "Stat list length mismatch" << std::endl;
+    std::cerr << " Stat list length mismatch" << std::endl;
 
     std::terminate();
   }
