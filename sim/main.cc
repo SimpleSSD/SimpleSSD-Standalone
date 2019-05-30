@@ -234,7 +234,7 @@ void cleanup(int) {
   statistics(tick);
 
   // Erase progress
-  printf("                                                                 \r");
+  printf("\33[2K                                                           \r");
 
   releaseSimpleSSDEngine();
 
@@ -310,7 +310,7 @@ void threadFunc(int tick) {
     engine.getStat(current);
     pIOGen->getProgress(progress);
 
-    printf("*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
+    printf("\33[2K*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
            (double)(current - old) / tick);
     fflush(stdout);
 
