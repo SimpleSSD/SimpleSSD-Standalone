@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     noLogPrintOnScreen = false;
     pDebugLog = &std::cerr;
   }
-  else if (logPath.length() != 0) {
+  else if (debugLogPath.length() != 0) {
     debugLogOut.open(debugLogPath);
 
     if (!debugLogOut.is_open()) {
