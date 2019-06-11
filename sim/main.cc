@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     noLogPrintOnScreen = false;
     pLog = &std::cerr;
   }
-  else {
+  else if (logPath.length() != 0) {
     logOut.open(logPath);
 
     if (!logOut.is_open()) {
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     noLogPrintOnScreen = false;
     pDebugLog = &std::cerr;
   }
-  else {
+  else if (logPath.length() != 0) {
     debugLogOut.open(debugLogPath);
 
     if (!debugLogOut.is_open()) {
@@ -121,8 +121,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize SimpleSSD
-  auto ssdConfig =
-      initSimpleSSDEngine(&engine, *pDebugLog, *pDebugLog, argv[2]);
+  auto ssdConfig = initSimpleSSDEngine(&engine, pDebugLog, pDebugLog, argv[2]);
 
   // Create Driver
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
