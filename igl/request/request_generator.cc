@@ -72,17 +72,38 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
 RequestGenerator::~RequestGenerator() {}
 
 void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
-  ssdSize = bytesize;
-  ssdBlocksize = bs;
-
-  if (offset > ssdSize) {
+  if (offset > bytesize) {
     SimpleSSD::panic("offset is larger than SSD size");
-  }
-  if (size == 0 || offset + size > ssdSize) {
-    size = ssdSize - offset;
   }
   if (size == 0) {
     SimpleSSD::panic("Invalid offset and size provided");
+  }
+  if (blocksize < bs) {
+    SimpleSSD::panic("blocksize is smaller than SSD's logical block");
+  }
+  if (blockalign < bs) {
+    SimpleSSD::panic("blockalign is smaller than SSD's logical block");
+  }
+  if (blocksize % bs != 0) {
+    SimpleSSD::warn("blocksize is not aligned to SSD's logical block");
+
+    blocksize /= bs;
+    blocksize *= bs;
+  }
+  if (blockalign % bs != 0) {
+    SimpleSSD::warn("blockalign is not aligned to SSD's logical block");
+
+    blockalign /= bs;
+    blockalign *= bs;
+  }
+  if (offset % blockalign != 0) {
+    SimpleSSD::warn("offset is not aligned to blockalign");
+
+    offset /= blockalign;
+    offset *= blockalign;
+  }
+  if (size == 0 || offset + size > bytesize) {
+    size = bytesize - offset;
   }
 
   randgen = std::uniform_int_distribution<uint64_t>(offset, offset + size);
@@ -144,22 +165,26 @@ void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
   // This function generates address to access
   // based on I/O type, blocksize/align and offset/size
   if (type == IO_RANDREAD || type == IO_RANDWRITE || type == IO_RANDRW) {
-    off = randgen(randengine);
+    off = randgen(randengine);  // randgen range: [offset, offset + size)
     off -= off % blockalign;
     len = blocksize;
   }
   else {
     off = io_count * blockalign;
     len = blocksize;
-  }
 
-  while (off + len > ssdSize) {
-    if (off >= ssdSize) {
-      off -= ssdSize;
+    // Limit range of address to [offset, offset + size)
+    while (off + len > size) {
+      if (off >= size) {
+        off -= size;
+      }
+      else {
+        // TODO: is this correct?
+        off -= len;
+      }
     }
-    else {
-      off -= len;
-    }
+
+    off += offset;
   }
 }
 
