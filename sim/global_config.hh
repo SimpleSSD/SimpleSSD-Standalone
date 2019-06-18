@@ -32,8 +32,8 @@ typedef enum {
   GLOBAL_PROGRESS_PERIOD,
   GLOBAL_INTERFACE,
   GLOBAL_SCHEDULER,
-  GLOBAL_BREAK_ASYNC,
-  GLOBAL_BREAK_SYNC,
+  GLOBAL_SUBMISSION_LATENCY,
+  GLOBAL_COMPLETION_LATENCY,
 } GLOBAL_CONFIG;
 
 typedef enum {
@@ -64,8 +64,8 @@ class Config : public SimpleSSD::BaseConfig {
   uint64_t progressPeriod;
   INTERFACE interface;
   SCHEDULER scheduler;
-  uint64_t asyncBreak;
-  uint64_t syncBreak;
+  uint64_t submissionLatency;
+  uint64_t completionLatency;
 
  public:
   Config();

@@ -65,8 +65,8 @@ class RequestGenerator : public IOGenerator {
   bool time_based;
   uint64_t runtime;
 
-  uint64_t asyncBreak;
-  uint64_t syncBreak;
+  uint64_t submissionLatency;
+  uint64_t completionLatency;
 
   std::list<BIL::BIO> bioList;
 

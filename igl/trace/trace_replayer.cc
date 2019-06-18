@@ -58,8 +58,8 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   // Fill flags
   mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
-  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
-  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
+  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
+  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
   maxQueueDepth = c.readUint(CONFIG_TRACE, TRACE_QUEUE_DEPTH);
   max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
   groupID[ID_OPERATION] =
@@ -370,7 +370,7 @@ void TraceReplayer::_submitIO() {
   }
 
   if (mode == MODE_ASYNC) {
-    rescheduleSubmit(asyncBreak);
+    rescheduleSubmit(submissionLatency);
   }
   else if (mode == MODE_STRICT) {
     handleNextLine();
@@ -392,7 +392,7 @@ void TraceReplayer::_iocallback(uint64_t) {
     // Let's submit here
     nextIOIsSync = false;
 
-    rescheduleSubmit(syncBreak);
+    rescheduleSubmit(submissionLatency + completionLatency);
   }
 }
 

@@ -61,8 +61,8 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
     mode = IO_ASYNC;
   }
 
-  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
-  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
+  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
+  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
 
   // Set random engine
   randengine.seed(randseed);
@@ -236,11 +236,11 @@ void RequestGenerator::_submitIO(uint64_t) {
   // push to queue
   bioList.push_back(bio);
 
-  // Check on-the-fly I/O depth
-  rescheduleSubmit(asyncBreak);
-
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
+
+  // Check on-the-fly I/O depth
+  rescheduleSubmit(submissionLatency);
 }
 
 void RequestGenerator::_iocallback(uint64_t id) {
@@ -277,7 +277,7 @@ void RequestGenerator::_iocallback(uint64_t id) {
   }
   else {
     // Check on-the-fly I/O depth
-    rescheduleSubmit(syncBreak);
+    rescheduleSubmit(submissionLatency + completionLatency);
   }
 }
 

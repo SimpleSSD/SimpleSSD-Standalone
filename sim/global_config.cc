@@ -29,8 +29,8 @@ const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
 const char NAME_PROGRESS_PERIOD[] = "ProgressPeriod";
 const char NAME_INTERFACE[] = "Interface";
 const char NAME_SCHEDULER[] = "Scheduler";
-const char NAME_BREAK_ASYNC[] = "BreakAsyncIO";
-const char NAME_BREAK_SYNC[] = "BreakSyncIO";
+const char NAME_SUBMISSION_LATENCY[] = "SubmissionLatency";
+const char NAME_COMPLETION_LATENCY[] = "CompletionLatency";
 
 Config::Config() {
   mode = MODE_REQUEST_GENERATOR;
@@ -64,11 +64,11 @@ bool Config::setConfig(const char *name, const char *value) {
   else if (MATCH_NAME(NAME_SCHEDULER)) {
     scheduler = (SCHEDULER)strtoul(value, nullptr, 10);
   }
-  else if (MATCH_NAME(NAME_BREAK_ASYNC)) {
-    asyncBreak = convertTime(value);
+  else if (MATCH_NAME(NAME_SUBMISSION_LATENCY)) {
+    submissionLatency = convertTime(value);
   }
-  else if (MATCH_NAME(NAME_BREAK_SYNC)) {
-    syncBreak = convertTime(value);
+  else if (MATCH_NAME(NAME_COMPLETION_LATENCY)) {
+    completionLatency = convertTime(value);
   }
   else {
     ret = false;
@@ -105,11 +105,11 @@ uint64_t Config::readUint(uint32_t idx) {
     case GLOBAL_SCHEDULER:
       ret = scheduler;
       break;
-    case GLOBAL_BREAK_ASYNC:
-      ret = asyncBreak;
+    case GLOBAL_SUBMISSION_LATENCY:
+      ret = submissionLatency;
       break;
-    case GLOBAL_BREAK_SYNC:
-      ret = syncBreak;
+    case GLOBAL_COMPLETION_LATENCY:
+      ret = completionLatency;
       break;
   }
 
