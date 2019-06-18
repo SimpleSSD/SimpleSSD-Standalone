@@ -79,9 +79,6 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
   if (offset > bytesize) {
     SimpleSSD::panic("offset is larger than SSD size");
   }
-  if (size == 0) {
-    SimpleSSD::panic("Invalid offset and size provided");
-  }
   if (blocksize < bs) {
     SimpleSSD::panic("blocksize is smaller than SSD's logical block");
   }
@@ -108,6 +105,9 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
   }
   if (size == 0 || offset + size > bytesize) {
     size = bytesize - offset;
+  }
+  if (size == 0) {
+    SimpleSSD::panic("Invalid offset and size provided");
   }
 
   randgen = std::uniform_int_distribution<uint64_t>(offset, offset + size);
