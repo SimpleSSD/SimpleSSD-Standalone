@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     pLog = &std::cerr;
   }
   else if (logPath.length() != 0) {
-    std::string full(argv[2]);
+    std::string full(argv[3]);
 
     joinPath(full, logPath);
     logOut.open(full);
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
     pDebugLog = &std::cerr;
   }
   else if (debugLogPath.length() != 0) {
-    std::string full(argv[2]);
+    std::string full(argv[3]);
 
     joinPath(full, debugLogPath);
     debugLogOut.open(full);
