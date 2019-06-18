@@ -55,17 +55,8 @@ typedef struct _BIO {
 
   // Statistics
   uint64_t submittedAt;
-  uint64_t dispatchedAt;
-  uint64_t completedAt;
 
-  _BIO()
-      : id(0),
-        type(BIO_READ),
-        offset(0),
-        length(0),
-        submittedAt(0),
-        dispatchedAt(0),
-        completedAt(0) {}
+  _BIO() : id(0), type(BIO_READ), offset(0), length(0), submittedAt(0) {}
 } BIO;
 
 class BlockIOEntry {

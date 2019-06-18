@@ -52,6 +52,8 @@ BlockIOEntry::~BlockIOEntry() {
 void BlockIOEntry::submitIO(BIO &bio) {
   BIO copy(bio);
 
+  bio.submittedAt = engine.getCurrentTick();
+
   ioQueue.push_back(bio);
   copy.callback = callback;
 
