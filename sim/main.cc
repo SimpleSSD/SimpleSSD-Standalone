@@ -50,14 +50,28 @@ void cleanup(int);
 void statistics(uint64_t);
 void threadFunc(int);
 
+void joinPath(std::string &lhs, std::string &rhs) {
+  if (rhs.front() == '/') {
+    // Assume absolute path
+    lhs = rhs;
+  }
+  else if (lhs.back() == '/') {
+    lhs += rhs;
+  }
+  else {
+    lhs += '/';
+    lhs += rhs;
+  }
+}
+
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.0" << std::endl;
 
   // Check argument
-  if (argc != 3) {
+  if (argc != 4) {
     std::cerr << " Invalid number of argument!" << std::endl;
     std::cerr << "  Usage: simplessd-standalone <Simulation configuration "
-                 "file> <SimpleSSD configuration file>"
+                 "file> <SimpleSSD configuration file> <Output directory>"
               << std::endl;
 
     return 1;
@@ -89,10 +103,13 @@ int main(int argc, char *argv[]) {
     pLog = &std::cerr;
   }
   else if (logPath.length() != 0) {
-    logOut.open(logPath);
+    std::string full(argv[2]);
+
+    joinPath(full, logPath);
+    logOut.open(full);
 
     if (!logOut.is_open()) {
-      std::cerr << " Failed to open log file: " << logPath << std::endl;
+      std::cerr << " Failed to open log file: " << full << std::endl;
 
       return 3;
     }
@@ -109,10 +126,13 @@ int main(int argc, char *argv[]) {
     pDebugLog = &std::cerr;
   }
   else if (debugLogPath.length() != 0) {
-    debugLogOut.open(debugLogPath);
+    std::string full(argv[2]);
+
+    joinPath(full, debugLogPath);
+    debugLogOut.open(full);
 
     if (!debugLogOut.is_open()) {
-      std::cerr << " Failed to open log file: " << debugLogPath << std::endl;
+      std::cerr << " Failed to open log file: " << full << std::endl;
 
       return 3;
     }
