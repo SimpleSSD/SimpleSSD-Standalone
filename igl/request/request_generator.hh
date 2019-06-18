@@ -68,7 +68,7 @@ class RequestGenerator : public IOGenerator {
   uint64_t asyncBreak;
   uint64_t syncBreak;
 
-  std::list<BIL::BIO> bioList;
+  uint32_t current_iodepth;
 
   uint64_t initTime;
   bool reserveTermination;

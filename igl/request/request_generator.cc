@@ -32,6 +32,7 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
       io_submitted(0),
       io_count(0),
       read_count(0),
+      current_iodepth(0),
       reserveTermination(false) {
   // Read config
   io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
@@ -225,31 +226,21 @@ void RequestGenerator::_submitIO(uint64_t) {
 
   bio.callback = iocallback;
 
-  // push to queue
-  bioList.push_back(bio);
-
   // Check on-the-fly I/O depth
+  current_iodepth++;
   rescheduleSubmit(asyncBreak);
 
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
 }
 
-void RequestGenerator::_iocallback(uint64_t id) {
-  // Find ID from list
-  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
-    if (iter->id == id) {
-      // This request is finished
-      bioList.erase(iter);
-
-      break;
-    }
-  }
+void RequestGenerator::_iocallback(uint64_t) {
+  current_iodepth--;
 
   if (reserveTermination) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
-    if (bioList.size() == 0) {
+    if (current_iodepth == 0) {
       endCallback();
     }
   }
@@ -270,7 +261,7 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
     return;
   }
 
-  if (bioList.size() < iodepth) {
+  if (current_iodepth < iodepth) {
     uint64_t scheduledTick;
     bool doSchedule = true;
 
