@@ -32,7 +32,11 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
       io_submitted(0),
       io_count(0),
       read_count(0),
-      reserveTermination(false) {
+      reserveTermination(false),
+      minLatency(std::numeric_limits<uint64_t>::max()),
+      maxLatency(0),
+      sumLatency(0),
+      squareSumLatency(0) {
   // Read config
   io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
   type = (IO_TYPE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_TYPE);
@@ -117,6 +121,8 @@ void RequestGenerator::begin() {
 
 void RequestGenerator::printStats(std::ostream &out) {
   uint64_t tick = engine.getCurrentTick();
+  double avgLatency = (double)sumLatency / io_count;
+  double stdevLatency = sqrt((double)squareSumLatency / io_count - avgLatency);
 
   out << "*** Statistics of Request Generator ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -128,6 +134,8 @@ void RequestGenerator::printStats(std::ostream &out) {
       << " B/s)" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << io_count - read_count << ")" << std::endl;
+  out << "Latency (ps): min=" << minLatency << ", max=" << maxLatency
+      << ", avg=" << avgLatency << ", stdev=" << stdevLatency;
   out << "*** End of statistics ***" << std::endl;
 }
 
@@ -236,15 +244,29 @@ void RequestGenerator::_submitIO(uint64_t) {
 }
 
 void RequestGenerator::_iocallback(uint64_t id) {
+  uint64_t tick = engine.getCurrentTick();
+
   // Find ID from list
   for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
     if (iter->id == id) {
+      tick -= iter->submittedAt;
+
       // This request is finished
       bioList.erase(iter);
 
       break;
     }
   }
+
+  if (minLatency > tick) {
+    minLatency = tick;
+  }
+  if (maxLatency < tick) {
+    maxLatency = tick;
+  }
+
+  sumLatency += tick;
+  squareSumLatency += tick * tick;
 
   if (reserveTermination) {
     // No I/O will be generated anymore
