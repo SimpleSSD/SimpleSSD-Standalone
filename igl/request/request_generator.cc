@@ -136,11 +136,11 @@ void RequestGenerator::printStats(std::ostream &out) {
       << ", Write: " << io_count - read_count << ")" << std::endl;
   out << "Latency (ns): min=" << minLatency / 1000.0
       << ", max=" << maxLatency / 1000.0 << ", avg=" << avgLatency / 1000.0
-      << ", stdev=" << stdevLatency / 31.62277660168;
+      << ", stdev=" << stdevLatency / 31.62277660168 << std::endl;
   out << "Latency (us): min=" << minLatency / 1000000.0
       << ", max=" << maxLatency / 1000000.0
       << ", avg=" << avgLatency / 1000000.0
-      << ", stdev=" << stdevLatency / 1000.0;
+      << ", stdev=" << stdevLatency / 1000.0 << std::endl;
   out << "*** End of statistics ***" << std::endl;
 }
 
