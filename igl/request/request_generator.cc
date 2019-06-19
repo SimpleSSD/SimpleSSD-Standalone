@@ -316,6 +316,12 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
       (time_based && runtime <= (tick - initTime))) {
     reserveTermination = true;
 
+    // We need to double-check this for following case:
+    // _iocallback (all I/O completed) -> rescheduleSubmit
+    if (bioList.size() == 0) {
+      endCallback();
+    }
+
     return;
   }
 
