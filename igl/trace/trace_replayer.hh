@@ -78,7 +78,6 @@ class TraceReplayer : public IOGenerator {
   bool nextIOIsSync;   // Only used in MODE_ASYNC
 
   bool reserveTermination;
-  uint32_t io_depth;
 
   uint64_t max_io;
   uint64_t io_submitted;  // Submitted I/O in bytes
@@ -86,7 +85,13 @@ class TraceReplayer : public IOGenerator {
   uint64_t read_count;
   uint64_t write_count;
 
-  BIL::BIO bio;
+  // Statistics
+  uint64_t minLatency;
+  uint64_t maxLatency;
+  uint64_t sumLatency;
+  uint64_t squareSumLatency;
+
+  std::list<BIL::BIO> bioList;
 
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);
