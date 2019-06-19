@@ -123,6 +123,7 @@ void RequestGenerator::printStats(std::ostream &out) {
   uint64_t tick = engine.getCurrentTick();
   double avgLatency = (double)sumLatency / io_count;
   double stdevLatency = sqrt((double)squareSumLatency / io_count - avgLatency);
+  double digit = log10(avgLatency);
 
   out << "*** Statistics of Request Generator ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -134,13 +135,34 @@ void RequestGenerator::printStats(std::ostream &out) {
       << " B/s)" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << io_count - read_count << ")" << std::endl;
-  out << "Latency (ns): min=" << minLatency / 1000.0
-      << ", max=" << maxLatency / 1000.0 << ", avg=" << avgLatency / 1000.0
-      << ", stdev=" << stdevLatency / 31.62277660168 << std::endl;
-  out << "Latency (us): min=" << minLatency / 1000000.0
-      << ", max=" << maxLatency / 1000000.0
-      << ", avg=" << avgLatency / 1000000.0
-      << ", stdev=" << stdevLatency / 1000.0 << std::endl;
+
+  if (digit < 6.0) {
+    out << "Latency (ps): min=" << std::to_string(minLatency)
+        << ", max=" << std::to_string(maxLatency)
+        << ", avg=" << std::to_string(avgLatency)
+        << ", stdev=" << std::to_string(stdevLatency) << std::endl;
+  }
+  else if (digit < 9.0) {
+    out << "Latency (ns): min=" << std::to_string(minLatency / 1000.0)
+        << ", max=" << std::to_string(maxLatency / 1000.0)
+        << ", avg=" << std::to_string(avgLatency / 1000.0)
+        << ", stdev=" << std::to_string(stdevLatency / 31.62277660168)
+        << std::endl;
+  }
+  else if (digit < 12.0) {
+    out << "Latency (us): min=" << std::to_string(minLatency / 1000000.0)
+        << ", max=" << std::to_string(maxLatency / 1000000.0)
+        << ", avg=" << std::to_string(avgLatency / 1000000.0)
+        << ", stdev=" << std::to_string(stdevLatency / 1000.0) << std::endl;
+  }
+  else {
+    out << "Latency (ms): min=" << std::to_string(minLatency / 1000000000.0)
+        << ", max=" << std::to_string(maxLatency / 1000000000.0)
+        << ", avg=" << std::to_string(avgLatency / 1000000000.0)
+        << ", stdev=" << std::to_string(stdevLatency / 31622.77660168379)
+        << std::endl;
+  }
+
   out << "*** End of statistics ***" << std::endl;
 }
 
