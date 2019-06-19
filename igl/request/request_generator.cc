@@ -259,6 +259,7 @@ void RequestGenerator::_submitIO(uint64_t) {
   io_submitted += bio.length;
 
   bio.callback = iocallback;
+  bio.submittedAt = engine.getCurrentTick();
 
   // push to queue
   bioList.push_back(bio);
@@ -276,7 +277,7 @@ void RequestGenerator::_iocallback(uint64_t id) {
   // Find ID from list
   for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
     if (iter->id == id) {
-      tick -= iter->submittedAt;
+      tick = tick - iter->submittedAt;
 
       // This request is finished
       bioList.erase(iter);
