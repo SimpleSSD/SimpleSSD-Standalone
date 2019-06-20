@@ -284,6 +284,10 @@ void cleanup(int) {
 }
 
 void statistics(uint64_t tick) {
+  if (pLog == nullptr) {
+    return;
+  }
+
   std::ostream &out = *pLog;
   std::vector<double> stat;
   uint64_t count = 0;
