@@ -76,6 +76,7 @@ class BlockIOEntry {
 
   std::mutex m;
   uint64_t lastProgress;
+  uint64_t io_progress;
   Progress progress;
 
   // Statistics

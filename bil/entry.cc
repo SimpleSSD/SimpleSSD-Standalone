@@ -33,6 +33,7 @@ BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
       pScheduler(nullptr),
       pDriver(i),
       lastProgress(0),
+      io_progress(0),
       io_count(0),
       minLatency(std::numeric_limits<uint64_t>::max()),
       maxLatency(0),
@@ -60,6 +61,7 @@ BlockIOEntry::~BlockIOEntry() {
 void BlockIOEntry::submitIO(BIO &bio) {
   BIO copy(bio);
 
+  io_count++;
   bio.submittedAt = engine.getCurrentTick();
 
   ioQueue.push_back(bio);
@@ -78,7 +80,7 @@ void BlockIOEntry::completion(uint64_t id) {
       {
         std::lock_guard<std::mutex> guard(m);
 
-        io_count++;
+        io_progress++;
 
         progress.latency += tick;
         progress.iops++;
@@ -144,15 +146,31 @@ void BlockIOEntry::printStats(std::ostream &out) {
 void BlockIOEntry::getProgress(Progress &data) {
   uint64_t tick = engine.getCurrentTick();
   uint64_t diff = tick - lastProgress;
-  double ratio = diff / 1000000000000.0;
+
+  if (diff == 0) {
+    data.iops = 0;
+    data.bandwidth = 0;
+    data.latency = 0;
+
+    return;
+  }
+
+  double ratio = 1000000000000.0 / diff;
 
   {
     std::lock_guard<std::mutex> guard(m);
 
-    data.iops = progress.iops / ratio;
-    data.bandwidth = progress.bandwidth / ratio;
-    data.latency = progress.latency / io_count;
+    data.iops = progress.iops * ratio;
+    data.bandwidth = progress.bandwidth * ratio;
 
+    if (io_progress == 0) {
+      data.latency = 0;
+    }
+    else {
+      data.latency = progress.latency / io_progress;
+    }
+
+    io_progress = 0;
     progress.iops = 0;
     progress.bandwidth = 0;
     progress.latency = 0;
