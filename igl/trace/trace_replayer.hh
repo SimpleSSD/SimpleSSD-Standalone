@@ -85,13 +85,9 @@ class TraceReplayer : public IOGenerator {
   uint64_t read_count;
   uint64_t write_count;
 
-  // Statistics
-  uint64_t minLatency;
-  uint64_t maxLatency;
-  uint64_t sumLatency;
-  uint64_t squareSumLatency;
+  uint64_t io_depth;
 
-  std::list<BIL::BIO> bioList;
+  BIL::BIO bio;
 
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);

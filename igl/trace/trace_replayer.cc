@@ -35,10 +35,7 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
       io_count(0),
       read_count(0),
       write_count(0),
-      minLatency(std::numeric_limits<uint64_t>::max()),
-      maxLatency(0),
-      sumLatency(0),
-      squareSumLatency(0) {
+      io_depth(0) {
   // Check file
   auto filename = c.readString(CONFIG_TRACE, TRACE_FILE);
   file.open(filename);
@@ -152,9 +149,6 @@ void TraceReplayer::begin() {
 
 void TraceReplayer::printStats(std::ostream &out) {
   uint64_t tick = engine.getCurrentTick();
-  double avgLatency = (double)sumLatency / io_count;
-  double stdevLatency = sqrt((double)squareSumLatency / io_count - avgLatency);
-  double digit = log10(avgLatency);
 
   out << "*** Statistics of Trace Replayer ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -165,34 +159,9 @@ void TraceReplayer::printStats(std::ostream &out) {
       << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
-
-  if (digit < 6.0) {
-    out << "Latency (ps): min=" << std::to_string(minLatency)
-        << ", max=" << std::to_string(maxLatency)
-        << ", avg=" << std::to_string(avgLatency)
-        << ", stdev=" << std::to_string(stdevLatency) << std::endl;
-  }
-  else if (digit < 9.0) {
-    out << "Latency (ns): min=" << std::to_string(minLatency / 1000.0)
-        << ", max=" << std::to_string(maxLatency / 1000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 31.62277660168)
-        << std::endl;
-  }
-  else if (digit < 12.0) {
-    out << "Latency (us): min=" << std::to_string(minLatency / 1000000.0)
-        << ", max=" << std::to_string(maxLatency / 1000000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 1000.0) << std::endl;
-  }
-  else {
-    out << "Latency (ms): min=" << std::to_string(minLatency / 1000000000.0)
-        << ", max=" << std::to_string(maxLatency / 1000000000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000000000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 31622.77660168379)
-        << std::endl;
-  }
   out << "*** End of statistics ***" << std::endl;
+
+  bioEntry.printStats(out);
 }
 
 void TraceReplayer::getProgress(float &val) {
@@ -295,7 +264,6 @@ BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
 void TraceReplayer::handleNextLine(bool begin) {
   std::string line;
   std::smatch match;
-  BIL::BIO bio;
 
   if (reserveTermination) {
     // Nothing to do
@@ -316,7 +284,7 @@ void TraceReplayer::handleNextLine(bool begin) {
     if (eof) {
       reserveTermination = true;
 
-      if (bioList.size() == 0) {
+      if (io_depth == 0) {
         // No on-the-fly I/O
         endCallback();
       }
@@ -386,8 +354,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   }
 
   io_submitted += bio.length;
-
-  bioList.push_back(bio);
+  io_depth++;
 
   if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
@@ -398,10 +365,12 @@ void TraceReplayer::handleNextLine(bool begin) {
 }
 
 void TraceReplayer::_submitIO() {
-  auto &iter = bioList.back();
+  if (bio.submittedAt != 0) {
+    // DEBUG
+    SimpleSSD::panic("Already submitted!");
+  }
 
-  iter.submittedAt = engine.getCurrentTick();
-  bioEntry.submitIO(iter);
+  bioEntry.submitIO(bio);
 
   if (mode == MODE_ASYNC) {
     rescheduleSubmit(submissionLatency);
@@ -411,34 +380,12 @@ void TraceReplayer::_submitIO() {
   }
 }
 
-void TraceReplayer::_iocallback(uint64_t id) {
-  uint64_t tick = engine.getCurrentTick();
-
-  // Find ID from list
-  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
-    if (iter->id == id) {
-      tick = tick - iter->submittedAt;
-
-      // This request is finished
-      bioList.erase(iter);
-
-      break;
-    }
-  }
-
-  if (minLatency > tick) {
-    minLatency = tick;
-  }
-  if (maxLatency < tick) {
-    maxLatency = tick;
-  }
-
-  sumLatency += tick;
-  squareSumLatency += tick * tick;
+void TraceReplayer::_iocallback(uint64_t) {
+  io_depth--;
 
   if (reserveTermination) {
     // Everything is done
-    if (bioList.size() == 0) {
+    if (io_depth == 0) {
       endCallback();
     }
   }
@@ -454,7 +401,7 @@ void TraceReplayer::_iocallback(uint64_t id) {
 
 void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
   if (mode == MODE_ASYNC) {
-    if (bioList.size() >= maxQueueDepth) {
+    if (io_depth >= maxQueueDepth) {
       nextIOIsSync = true;
 
       return;

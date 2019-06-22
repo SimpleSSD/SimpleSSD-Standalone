@@ -32,11 +32,8 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
       io_submitted(0),
       io_count(0),
       read_count(0),
-      reserveTermination(false),
-      minLatency(std::numeric_limits<uint64_t>::max()),
-      maxLatency(0),
-      sumLatency(0),
-      squareSumLatency(0) {
+      io_depth(0),
+      reserveTermination(false) {
   // Read config
   io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
   type = (IO_TYPE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_TYPE);
@@ -121,9 +118,6 @@ void RequestGenerator::begin() {
 
 void RequestGenerator::printStats(std::ostream &out) {
   uint64_t tick = engine.getCurrentTick();
-  double avgLatency = (double)sumLatency / io_count;
-  double stdevLatency = sqrt((double)squareSumLatency / io_count - avgLatency);
-  double digit = log10(avgLatency);
 
   out << "*** Statistics of Request Generator ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -135,35 +129,9 @@ void RequestGenerator::printStats(std::ostream &out) {
       << " B/s)" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << io_count - read_count << ")" << std::endl;
-
-  if (digit < 6.0) {
-    out << "Latency (ps): min=" << std::to_string(minLatency)
-        << ", max=" << std::to_string(maxLatency)
-        << ", avg=" << std::to_string(avgLatency)
-        << ", stdev=" << std::to_string(stdevLatency) << std::endl;
-  }
-  else if (digit < 9.0) {
-    out << "Latency (ns): min=" << std::to_string(minLatency / 1000.0)
-        << ", max=" << std::to_string(maxLatency / 1000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 31.62277660168)
-        << std::endl;
-  }
-  else if (digit < 12.0) {
-    out << "Latency (us): min=" << std::to_string(minLatency / 1000000.0)
-        << ", max=" << std::to_string(maxLatency / 1000000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 1000.0) << std::endl;
-  }
-  else {
-    out << "Latency (ms): min=" << std::to_string(minLatency / 1000000000.0)
-        << ", max=" << std::to_string(maxLatency / 1000000000.0)
-        << ", avg=" << std::to_string(avgLatency / 1000000000.0)
-        << ", stdev=" << std::to_string(stdevLatency / 31622.77660168379)
-        << std::endl;
-  }
-
   out << "*** End of statistics ***" << std::endl;
+
+  bioEntry.printStats(out);
 }
 
 void RequestGenerator::getProgress(float &val) {
@@ -259,10 +227,9 @@ void RequestGenerator::_submitIO(uint64_t) {
   io_submitted += bio.length;
 
   bio.callback = iocallback;
-  bio.submittedAt = engine.getCurrentTick();
 
   // push to queue
-  bioList.push_back(bio);
+  io_depth++;
 
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
@@ -271,35 +238,13 @@ void RequestGenerator::_submitIO(uint64_t) {
   rescheduleSubmit(submissionLatency);
 }
 
-void RequestGenerator::_iocallback(uint64_t id) {
-  uint64_t tick = engine.getCurrentTick();
-
-  // Find ID from list
-  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
-    if (iter->id == id) {
-      tick = tick - iter->submittedAt;
-
-      // This request is finished
-      bioList.erase(iter);
-
-      break;
-    }
-  }
-
-  if (minLatency > tick) {
-    minLatency = tick;
-  }
-  if (maxLatency < tick) {
-    maxLatency = tick;
-  }
-
-  sumLatency += tick;
-  squareSumLatency += tick * tick;
+void RequestGenerator::_iocallback(uint64_t) {
+  io_depth--;
 
   if (reserveTermination) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
-    if (bioList.size() == 0) {
+    if (io_depth == 0) {
       endCallback();
     }
   }
@@ -319,14 +264,14 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
 
     // We need to double-check this for following case:
     // _iocallback (all I/O completed) -> rescheduleSubmit
-    if (bioList.size() == 0) {
+    if (io_depth == 0) {
       endCallback();
     }
 
     return;
   }
 
-  if (bioList.size() < iodepth) {
+  if (io_depth < iodepth) {
     uint64_t scheduledTick;
     bool doSchedule = true;
 

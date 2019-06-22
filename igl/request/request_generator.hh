@@ -68,16 +68,10 @@ class RequestGenerator : public IOGenerator {
   uint64_t submissionLatency;
   uint64_t completionLatency;
 
-  std::list<BIL::BIO> bioList;
+  uint64_t io_depth;
 
   uint64_t initTime;
   bool reserveTermination;
-
-  // Statistics
-  uint64_t minLatency;
-  uint64_t maxLatency;
-  uint64_t sumLatency;
-  uint64_t squareSumLatency;
 
   void generateAddress(uint64_t &, uint64_t &);
   bool nextIOIsRead();

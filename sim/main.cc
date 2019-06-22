@@ -35,6 +35,7 @@
 Engine engine;
 ConfigReader simConfig;
 BIL::DriverInterface *pInterface = nullptr;
+BIL::BlockIOEntry *pBIOEntry = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
@@ -160,7 +161,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Create Block I/O Layer
-  BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
+  pBIOEntry = new BIL::BlockIOEntry(simConfig, engine, pInterface);
+
   std::function<void()> endCallback = []() {
     // If stat printout is scheduled, delete it
     if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
@@ -175,11 +177,12 @@ int main(int argc, char *argv[]) {
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_SIM_MODE)) {
     case MODE_REQUEST_GENERATOR:
       pIOGen =
-          new IGL::RequestGenerator(engine, bioEntry, endCallback, simConfig);
+          new IGL::RequestGenerator(engine, *pBIOEntry, endCallback, simConfig);
 
       break;
     case MODE_TRACE_REPLAYER:
-      pIOGen = new IGL::TraceReplayer(engine, bioEntry, endCallback, simConfig);
+      pIOGen =
+          new IGL::TraceReplayer(engine, *pBIOEntry, endCallback, simConfig);
 
       break;
     default:
@@ -270,6 +273,8 @@ void cleanup(int) {
     delete pThread;
   }
 
+  delete pBIOEntry;  // Used by progress thread
+
   if (logOut.is_open()) {
     logOut.close();
   }
@@ -319,6 +324,7 @@ void threadFunc(int tick) {
   uint64_t old = 0;
   float progress;
   auto duration = std::chrono::seconds(tick);
+  BIL::Progress data;
 
   while (true) {
     std::this_thread::sleep_for(duration);
@@ -332,9 +338,12 @@ void threadFunc(int tick) {
 
     engine.getStat(current);
     pIOGen->getProgress(progress);
+    pBIOEntry->getProgress(data);
 
-    printf("\33[2K*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
-           (double)(current - old) / tick);
+    printf("\33[2K*** Progress: %.2f%% (%lf ops) IOPS: %" PRIu64 " BW: %" PRIu64
+           " B/s Avg. Lat: %" PRIu64 " ps\r",
+           progress * 100.f, (double)(current - old) / tick, data.iops,
+           data.bandwidth, data.latency);
     fflush(stdout);
 
     old = current;
