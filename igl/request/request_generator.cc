@@ -32,6 +32,7 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
       io_submitted(0),
       io_count(0),
       read_count(0),
+      io_depth(0),
       reserveTermination(false) {
   // Read config
   io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
@@ -57,8 +58,8 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
     mode = IO_ASYNC;
   }
 
-  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
-  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
+  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
+  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
 
   // Set random engine
   randengine.seed(randseed);
@@ -72,14 +73,35 @@ RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
 RequestGenerator::~RequestGenerator() {}
 
 void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
-  ssdSize = bytesize;
-  ssdBlocksize = bs;
-
-  if (offset > ssdSize) {
+  if (offset > bytesize) {
     SimpleSSD::panic("offset is larger than SSD size");
   }
-  if (size == 0 || offset + size > ssdSize) {
-    size = ssdSize - offset;
+  if (blocksize < bs) {
+    SimpleSSD::panic("blocksize is smaller than SSD's logical block");
+  }
+  if (blockalign < bs) {
+    SimpleSSD::panic("blockalign is smaller than SSD's logical block");
+  }
+  if (blocksize % bs != 0) {
+    SimpleSSD::warn("blocksize is not aligned to SSD's logical block");
+
+    blocksize /= bs;
+    blocksize *= bs;
+  }
+  if (blockalign % bs != 0) {
+    SimpleSSD::warn("blockalign is not aligned to SSD's logical block");
+
+    blockalign /= bs;
+    blockalign *= bs;
+  }
+  if (offset % blockalign != 0) {
+    SimpleSSD::warn("offset is not aligned to blockalign");
+
+    offset /= blockalign;
+    offset *= blockalign;
+  }
+  if (size == 0 || offset + size > bytesize) {
+    size = bytesize - offset;
   }
   if (size == 0) {
     SimpleSSD::panic("Invalid offset and size provided");
@@ -108,6 +130,8 @@ void RequestGenerator::printStats(std::ostream &out) {
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << io_count - read_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
+
+  bioEntry.printStats(out);
 }
 
 void RequestGenerator::getProgress(float &val) {
@@ -144,22 +168,26 @@ void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
   // This function generates address to access
   // based on I/O type, blocksize/align and offset/size
   if (type == IO_RANDREAD || type == IO_RANDWRITE || type == IO_RANDRW) {
-    off = randgen(randengine);
+    off = randgen(randengine);  // randgen range: [offset, offset + size)
     off -= off % blockalign;
     len = blocksize;
   }
   else {
     off = io_count * blockalign;
     len = blocksize;
-  }
 
-  while (off + len > ssdSize) {
-    if (off >= ssdSize) {
-      off -= ssdSize;
+    // Limit range of address to [offset, offset + size)
+    while (off + len > size) {
+      if (off >= size) {
+        off -= size;
+      }
+      else {
+        // TODO: is this correct?
+        off -= len;
+      }
     }
-    else {
-      off -= len;
-    }
+
+    off += offset;
   }
 }
 
@@ -201,36 +229,28 @@ void RequestGenerator::_submitIO(uint64_t) {
   bio.callback = iocallback;
 
   // push to queue
-  bioList.push_back(bio);
-
-  // Check on-the-fly I/O depth
-  rescheduleSubmit(asyncBreak);
+  io_depth++;
 
   // Submit to Block I/O entry
   bioEntry.submitIO(bio);
+
+  // Check on-the-fly I/O depth
+  rescheduleSubmit(submissionLatency);
 }
 
-void RequestGenerator::_iocallback(uint64_t id) {
-  // Find ID from list
-  for (auto iter = bioList.begin(); iter != bioList.end(); iter++) {
-    if (iter->id == id) {
-      // This request is finished
-      bioList.erase(iter);
-
-      break;
-    }
-  }
+void RequestGenerator::_iocallback(uint64_t) {
+  io_depth--;
 
   if (reserveTermination) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
-    if (bioList.size() == 0) {
+    if (io_depth == 0) {
       endCallback();
     }
   }
   else {
     // Check on-the-fly I/O depth
-    rescheduleSubmit(syncBreak);
+    rescheduleSubmit(submissionLatency + completionLatency);
   }
 }
 
@@ -242,10 +262,16 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
       (time_based && runtime <= (tick - initTime))) {
     reserveTermination = true;
 
+    // We need to double-check this for following case:
+    // _iocallback (all I/O completed) -> rescheduleSubmit
+    if (io_depth == 0) {
+      endCallback();
+    }
+
     return;
   }
 
-  if (bioList.size() < iodepth) {
+  if (io_depth < iodepth) {
     uint64_t scheduledTick;
     bool doSchedule = true;
 

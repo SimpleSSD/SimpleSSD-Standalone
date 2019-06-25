@@ -55,18 +55,15 @@ typedef struct _BIO {
 
   // Statistics
   uint64_t submittedAt;
-  uint64_t dispatchedAt;
-  uint64_t completedAt;
 
-  _BIO()
-      : id(0),
-        type(BIO_READ),
-        offset(0),
-        length(0),
-        submittedAt(0),
-        dispatchedAt(0),
-        completedAt(0) {}
+  _BIO() : id(0), type(BIO_READ), offset(0), length(0), submittedAt(0) {}
 } BIO;
+
+typedef struct _Progress {
+  uint64_t iops;
+  uint64_t bandwidth;
+  uint64_t latency;
+} Progress;
 
 class BlockIOEntry {
  private:
@@ -77,6 +74,18 @@ class BlockIOEntry {
   Scheduler *pScheduler;
   DriverInterface *pDriver;
 
+  std::mutex m;
+  uint64_t lastProgress;
+  uint64_t io_progress;
+  Progress progress;
+
+  // Statistics
+  uint64_t io_count;
+  uint64_t minLatency;
+  uint64_t maxLatency;
+  uint64_t sumLatency;
+  uint64_t squareSumLatency;
+
   std::function<void(uint64_t)> callback;
   void completion(uint64_t);
 
@@ -85,6 +94,9 @@ class BlockIOEntry {
   ~BlockIOEntry();
 
   void submitIO(BIO &);
+
+  void printStats(std::ostream &);
+  void getProgress(Progress &);
 };
 
 }  // namespace BIL

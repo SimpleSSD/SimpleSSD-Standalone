@@ -31,11 +31,11 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
       useLBALength(false),
       nextIOIsSync(false),
       reserveTermination(false),
-      io_depth(0),
       io_submitted(0),
       io_count(0),
       read_count(0),
-      write_count(0) {
+      write_count(0),
+      io_depth(0) {
   // Check file
   auto filename = c.readString(CONFIG_TRACE, TRACE_FILE);
   file.open(filename);
@@ -58,8 +58,8 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   // Fill flags
   mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
-  syncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_SYNC);
-  asyncBreak = c.readUint(CONFIG_GLOBAL, GLOBAL_BREAK_ASYNC);
+  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
+  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
   maxQueueDepth = c.readUint(CONFIG_TRACE, TRACE_QUEUE_DEPTH);
   max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
   groupID[ID_OPERATION] =
@@ -160,6 +160,8 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
+
+  bioEntry.printStats(out);
 }
 
 void TraceReplayer::getProgress(float &val) {
@@ -352,6 +354,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   }
 
   io_submitted += bio.length;
+  io_depth++;
 
   if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
@@ -362,15 +365,15 @@ void TraceReplayer::handleNextLine(bool begin) {
 }
 
 void TraceReplayer::_submitIO() {
-  if (bio.id != 0) {
-    bioEntry.submitIO(bio);
-
-    io_depth++;
-    bio.id = 0;
+  if (bio.submittedAt != 0) {
+    // DEBUG
+    SimpleSSD::panic("Already submitted!");
   }
 
+  bioEntry.submitIO(bio);
+
   if (mode == MODE_ASYNC) {
-    rescheduleSubmit(asyncBreak);
+    rescheduleSubmit(submissionLatency);
   }
   else if (mode == MODE_STRICT) {
     handleNextLine();
@@ -392,7 +395,7 @@ void TraceReplayer::_iocallback(uint64_t) {
     // Let's submit here
     nextIOIsSync = false;
 
-    rescheduleSubmit(syncBreak);
+    rescheduleSubmit(submissionLatency + completionLatency);
   }
 }
 

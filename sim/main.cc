@@ -35,6 +35,7 @@
 Engine engine;
 ConfigReader simConfig;
 BIL::DriverInterface *pInterface = nullptr;
+BIL::BlockIOEntry *pBIOEntry = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
@@ -50,14 +51,28 @@ void cleanup(int);
 void statistics(uint64_t);
 void threadFunc(int);
 
+void joinPath(std::string &lhs, std::string &rhs) {
+  if (rhs.front() == '/') {
+    // Assume absolute path
+    lhs = rhs;
+  }
+  else if (lhs.back() == '/') {
+    lhs += rhs;
+  }
+  else {
+    lhs += '/';
+    lhs += rhs;
+  }
+}
+
 int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.0" << std::endl;
 
   // Check argument
-  if (argc != 3) {
+  if (argc != 4) {
     std::cerr << " Invalid number of argument!" << std::endl;
     std::cerr << "  Usage: simplessd-standalone <Simulation configuration "
-                 "file> <SimpleSSD configuration file>"
+                 "file> <SimpleSSD configuration file> <Output directory>"
               << std::endl;
 
     return 1;
@@ -88,11 +103,14 @@ int main(int argc, char *argv[]) {
     noLogPrintOnScreen = false;
     pLog = &std::cerr;
   }
-  else {
-    logOut.open(logPath);
+  else if (logPath.length() != 0) {
+    std::string full(argv[3]);
+
+    joinPath(full, logPath);
+    logOut.open(full);
 
     if (!logOut.is_open()) {
-      std::cerr << " Failed to open log file: " << logPath << std::endl;
+      std::cerr << " Failed to open log file: " << full << std::endl;
 
       return 3;
     }
@@ -108,11 +126,14 @@ int main(int argc, char *argv[]) {
     noLogPrintOnScreen = false;
     pDebugLog = &std::cerr;
   }
-  else {
-    debugLogOut.open(debugLogPath);
+  else if (debugLogPath.length() != 0) {
+    std::string full(argv[3]);
+
+    joinPath(full, debugLogPath);
+    debugLogOut.open(full);
 
     if (!debugLogOut.is_open()) {
-      std::cerr << " Failed to open log file: " << debugLogPath << std::endl;
+      std::cerr << " Failed to open log file: " << full << std::endl;
 
       return 3;
     }
@@ -121,8 +142,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize SimpleSSD
-  auto ssdConfig =
-      initSimpleSSDEngine(&engine, *pDebugLog, *pDebugLog, argv[2]);
+  auto ssdConfig = initSimpleSSDEngine(&engine, pDebugLog, pDebugLog, argv[2]);
 
   // Create Driver
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
@@ -141,7 +161,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Create Block I/O Layer
-  BIL::BlockIOEntry bioEntry(simConfig, engine, pInterface);
+  pBIOEntry = new BIL::BlockIOEntry(simConfig, engine, pInterface);
+
   std::function<void()> endCallback = []() {
     // If stat printout is scheduled, delete it
     if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
@@ -156,11 +177,12 @@ int main(int argc, char *argv[]) {
   switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_SIM_MODE)) {
     case MODE_REQUEST_GENERATOR:
       pIOGen =
-          new IGL::RequestGenerator(engine, bioEntry, endCallback, simConfig);
+          new IGL::RequestGenerator(engine, *pBIOEntry, endCallback, simConfig);
 
       break;
     case MODE_TRACE_REPLAYER:
-      pIOGen = new IGL::TraceReplayer(engine, bioEntry, endCallback, simConfig);
+      pIOGen =
+          new IGL::TraceReplayer(engine, *pBIOEntry, endCallback, simConfig);
 
       break;
     default:
@@ -234,7 +256,7 @@ void cleanup(int) {
   statistics(tick);
 
   // Erase progress
-  printf("                                                                 \r");
+  printf("\33[2K                                                           \r");
 
   releaseSimpleSSDEngine();
 
@@ -251,6 +273,8 @@ void cleanup(int) {
     delete pThread;
   }
 
+  delete pBIOEntry;  // Used by progress thread
+
   if (logOut.is_open()) {
     logOut.close();
   }
@@ -265,6 +289,10 @@ void cleanup(int) {
 }
 
 void statistics(uint64_t tick) {
+  if (pLog == nullptr) {
+    return;
+  }
+
   std::ostream &out = *pLog;
   std::vector<double> stat;
   uint64_t count = 0;
@@ -296,6 +324,7 @@ void threadFunc(int tick) {
   uint64_t old = 0;
   float progress;
   auto duration = std::chrono::seconds(tick);
+  BIL::Progress data;
 
   while (true) {
     std::this_thread::sleep_for(duration);
@@ -309,9 +338,12 @@ void threadFunc(int tick) {
 
     engine.getStat(current);
     pIOGen->getProgress(progress);
+    pBIOEntry->getProgress(data);
 
-    printf("*** Progress: %.2f%% (%lf ops)\r", progress * 100.f,
-           (double)(current - old) / tick);
+    printf("\33[2K*** Progress: %.2f%% (%lf ops) IOPS: %" PRIu64 " BW: %" PRIu64
+           " B/s Avg. Lat: %" PRIu64 " ps\r",
+           progress * 100.f, (double)(current - old) / tick, data.iops,
+           data.bandwidth, data.latency);
     fflush(stdout);
 
     old = current;

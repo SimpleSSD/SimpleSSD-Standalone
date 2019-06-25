@@ -143,7 +143,7 @@ static bool setupStack() {
 static void raiseSignal(int sig) {
   pthread_kill(pthread_self(), sig);
 
-  std::terminate();
+  exit(0);
 }
 
 static void installHandler(int sig, void (*handler)(int),

@@ -59,8 +59,8 @@ class TraceReplayer : public IOGenerator {
   uint64_t fileSize;
 
   TIMING_MODE mode;
-  uint64_t syncBreak;      // Used in MODE_SYNC and MODE_ASYNC
-  uint64_t asyncBreak;     // Only used in MODE_ASYNC
+  uint64_t submissionLatency;
+  uint64_t completionLatency;
   uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
 
   bool useLBAOffset;
@@ -78,13 +78,14 @@ class TraceReplayer : public IOGenerator {
   bool nextIOIsSync;   // Only used in MODE_ASYNC
 
   bool reserveTermination;
-  uint32_t io_depth;
 
   uint64_t max_io;
   uint64_t io_submitted;  // Submitted I/O in bytes
   uint64_t io_count;      // I/O count created and submitted
   uint64_t read_count;
   uint64_t write_count;
+
+  uint64_t io_depth;
 
   BIL::BIO bio;
 

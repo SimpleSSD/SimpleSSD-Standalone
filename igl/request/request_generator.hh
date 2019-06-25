@@ -65,13 +65,10 @@ class RequestGenerator : public IOGenerator {
   bool time_based;
   uint64_t runtime;
 
-  uint64_t ssdSize;
-  uint64_t ssdBlocksize;
+  uint64_t submissionLatency;
+  uint64_t completionLatency;
 
-  uint64_t asyncBreak;
-  uint64_t syncBreak;
-
-  std::list<BIL::BIO> bioList;
+  uint64_t io_depth;
 
   uint64_t initTime;
   bool reserveTermination;
