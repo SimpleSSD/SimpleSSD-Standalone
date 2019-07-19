@@ -72,7 +72,7 @@ class BlockIOEntry {
   Engine &engine;
   std::list<BIO> ioQueue;
 
-  std::ofstream latencyFile;
+  std::ostream *pLatencyFile;
 
   Scheduler *pScheduler;
   DriverInterface *pDriver;
@@ -93,7 +93,7 @@ class BlockIOEntry {
   void completion(uint64_t);
 
  public:
-  BlockIOEntry(ConfigReader &, Engine &, DriverInterface *);
+  BlockIOEntry(ConfigReader &, Engine &, DriverInterface *, std::ostream *);
   ~BlockIOEntry();
 
   void submitIO(BIO &);

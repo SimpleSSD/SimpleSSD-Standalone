@@ -27,9 +27,11 @@
 
 namespace BIL {
 
-BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
+BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i,
+                           std::ostream *o)
     : conf(c),
       engine(e),
+      pLatencyFile(o),
       pScheduler(nullptr),
       pDriver(i),
       lastProgress(0),
@@ -51,23 +53,11 @@ BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
       break;
   }
 
-  std::string path = c.readString(CONFIG_GLOBAL, GLOBAL_LATENCY_LOG_FILE);
-
-  if (path.length() != 0) {
-    latencyFile.open(path);
-
-    if (!latencyFile.is_open()) {
-      SimpleSSD::panic("Failed to open latency log file");
-    }
-  }
-
   pScheduler->init();
 }
 
 BlockIOEntry::~BlockIOEntry() {
   delete pScheduler;
-
-  latencyFile.close();
 }
 
 void BlockIOEntry::submitIO(BIO &bio) {
@@ -99,11 +89,11 @@ void BlockIOEntry::completion(uint64_t id) {
         progress.bandwidth += iter->length;
       }
 
-      if (latencyFile.is_open()) {
-        latencyFile << std::to_string(iter->id) << ", "
-                    << std::to_string(iter->offset) << ", "
-                    << std::to_string(iter->length) << ", "
-                    << std::to_string(tick) << std::endl;
+      if (pLatencyFile) {
+        *pLatencyFile << std::to_string(iter->id) << ", "
+                      << std::to_string(iter->offset) << ", "
+                      << std::to_string(iter->length) << ", "
+                      << std::to_string(tick) << std::endl;
       }
 
       iter->callback(id);
