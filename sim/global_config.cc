@@ -26,6 +26,7 @@ const char NAME_MODE[] = "Mode";
 const char NAME_LOG_PERIOD[] = "LogPeriod";
 const char NAME_LOG_FILE[] = "LogFile";
 const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
+const char NAME_LATENCY_LOG_FILE[] = "LatencyLogFile";
 const char NAME_PROGRESS_PERIOD[] = "ProgressPeriod";
 const char NAME_INTERFACE[] = "Interface";
 const char NAME_SCHEDULER[] = "Scheduler";
@@ -54,6 +55,9 @@ bool Config::setConfig(const char *name, const char *value) {
   }
   else if (MATCH_NAME(NAME_DEBUG_LOG_FILE)) {
     logDebugFile = value;
+  }
+  else if (MATCH_NAME(NAME_LATENCY_LOG_FILE)) {
+    latencyFile = value;
   }
   else if (MATCH_NAME(NAME_PROGRESS_PERIOD)) {
     progressPeriod = strtoul(value, nullptr, 10);
@@ -125,6 +129,9 @@ std::string Config::readString(uint32_t idx) {
       break;
     case GLOBAL_DEBUG_LOG_FILE:
       ret = logDebugFile;
+      break;
+    case GLOBAL_LATENCY_LOG_FILE:
+      ret = latencyFile;
       break;
   }
 
