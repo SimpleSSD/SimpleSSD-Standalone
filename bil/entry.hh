@@ -23,6 +23,7 @@
 #define __BIL_ENTRY__
 
 #include <cinttypes>
+#include <fstream>
 #include <functional>
 #include <list>
 
@@ -70,6 +71,8 @@ class BlockIOEntry {
   ConfigReader &conf;
   Engine &engine;
   std::list<BIO> ioQueue;
+
+  std::ofstream latencyFile;
 
   Scheduler *pScheduler;
   DriverInterface *pDriver;
