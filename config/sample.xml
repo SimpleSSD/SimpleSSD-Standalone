@@ -1,0 +1,260 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+  Copyright (C) 2019 CAMELab
+
+  Author: Donghyun Gouk <kukdh1@camelab.org>
+ -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  SimpleSSD Standalone configuration file.
+
+  Attribute name is case-sensitive.
+ -->
+<standalone version="2.1-unknown">
+  <!--
+    Rule of values
+
+    str:   String, a sequence of alphanumeric characters
+    int:   SI integer, a sequence of numeric characters
+           Possible suffix (case sensitive):
+            10^3 base: k, m, g, t
+            2^10 base: K, M, G, T
+    float: Floating point number, a sequence of numeric characters
+           with one (or none) of decimal point
+    bool:  Boolean, a true or false value.
+           Possible value (case insensitive):
+            True: Non-zero number, T, True, Y, Yes
+            False: Otherwise
+    time:  SI integer, a sequenced of numeric characters
+           If no suffix provided, value will treated as pico-second.
+           Possible suffix (case sensitive):
+            s, ms, us, ns, ps
+   -->
+  <!--
+    Simulation configuration
+
+    May override by program.
+   -->
+  <section name="sim">
+    <!--
+      <int> Select simulation mode
+
+      Possible values:
+        0: Request generator mode (<section name="trace"> will be ignored)
+        1: Trace replayer mode (<section name="generator"> will be ignored)
+     -->
+    <config name="Mode">0</config>
+    <!-- <time> Statistic log print period -->
+    <config name="LogPeriod">10ms</config>
+    <!-- <str> Output Directory -->
+    <config name="OutputDirectory">simout</config>
+    <!-- <str> Output filename of statistic log -->
+    <config name="StatLogFile">stat.txt</config>
+    <!-- <str> Output filename of debug log -->
+    <config name="DebugLogFile">debug.txt</config>
+    <!-- <str> Output filename of per-I/O latency log-->
+    <config name="LatencyLogFile">latency.txt</config>
+    <!--
+      <int> Progress printont period in second (real-time)
+
+      Simulation progress will be printed to stdout if all logs are printed into
+      file (not stdout/stderr) and this value is greater than zero.
+     -->
+    <config name="ProgressPeriod">0</config>
+    <!--
+      <int> Select SimpleSSD interface
+
+      Possible values:
+        0: No interface - direct connection to HIL layer
+        1: NVMe - Use Non-Volatile Memory Express
+     -->
+    <config name="Interface">0</config>
+    <!--
+      <int> Select I/O scheduler
+
+      Possible values:
+        0: Noop scheduler - No scheduling
+     -->
+    <config name="Scheduler">0</config>
+    <!--
+      <time> Storage stack latency - submission latency
+
+      As we don't have operating system, this values are introduces to mimic
+      system storage stack latency.
+     -->
+    <config name="SubmissionLatency">5us</config>
+    <!--
+      <time> Storage stack latency - completion latency
+
+      Latency calculation method:
+       * <sl> is Submission Latency and <cl> is Completion Latency
+       Sync I/O (iodepth=1): <sl>[    I/O    ]<cl><sl>[    I/O    ]<cl> ...
+       Async I/O (iodepth=3): <sl>[    I/O    ]<cl>
+                                  <sl>[    I/O    ]<cl>
+                                      <sl>[    I/O    ]<cl>
+                                                   <sl>[    I/O    ]<cl> ...
+     -->
+    <config name="CompletionLatency">5us</config>
+  </section>
+  <!--
+    Request Generator configuration
+
+    The options are exactly same with Flexible I/O Tester
+   -->
+  <section name="generator">
+    <!-- <int> Total I/O size -->
+    <config name="io_size"></config>
+    <!--
+      <str> I/O type
+
+      Possible values:
+        read:      Sequential read
+        write:     Sequential write
+        randread:  Random read
+        randwrite: Random write
+        readwrite: Mixed sequential I/O
+        randrw:    Mixed random I/O
+     -->
+    <config name="readwrite">read</config>
+    <!-- <float> Ratio of read in mixed I/O -->
+    <config name="rwmixread">0.5</config>
+    <!-- <int> Block size (Size of I/O request) -->
+    <config name="blocksize"> 4K</config>
+    <!--
+      <int> Block align
+
+      Default <empty value> is blocksize
+     -->
+    <config name="blockalign"></config>
+    <!--
+      <str> I/O mode
+
+      In fio, they has ioengine option to select sync or libaio.
+      As we don't have such engines, replace ioengine option with this option.
+
+      Possible values:
+        sync: Synchronous I/O (Asynchronous I/O with iodepth of 1)
+        async: Asynchronous I/O
+     -->
+    <config name="iomode"> async</config>
+    <!-- <int> I/O depth -->
+    <config name="iodepth">32</config>
+    <!-- <int> Offset -->
+    <config name="offset"> 0</config>
+    <!--
+      <int> Size
+
+      Default <empty value> is [SSD size] - <offset option>
+     -->
+    <config name="size"></config>
+    <!--
+       <time> Think time
+
+       This option addes think time between completion latency and submission
+       latency.
+     -->
+    <config name="thinktime">0</config>
+    <!-- <int> Random seed -->
+    <config name="randseed">13245</config>
+    <!-- <bool> Time based termination instead of I/O size -->
+    <config name="time_based">false</config>
+    <!-- <time> Runtime -->
+    <config name="runtime">10s</config>
+  </section>
+  <!--
+    Trace Replayer configuration
+   -->
+  <section name="trace">
+    <!--
+      <str> Input trace filename
+
+      This option may overriden by program.
+     -->
+    <config name="File">./test.txt</config>
+    <!--
+      <int> Timing option
+
+      Possible values:
+        0: No timing constraint (Sync)
+           I/O will issued synchronously
+        1: No timing constraint (Async)
+           I/O will issued asynchronously
+        2: Strict timing
+           I/O will issued asynchronously at exact time of trace
+     -->
+    <config name="TimingMode">0</config>
+    <!--
+      <int> I/O depth
+
+      Maximum asynchronous I/O depth when using TimingMode = 1
+     -->
+    <config name="IODepth">32</config>
+    <!--
+      <int> Total number of I/O to issue
+
+      Set zero or leave empty to issue all I/O in the trace file
+     -->
+    <config name="IOLimit">0</config>
+    <!--
+      <str> Regular expression
+
+      To support various format of trace file without conversion,
+      SimpleSSD-Standalone supports regular expression based file parsing.
+
+      Please specify regex that represents a line of trace file.
+      Set each values needed for simulation as group (See below configurations).
+
+      Unmatched lines will be ignored
+
+      Following example is for blkparse result
+     -->
+    <config name="Regex">\d+,\d+ +\d+ +\d+ +(\d+).(\d+) +\d+ +D +(\w+) +(\d+) \+ (\d+).*</config>
+    <!--
+      Regular expression matched group configurations
+
+      If your trace uses byte as address representation, specify only ByteOffset
+      and ByteLength. If your trace uses LBA as adddress representation, specify
+      only LBAOffset, LBALength and LBASize.
+
+      For the I/O timestamp, all time values will be added.
+      For example, blkparse uses following format as timestamp:
+        23.000002331 (23 seconds + 2331 nano-seconds)
+      As above timestamp can be decomposed into second and nano-second parts,
+      specify Second and Nanosecond options.
+     -->
+    <!--
+      <int> Group ID for operation string
+
+      Matched string should be begin with following character:
+        R: Read
+        W: Write
+        F: Flush
+        T: Trim
+        D: Trim
+     -->
+    <config name="Operation">3</config>
+    <!-- <int> Group ID for byte offset -->
+    <config name="ByteOffset"></config>
+    <!-- <int> Group ID for byte length -->
+    <config name="ByteLength"></config>
+    <!-- <int> Group ID for LBA offset -->
+    <config name="LBAOffset">4</config>
+    <!-- <int> Group ID for LBA length -->
+    <config name="LBALength">5</config>
+    <!-- <int> Group ID for timestamp in second -->
+    <config name="Second">1</config>
+    <!-- <int> Group ID for timestamp in ms -->
+    <config name="Millisecond"></config>
+    <!-- <int> Group ID for timestamp in us -->
+    <config name="Microsecond"></config>
+    <!-- <int> Group ID for timestamp in ns -->
+    <config name="Nanosecond">2</config>
+    <!-- <int> Group ID for timestamp in ps -->
+    <config name="Picosecond"></config>
+    <!-- <int> Size of logical block -->
+    <config name="LBASize">512</config>
+    <!-- <bool> Offset/Length is hexadecimal, not decimal -->
+    <config name="UseHexadecimal">0</config>
+  </section>
+</simplessd>
