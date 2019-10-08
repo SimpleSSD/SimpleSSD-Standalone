@@ -1,4 +1,4 @@
-# SimpleSSD-Standalone (v2.0)
+# SimpleSSD-Standalone (v2.1)
 Open-Source Licensed Educational SSD Simulator for High-Performance Storage and Full-System Evaluations
 
 This project is managed by [CAMELab](http://camelab.org).
