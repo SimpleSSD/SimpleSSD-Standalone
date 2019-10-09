@@ -14,37 +14,37 @@
 
 namespace IGL {
 
-typedef enum {
-  TRACE_FILE,
-  TRACE_TIMING_MODE,
-  TRACE_QUEUE_DEPTH,
-  TRACE_IO_LIMIT,
-  TRACE_LINE_REGEX,
-  TRACE_GROUP_OPERATION,
-  TRACE_GROUP_BYTE_OFFSET,
-  TRACE_GROUP_BYTE_LENGTH,
-  TRACE_GROUP_LBA_OFFSET,
-  TRACE_GROUP_LBA_LENGTH,
-  TRACE_GROUP_SEC,
-  TRACE_GROUP_MILI_SEC,
-  TRACE_GROUP_MICRO_SEC,
-  TRACE_GROUP_NANO_SEC,
-  TRACE_GROUP_PICO_SEC,
-  TRACE_LBA_SIZE,
-  TRACE_USE_HEX,
-} TRACE_CONFIG;
-
-typedef enum {
-  MODE_SYNC,
-  MODE_ASYNC,
-  MODE_STRICT,
-  MODE_NUM,
-} TIMING_MODE;
-
 class TraceConfig : public SimpleSSD::BaseConfig {
+ public:
+  enum Key : uint32_t {
+    File,
+    TimingMode,
+    Depth,
+    Limit,
+    Regex,
+    GroupOperation,
+    GroupByteOffset,
+    GroupByteLength,
+    GroupLBAOffset,
+    GroupLBALength,
+    GroupSecond,
+    GroupMiliSecond,
+    GroupMicroSecond,
+    GroupNanoSecond,
+    GroupPicoSecond,
+    LBASize,
+    UseHexadecimal,
+  };
+
+  enum class TimingModeType : uint8_t {
+    Synchronoous,
+    Aynchronous,
+    Strict,
+  };
+
  private:
   std::string file;
-  TIMING_MODE mode;
+  TimingModeType mode;
   uint32_t queueDepth;
   uint64_t iolimit;
   std::string regex;
@@ -64,12 +64,18 @@ class TraceConfig : public SimpleSSD::BaseConfig {
  public:
   TraceConfig();
 
-  bool setConfig(const char *, const char *) override;
+  const char *getSectionName() override { return "trace"; }
+
+  void loadFrom(pugi::xml_node &) override;
+  void storeTo(pugi::xml_node &) override;
   void update() override;
 
   uint64_t readUint(uint32_t) override;
   std::string readString(uint32_t) override;
   bool readBoolean(uint32_t) override;
+  bool writeUint(uint32_t, uint64_t) override;
+  bool writeString(uint32_t, std::string &) override;
+  bool writeBoolean(uint32_t, bool) override;
 };
 
 }  // namespace IGL

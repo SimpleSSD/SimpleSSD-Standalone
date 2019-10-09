@@ -7,13 +7,11 @@
 
 #include "igl/trace/trace_config.hh"
 
-#include "simplessd/sim/trace.hh"
-
 namespace IGL {
 
 const char NAME_FILE[] = "File";
 const char NAME_TIMING_MODE[] = "TimingMode";
-const char NAME_QUEUE_DEPTH[] = "QueueDepth";
+const char NAME_IO_DEPTH[] = "IODepth";
 const char NAME_IO_LIMIT[] = "IOLimit";
 const char NAME_LINE_REGEX[] = "Regex";
 const char NAME_GROUP_OPERATION[] = "Operation";
@@ -30,7 +28,7 @@ const char NAME_LBA_SIZE[] = "LBASize";
 const char NAME_USE_HEX[] = "UseHexadecimal";
 
 TraceConfig::TraceConfig() {
-  mode = MODE_SYNC;
+  mode = TimingModeType::Synchronoous;
   queueDepth = 1;
   iolimit = 0;
   groupOperation = 0;
@@ -47,65 +45,46 @@ TraceConfig::TraceConfig() {
   useHexadecimal = false;
 }
 
-bool TraceConfig::setConfig(const char *name, const char *value) {
-  bool ret = true;
+void TraceConfig::loadFrom(pugi::xml_node &section) {
+  for (auto node = section.first_child(); node; node = node.next_sibling()) {
+    LOAD_NAME_STRING(node, NAME_FILE, file);
+    LOAD_NAME_UINT_TYPE(node, NAME_TIMING_MODE, TimingModeType, mode);
+    LOAD_NAME_UINT(node, NAME_IO_DEPTH, queueDepth);
+    LOAD_NAME_UINT(node, NAME_IO_LIMIT, iolimit);
+    LOAD_NAME_STRING(node, NAME_LINE_REGEX, regex);
+    LOAD_NAME_UINT(node, NAME_GROUP_OPERATION, groupOperation);
+    LOAD_NAME_UINT(node, NAME_GROUP_BYTE_OFFSET, groupByteOffset);
+    LOAD_NAME_UINT(node, NAME_GROUP_BYTE_LENGTH, groupByteLength);
+    LOAD_NAME_UINT(node, NAME_GROUP_LBA_OFFSET, groupLBAOffset);
+    LOAD_NAME_UINT(node, NAME_GROUP_LBA_LENGTH, groupLBALength);
+    LOAD_NAME_UINT(node, NAME_GROUP_SEC, groupSecond);
+    LOAD_NAME_UINT(node, NAME_GROUP_MILI_SEC, groupMiliSecond);
+    LOAD_NAME_UINT(node, NAME_GROUP_MICRO_SEC, groupMicroSecond);
+    LOAD_NAME_UINT(node, NAME_GROUP_NANO_SEC, groupNanoSecond);
+    LOAD_NAME_UINT(node, NAME_GROUP_PICO_SEC, groupPicoSecond);
+    LOAD_NAME_UINT(node, NAME_LBA_SIZE, lbaSize);
+    LOAD_NAME_BOOLEAN(node, NAME_USE_HEX, useHexadecimal);
+  }
+}
 
-  if (MATCH_NAME(NAME_FILE)) {
-    file = value;
-  }
-  else if (MATCH_NAME(NAME_TIMING_MODE)) {
-    mode = (TIMING_MODE)strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_QUEUE_DEPTH)) {
-    queueDepth = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_IO_LIMIT)) {
-    iolimit = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_LINE_REGEX)) {
-    regex = value;
-  }
-  else if (MATCH_NAME(NAME_GROUP_OPERATION)) {
-    groupOperation = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_BYTE_OFFSET)) {
-    groupByteOffset = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_BYTE_LENGTH)) {
-    groupByteLength = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_LBA_OFFSET)) {
-    groupLBAOffset = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_LBA_LENGTH)) {
-    groupLBALength = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_SEC)) {
-    groupSecond = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_MILI_SEC)) {
-    groupMiliSecond = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_MICRO_SEC)) {
-    groupMicroSecond = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_NANO_SEC)) {
-    groupNanoSecond = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_GROUP_PICO_SEC)) {
-    groupPicoSecond = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_LBA_SIZE)) {
-    lbaSize = strtoul(value, nullptr, 10);
-  }
-  else if (MATCH_NAME(NAME_USE_HEX)) {
-    useHexadecimal = convertBool(value);
-  }
-  else {
-    ret = false;
-  }
-
-  return ret;
+void TraceConfig::storeTo(pugi::xml_node &section) {
+  STORE_NAME_STRING(section, NAME_FILE, file);
+  STORE_NAME_UINT(section, NAME_TIMING_MODE, mode);
+  STORE_NAME_UINT(section, NAME_IO_DEPTH, queueDepth);
+  STORE_NAME_UINT(section, NAME_IO_LIMIT, iolimit);
+  STORE_NAME_STRING(section, NAME_LINE_REGEX, regex);
+  STORE_NAME_UINT(section, NAME_GROUP_OPERATION, groupOperation);
+  STORE_NAME_UINT(section, NAME_GROUP_BYTE_OFFSET, groupByteOffset);
+  STORE_NAME_UINT(section, NAME_GROUP_BYTE_LENGTH, groupByteLength);
+  STORE_NAME_UINT(section, NAME_GROUP_LBA_OFFSET, groupLBAOffset);
+  STORE_NAME_UINT(section, NAME_GROUP_LBA_LENGTH, groupLBALength);
+  STORE_NAME_UINT(section, NAME_GROUP_SEC, groupSecond);
+  STORE_NAME_UINT(section, NAME_GROUP_MILI_SEC, groupMiliSecond);
+  STORE_NAME_UINT(section, NAME_GROUP_MICRO_SEC, groupMicroSecond);
+  STORE_NAME_UINT(section, NAME_GROUP_NANO_SEC, groupNanoSecond);
+  STORE_NAME_UINT(section, NAME_GROUP_PICO_SEC, groupPicoSecond);
+  STORE_NAME_UINT(section, NAME_LBA_SIZE, lbaSize);
+  STORE_NAME_BOOLEAN(section, NAME_USE_HEX, useHexadecimal);
 }
 
 void TraceConfig::update() {
@@ -137,55 +116,54 @@ void TraceConfig::update() {
     regex.pop_back();
   }
 
-  if (mode >= MODE_NUM) {
-    SimpleSSD::panic("Invalid timing mode specified");
-  }
+  panic_if((uint8_t)mode > (uint8_t)TimingModeType::Strict,
+           "Invalid timing mode specified");
 }
 
 uint64_t TraceConfig::readUint(uint32_t idx) {
   uint64_t ret = 0;
 
   switch (idx) {
-    case TRACE_TIMING_MODE:
-      ret = mode;
+    case Key::TimingMode:
+      ret = (uint64_t)mode;
       break;
-    case TRACE_QUEUE_DEPTH:
+    case Key::Depth:
       ret = queueDepth;
       break;
-    case TRACE_IO_LIMIT:
+    case Key::Limit:
       ret = iolimit;
       break;
-    case TRACE_GROUP_OPERATION:
+    case Key::GroupOperation:
       ret = groupOperation;
       break;
-    case TRACE_GROUP_BYTE_OFFSET:
+    case Key::GroupByteOffset:
       ret = groupByteOffset;
       break;
-    case TRACE_GROUP_BYTE_LENGTH:
+    case Key::GroupByteLength:
       ret = groupByteLength;
       break;
-    case TRACE_GROUP_LBA_OFFSET:
+    case Key::GroupLBAOffset:
       ret = groupLBAOffset;
       break;
-    case TRACE_GROUP_LBA_LENGTH:
+    case Key::GroupLBALength:
       ret = groupLBALength;
       break;
-    case TRACE_GROUP_SEC:
+    case Key::GroupSecond:
       ret = groupSecond;
       break;
-    case TRACE_GROUP_MILI_SEC:
+    case Key::GroupMiliSecond:
       ret = groupMiliSecond;
       break;
-    case TRACE_GROUP_MICRO_SEC:
+    case Key::GroupMicroSecond:
       ret = groupMicroSecond;
       break;
-    case TRACE_GROUP_NANO_SEC:
+    case Key::GroupNanoSecond:
       ret = groupNanoSecond;
       break;
-    case TRACE_GROUP_PICO_SEC:
+    case Key::GroupPicoSecond:
       ret = groupPicoSecond;
       break;
-    case TRACE_LBA_SIZE:
+    case Key::LBASize:
       ret = lbaSize;
       break;
   }
@@ -197,10 +175,10 @@ std::string TraceConfig::readString(uint32_t idx) {
   std::string ret = "";
 
   switch (idx) {
-    case TRACE_FILE:
+    case Key::File:
       ret = file;
       break;
-    case TRACE_LINE_REGEX:
+    case Key::Regex:
       ret = regex;
       break;
   }
@@ -212,8 +190,95 @@ bool TraceConfig::readBoolean(uint32_t idx) {
   bool ret = false;
 
   switch (idx) {
-    case TRACE_USE_HEX:
+    case Key::UseHexadecimal:
       ret = useHexadecimal;
+      break;
+  }
+
+  return ret;
+}
+
+bool TraceConfig::writeUint(uint32_t idx, uint64_t value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::TimingMode:
+      mode = (TimingModeType)value;
+      break;
+    case Key::Depth:
+      queueDepth = value;
+      break;
+    case Key::Limit:
+      iolimit = value;
+      break;
+    case Key::GroupOperation:
+      groupOperation = value;
+      break;
+    case Key::GroupByteOffset:
+      groupByteOffset = value;
+      break;
+    case Key::GroupByteLength:
+      groupByteLength = value;
+      break;
+    case Key::GroupLBAOffset:
+      groupLBAOffset = value;
+      break;
+    case Key::GroupLBALength:
+      groupLBALength = value;
+      break;
+    case Key::GroupSecond:
+      groupSecond = value;
+      break;
+    case Key::GroupMiliSecond:
+      groupMiliSecond = value;
+      break;
+    case Key::GroupMicroSecond:
+      groupMicroSecond = value;
+      break;
+    case Key::GroupNanoSecond:
+      groupNanoSecond = value;
+      break;
+    case Key::GroupPicoSecond:
+      groupPicoSecond = value;
+      break;
+    case Key::LBASize:
+      lbaSize = value;
+      break;
+    default:
+      ret = false;
+      break;
+  }
+
+  return ret;
+}
+
+bool TraceConfig::writeString(uint32_t idx, std::string &value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::File:
+      file = value;
+      break;
+    case Key::Regex:
+      regex = value;
+      break;
+    default:
+      ret = false;
+      break;
+  }
+
+  return ret;
+}
+
+bool TraceConfig::writeBoolean(uint32_t idx, bool value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::UseHexadecimal:
+      useHexadecimal = value;
+      break;
+    default:
+      ret = false;
       break;
   }
 
