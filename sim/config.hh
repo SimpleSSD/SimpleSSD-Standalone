@@ -68,6 +68,7 @@ class Config : public SimpleSSD::BaseConfig {
 
   void loadFrom(pugi::xml_node &) override;
   void storeTo(pugi::xml_node &) override;
+  void update() override;
 
   uint64_t readUint(uint32_t) override;
   std::string readString(uint32_t) override;

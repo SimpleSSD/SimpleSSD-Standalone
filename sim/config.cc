@@ -70,6 +70,14 @@ void Config::storeTo(pugi::xml_node &section) {
   STORE_NAME_TIME(section, NAME_COMPLETION_LATENCY, completionLatency);
 }
 
+void Config::update() {
+  panic_if((uint8_t)mode > (uint8_t)ModeType::TraceReplayer, "Invalid Mode.");
+  panic_if((uint8_t)interface > (uint8_t)InterfaceType::None,
+           "Invalid Interface.");
+  panic_if((uint8_t)scheduler > (uint8_t)SchedulerType::Noop,
+           "Invalid Scheduler.");
+}
+
 uint64_t Config::readUint(uint32_t idx) {
   switch (idx) {
     case Key::Mode:
