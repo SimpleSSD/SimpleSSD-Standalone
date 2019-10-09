@@ -12,6 +12,9 @@
 
 #include <string>
 
+#include "igl/request/request_config.hh"
+#include "igl/trace/trace_config.hh"
+#include "sim/config.hh"
 #include "simplessd/lib/pugixml/src/pugixml.hpp"
 
 //! Configuration section enum.
@@ -30,6 +33,10 @@ enum class Section {
 class ConfigReader {
  private:
   pugi::xml_document file;
+
+  Config simConfig;
+  IGL::RequestConfig requestConfig;
+  IGL::TraceConfig traceConfig;
 
  public:
   ConfigReader();
