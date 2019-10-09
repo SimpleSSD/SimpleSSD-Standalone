@@ -50,11 +50,11 @@
     <!-- <str> Output Directory -->
     <config name="OutputDirectory">simout</config>
     <!-- <str> Output filename of statistic log -->
-    <config name="StatLogFile">stat.txt</config>
+    <config name="StatLogFile">STDOUT</config>
     <!-- <str> Output filename of debug log -->
-    <config name="DebugLogFile">debug.txt</config>
+    <config name="DebugLogFile">STDOUT</config>
     <!-- <str> Output filename of per-I/O latency log-->
-    <config name="LatencyLogFile">latency.txt</config>
+    <config name="LatencyLogFile">STDOUT</config>
     <!--
       <int> Progress printont period in second (real-time)
 
@@ -80,7 +80,7 @@
     <!--
       <time> Storage stack latency - submission latency
 
-      As we don't have operating system, this values are introduces to mimic
+      As we don't have operating system, this values are introduced to mimic
       system storage stack latency.
      -->
     <config name="SubmissionLatency">5us</config>
