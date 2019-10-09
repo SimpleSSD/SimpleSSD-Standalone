@@ -7,106 +7,37 @@
 
 #include "sim/engine.hh"
 
-#include "simplessd/sim/trace.hh"
-
-Engine::Engine()
-    : SimpleSSD::Simulator(),
+EventEngine::EventEngine()
+    : SimpleSSD::Engine(),
       simTick(0),
-      counter(0),
       forceStop(false),
+      counter(0),
       eventHandled(0) {
   watch.start();
 }
 
-Engine::~Engine() {}
+EventEngine::~EventEngine() {}
 
-bool Engine::insertEvent(SimpleSSD::Event eid, uint64_t tick,
-                         uint64_t *pOldTick) {
-  bool found = false;
-  bool flag = false;
-  auto old = eventQueue.begin();
-  auto insert = eventQueue.end();
-
-  for (auto iter = eventQueue.begin(); iter != eventQueue.end(); iter++) {
-    if (iter->first == eid) {
-      found = true;
-      old = iter;
-
-      if (pOldTick) {
-        *pOldTick = iter->second;
-      }
-    }
-
-    if (iter->second > tick && !flag) {
-      insert = iter;
-      flag = true;
-    }
-  }
-
-  if (found && pOldTick) {
-    if (*pOldTick == tick) {
-      // Rescheduling to same tick. Ignore.
-      return false;
-    }
-  }
-
-  // Iterator will not invalidated on insert
-  // Do insert first
-  eventQueue.insert(insert, {eid, tick});
-
-  if (found) {
-    eventQueue.erase(old);
-  }
-
-  return found;
-}
-
-bool Engine::removeEvent(SimpleSSD::Event eid) {
-  bool found = false;
-
-  for (auto iter = eventQueue.begin(); iter != eventQueue.end(); iter++) {
-    if (iter->first == eid) {
-      eventQueue.erase(iter);
-      found = true;
-
-      break;
-    }
-  }
-
-  return found;
-}
-
-bool Engine::isEventExist(SimpleSSD::Event eid, uint64_t *pTick) {
-  for (auto &iter : eventQueue) {
-    if (iter.first == eid) {
-      if (pTick) {
-        *pTick = iter.second;
-      }
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-uint64_t Engine::getCurrentTick() {
+uint64_t EventEngine::getTick() {
   std::lock_guard<std::mutex> guard(mTick);
 
   return simTick;
 }
 
-SimpleSSD::Event Engine::allocateEvent(SimpleSSD::EventFunction func) {
+SimpleSSD::Event EventEngine::createEvent(SimpleSSD::EventFunction func,
+                                          std::string) {
   auto iter = eventList.insert({++counter, func});
 
   if (!iter.second) {
-    SimpleSSD::panic("Fail to allocate event");
+    fprintf(stderr, "Fail to allocate event\n");
+
+    abort();
   }
 
   return counter;
 }
 
-void Engine::scheduleEvent(SimpleSSD::Event eid, uint64_t tick) {
+void EventEngine::schedule(SimpleSSD::Event eid, uint64_t tick) {
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
@@ -118,64 +49,81 @@ void Engine::scheduleEvent(SimpleSSD::Event eid, uint64_t tick) {
     }
 
     if (tick < tickCopy) {
-      SimpleSSD::warn("Tried to schedule %" PRIu64
-                      " < simTick to event %" PRIu64 ". Set tick as simTick.",
-                      tick, eid);
+      fprintf(stderr,
+              "Tried to schedule %" PRIu64 " < simTick to event %" PRIu64 ".\n",
+              tick, eid);
 
-      tick = tickCopy;
+      abort();
     }
 
-    uint64_t oldTick;
-
-    if (insertEvent(eid, tick, &oldTick)) {
-      SimpleSSD::warn("Event %" PRIu64 " rescheduled from %" PRIu64
-                      " to %" PRIu64,
-                      eid, oldTick, tick);
-    }
+    eventQueue.insert_or_assign(eid, tick);
   }
   else {
-    SimpleSSD::panic("Event %" PRIu64 " does not exists", eid);
+    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
+
+    abort();
   }
 }
 
-void Engine::descheduleEvent(SimpleSSD::Event eid) {
+void EventEngine::deschedule(SimpleSSD::Event eid) {
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
-    removeEvent(eid);
+    auto iter = eventQueue.find(eid);
+
+    if (iter == eventQueue.end()) {
+      fprintf(stderr, "Event %" PRIu64 " not scheduled.\n", eid);
+
+      abort();
+    }
+
+    eventQueue.erase(iter);
   }
   else {
-    SimpleSSD::panic("Event %" PRIu64 " does not exists", eid);
+    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
+
+    abort();
   }
 }
 
-bool Engine::isScheduled(SimpleSSD::Event eid, uint64_t *pTick) {
+bool EventEngine::isScheduled(SimpleSSD::Event eid) {
   bool ret = false;
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
-    ret = isEventExist(eid, pTick);
+    auto iter = eventQueue.find(eid);
+
+    return iter != eventQueue.end();
   }
   else {
-    SimpleSSD::panic("Event %" PRIu64 " does not exists", eid);
+    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
+
+    abort();
   }
 
   return ret;
 }
 
-void Engine::deallocateEvent(SimpleSSD::Event eid) {
+void EventEngine::destroyEvent(SimpleSSD::Event eid) {
   auto iter = eventList.find(eid);
 
   if (iter != eventList.end()) {
-    removeEvent(eid);
     eventList.erase(iter);
+
+    auto iter = eventQueue.find(eid);
+
+    if (iter != eventQueue.end()) {
+      eventQueue.erase(iter);
+    }
   }
   else {
-    SimpleSSD::panic("Event %" PRIu64 " does not exists", eid);
+    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
+
+    abort();
   }
 }
 
-bool Engine::doNextEvent() {
+bool EventEngine::doNextEvent() {
   uint64_t tickCopy;
 
   if (forceStop) {
@@ -183,25 +131,27 @@ bool Engine::doNextEvent() {
   }
 
   if (eventQueue.size() > 0) {
-    auto &now = eventQueue.front();
+    auto now = eventQueue.begin();
 
     {
       std::lock_guard<std::mutex> guard(mTick);
 
-      simTick = now.second;
+      simTick = now->second;
       tickCopy = simTick;
     }
 
-    auto iter = eventList.find(now.first);
-
-    eventQueue.pop_front();
+    auto iter = eventList.find(now->first);
 
     if (iter != eventList.end()) {
       iter->second(tickCopy);
     }
     else {
-      SimpleSSD::panic("Event %" PRIu64 " does not exists", now.first);
+      fprintf(stderr, "Event %" PRIu64 " does not exists.\n", now->first);
+
+      abort();
     }
+
+    eventQueue.erase(now);
 
     {
       std::lock_guard<std::mutex> guard(m);
@@ -214,16 +164,16 @@ bool Engine::doNextEvent() {
   return false;
 }
 
-void Engine::stopEngine() {
+void EventEngine::stopEngine() {
   forceStop = true;
 }
 
-void Engine::printStats(std::ostream &out) {
+void EventEngine::printStats(std::ostream &out) {
   watch.stop();
 
   double duration = watch.getDuration();
 
-  out << "*** Statistics of Event Engine ***" << std::endl;
+  out << "*** Statistics of Event EventEngine ***" << std::endl;
   {
     std::lock_guard<std::mutex> guard(mTick);
 
@@ -235,7 +185,7 @@ void Engine::printStats(std::ostream &out) {
   out << "*** End of statistics ***" << std::endl;
 }
 
-void Engine::getStat(uint64_t &val) {
+void EventEngine::getStat(uint64_t &val) {
   std::lock_guard<std::mutex> guard(m);
   val = eventHandled;
 }
