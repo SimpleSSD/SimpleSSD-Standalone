@@ -14,46 +14,47 @@
 
 namespace IGL {
 
-typedef enum {
-  REQUEST_IO_SIZE,
-  REQUEST_IO_TYPE,
-  REQUEST_IO_MIX_RATIO,
-  REQUEST_BLOCK_SIZE,
-  REQUEST_BLOCK_ALIGN,
-  REQUEST_IO_MODE,
-  REQUEST_IO_DEPTH,
-  REQUEST_OFFSET,
-  REQUEST_SIZE,
-  REQUEST_THINKTIME,
-  REQUEST_RANDOM_SEED,
-  REQUEST_TIME_BASED,
-  REQUEST_RUN_TIME,
-} REQUEST_CONFIG;
-
-typedef enum {
-  IO_READ,
-  IO_WRITE,
-  IO_RANDREAD,
-  IO_RANDWRITE,
-  IO_READWRITE,
-  IO_RANDRW,
-  IO_TYPE_NUM,
-} IO_TYPE;
-
-typedef enum {
-  IO_SYNC,
-  IO_ASYNC,
-  IO_MODE_NUM,
-} IO_MODE;
-
 class RequestConfig : public SimpleSSD::BaseConfig {
+ public:
+  enum Key : uint32_t {
+    Size,
+    Type,
+    ReadMix,
+    BlockSize,
+    BlockAlign,
+    Mode,
+    Depth,
+    Offset,
+    Limit,
+    ThinkTime,
+    RandomSeed,
+    TimeBased,
+    RunTime,
+  };
+
+  enum class IOType : uint8_t {
+    Read,
+    Write,
+    RandRead,
+    RandWrite,
+    ReadWrite,
+    RandRW,
+  };
+
+  enum class IOMode : uint8_t {
+    Synchronous,
+    Asynchronous,
+  };
+
  private:
   uint64_t io_size;
-  IO_TYPE type;
+  std::string _type;
+  IOType type;
   float rwmixread;
   uint64_t blocksize;
   uint64_t blockalign;
-  IO_MODE mode;
+  std::string _mode;
+  IOMode mode;
   uint64_t iodepth;
   uint64_t offset;
   uint64_t size;
@@ -65,12 +66,18 @@ class RequestConfig : public SimpleSSD::BaseConfig {
  public:
   RequestConfig();
 
-  bool setConfig(const char *, const char *) override;
+  const char *getSectionName() override { return "generator"; }
+
+  void loadFrom(pugi::xml_node &) override;
+  void storeTo(pugi::xml_node &) override;
   void update() override;
 
   uint64_t readUint(uint32_t) override;
   float readFloat(uint32_t) override;
   bool readBoolean(uint32_t) override;
+  bool writeUint(uint32_t, uint64_t) override;
+  bool writeFloat(uint32_t, float) override;
+  bool writeBoolean(uint32_t, bool) override;
 };
 
 }  // namespace IGL

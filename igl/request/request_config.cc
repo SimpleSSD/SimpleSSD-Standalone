@@ -7,9 +7,6 @@
 
 #include "igl/request/request_config.hh"
 
-#include "simplessd/sim/trace.hh"
-#include "util/convert.hh"
-
 namespace IGL {
 
 const char NAME_IO_SIZE[] = "io_size";
@@ -28,11 +25,11 @@ const char NAME_RUN_TIME[] = "runtime";
 
 RequestConfig::RequestConfig() {
   io_size = 0;
-  type = IO_READ;
+  type = IOType::Read;
   rwmixread = 0;
   blocksize = 0;
   blockalign = 0;
-  mode = IO_SYNC;
+  mode = IOMode::Synchronous;
   iodepth = 0;
   offset = 0;
   size = 0;
@@ -42,130 +39,113 @@ RequestConfig::RequestConfig() {
   runtime = 0;
 }
 
-bool RequestConfig::setConfig(const char *name, const char *value) {
-  bool ret = true;
+void RequestConfig::loadFrom(pugi::xml_node &section) {
+  for (auto node = section.first_child(); node; node = node.next_sibling()) {
+    LOAD_NAME_UINT(node, NAME_IO_SIZE, io_size);
+    LOAD_NAME_STRING(node, NAME_IO_TYPE, _type);
+    LOAD_NAME_FLOAT(node, NAME_IO_MIX_RATIO, rwmixread);
+    LOAD_NAME_UINT(node, NAME_BLOCK_SIZE, blocksize);
+    LOAD_NAME_UINT(node, NAME_BLOCK_ALIGN, blockalign);
+    LOAD_NAME_STRING(node, NAME_IO_MODE, _mode);
+    LOAD_NAME_UINT(node, NAME_IO_DEPTH, iodepth);
+    LOAD_NAME_UINT(node, NAME_OFFSET, offset);
+    LOAD_NAME_UINT(node, NAME_SIZE, size);
+    LOAD_NAME_TIME(node, NAME_THINKTIME, thinktime);
+    LOAD_NAME_UINT(node, NAME_RANDOM_SEED, randseed);
+    LOAD_NAME_BOOLEAN(node, NAME_TIME_BASED, time_based);
+    LOAD_NAME_TIME(node, NAME_RUN_TIME, runtime);
+  }
+}
 
-  if (MATCH_NAME(NAME_IO_SIZE)) {
-    io_size = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_IO_TYPE)) {
-    if (strcasecmp(value, "read") == 0) {
-      type = IO_READ;
-    }
-    else if (strcasecmp(value, "write") == 0) {
-      type = IO_WRITE;
-    }
-    else if (strcasecmp(value, "randread") == 0) {
-      type = IO_RANDREAD;
-    }
-    else if (strcasecmp(value, "randwrite") == 0) {
-      type = IO_RANDWRITE;
-    }
-    else if (strcasecmp(value, "readwrite") == 0) {
-      type = IO_READWRITE;
-    }
-    else if (strcasecmp(value, "randrw") == 0) {
-      type = IO_RANDRW;
-    }
-    else {
-      type = IO_TYPE_NUM;
-    }
-  }
-  else if (MATCH_NAME(NAME_IO_MIX_RATIO)) {
-    rwmixread = strtof(value, nullptr);
-  }
-  else if (MATCH_NAME(NAME_BLOCK_SIZE)) {
-    blocksize = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_BLOCK_ALIGN)) {
-    blockalign = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_IO_MODE)) {
-    if (strcasecmp(value, "sync") == 0) {
-      mode = IO_SYNC;
-    }
-    else if (strcasecmp(value, "async") == 0) {
-      mode = IO_ASYNC;
-    }
-    else {
-      mode = IO_MODE_NUM;
-    }
-  }
-  else if (MATCH_NAME(NAME_IO_DEPTH)) {
-    iodepth = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_OFFSET)) {
-    offset = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_SIZE)) {
-    size = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_THINKTIME)) {
-    thinktime = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_RANDOM_SEED)) {
-    randseed = convertInteger(value);
-  }
-  else if (MATCH_NAME(NAME_TIME_BASED)) {
-    time_based = convertBoolean(value);
-  }
-  else if (MATCH_NAME(NAME_RUN_TIME)) {
-    runtime = convertTime(value);
-  }
-  else {
-    ret = false;
-  }
-
-  return ret;
+void RequestConfig::storeTo(pugi::xml_node &section) {
+  STORE_NAME_UINT(section, NAME_IO_SIZE, io_size);
+  STORE_NAME_STRING(section, NAME_IO_TYPE, _type);
+  STORE_NAME_FLOAT(section, NAME_IO_MIX_RATIO, rwmixread);
+  STORE_NAME_UINT(section, NAME_BLOCK_SIZE, blocksize);
+  STORE_NAME_UINT(section, NAME_BLOCK_ALIGN, blockalign);
+  STORE_NAME_STRING(section, NAME_IO_MODE, _mode);
+  STORE_NAME_UINT(section, NAME_IO_DEPTH, iodepth);
+  STORE_NAME_UINT(section, NAME_OFFSET, offset);
+  STORE_NAME_UINT(section, NAME_SIZE, size);
+  STORE_NAME_TIME(section, NAME_THINKTIME, thinktime);
+  STORE_NAME_UINT(section, NAME_RANDOM_SEED, randseed);
+  STORE_NAME_BOOLEAN(section, NAME_TIME_BASED, time_based);
+  STORE_NAME_TIME(section, NAME_RUN_TIME, runtime);
 }
 
 void RequestConfig::update() {
-  if (type == IO_TYPE_NUM) {
-    SimpleSSD::panic("Invalid value of readwrite");
+  // Convert type
+  if (_type.compare("read") == 0) {
+    type = IOType::Read;
   }
-  if (mode == IO_MODE_NUM) {
-    SimpleSSD::panic("Invalid value of iomode");
+  else if (_type.compare("write") == 0) {
+    type = IOType::Write;
   }
-  if (rwmixread < 0 || rwmixread > 1) {
-    SimpleSSD::panic("Invalid value of rwmixread");
+  else if (_type.compare("randread") == 0) {
+    type = IOType::RandRead;
   }
+  else if (_type.compare("randwrite") == 0) {
+    type = IOType::RandWrite;
+  }
+  else if (_type.compare("readwrite") == 0) {
+    type = IOType::ReadWrite;
+  }
+  else if (_type.compare("randrw") == 0) {
+    type = IOType::RandRW;
+  }
+  else {
+    panic_if(true, "Unexpected %s in readwrite.", _type.c_str());
+  }
+
+  // Convert mode
+  if (_mode.compare("sync") == 0) {
+    mode = IOMode::Synchronous;
+  }
+  else if (_mode.compare("async") == 0) {
+    mode = IOMode::Asynchronous;
+  }
+  else {
+    panic_if(true, "Unexpected %s in iomode.", _mode.c_str());
+  }
+
+  panic_if(rwmixread < 0 || rwmixread > 1, "Invalid rwmixread.");
 }
 
 uint64_t RequestConfig::readUint(uint32_t idx) {
   uint64_t ret = 0;
 
   switch (idx) {
-    case REQUEST_IO_SIZE:
+    case Key::Size:
       ret = io_size;
       break;
-    case REQUEST_IO_TYPE:
-      ret = type;
+    case Key::Type:
+      ret = (uint64_t)type;
       break;
-    case REQUEST_BLOCK_SIZE:
+    case Key::BlockSize:
       ret = blocksize;
       break;
-    case REQUEST_BLOCK_ALIGN:
+    case Key::BlockAlign:
       ret = blockalign;
       break;
-    case REQUEST_IO_MODE:
-      ret = mode;
+    case Key::Mode:
+      ret = (uint64_t)mode;
       break;
-    case REQUEST_IO_DEPTH:
+    case Key::Depth:
       ret = iodepth;
       break;
-    case REQUEST_OFFSET:
+    case Key::Offset:
       ret = offset;
       break;
-    case REQUEST_SIZE:
+    case Key::Limit:
       ret = size;
       break;
-    case REQUEST_THINKTIME:
+    case Key::ThinkTime:
       ret = thinktime;
       break;
-    case REQUEST_RANDOM_SEED:
+    case Key::RandomSeed:
       ret = randseed;
       break;
-    case REQUEST_RUN_TIME:
+    case Key::RunTime:
       ret = runtime;
       break;
   }
@@ -177,7 +157,7 @@ float RequestConfig::readFloat(uint32_t idx) {
   float ret = 0.f;
 
   switch (idx) {
-    case REQUEST_IO_MIX_RATIO:
+    case Key::ReadMix:
       ret = rwmixread;
       break;
   }
@@ -189,8 +169,83 @@ bool RequestConfig::readBoolean(uint32_t idx) {
   bool ret = false;
 
   switch (idx) {
-    case REQUEST_TIME_BASED:
+    case Key::TimeBased:
       ret = time_based;
+      break;
+  }
+
+  return ret;
+}
+
+bool RequestConfig::writeUint(uint32_t idx, uint64_t value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::Size:
+      io_size = value;
+      break;
+    case Key::Type:
+      type = (IOType)value;
+      break;
+    case Key::BlockSize:
+      blocksize = value;
+      break;
+    case Key::BlockAlign:
+      blockalign = value;
+      break;
+    case Key::Mode:
+      mode = (IOMode)value;
+      break;
+    case Key::Depth:
+      iodepth = value;
+      break;
+    case Key::Offset:
+      offset = value;
+      break;
+    case Key::Limit:
+      size = value;
+      break;
+    case Key::ThinkTime:
+      thinktime = value;
+      break;
+    case Key::RandomSeed:
+      randseed = value;
+      break;
+    case Key::RunTime:
+      runtime = value;
+      break;
+    default:
+      ret = false;
+      break;
+  }
+
+  return ret;
+}
+
+bool RequestConfig::writeFloat(uint32_t idx, float value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::ReadMix:
+      rwmixread = value;
+      break;
+    default:
+      ret = false;
+      break;
+  }
+
+  return ret;
+}
+
+bool RequestConfig::writeBoolean(uint32_t idx, bool value) {
+  bool ret = true;
+
+  switch (idx) {
+    case Key::TimeBased:
+      time_based = value;
+      break;
+    default:
+      ret = false;
       break;
   }
 
