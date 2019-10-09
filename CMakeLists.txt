@@ -36,6 +36,43 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/simplessd/CMakeLists.txt")
 Check you initialized submodules.")
 endif ()
 
+# Get git version info
+find_package(Git)
+if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+  execute_process(COMMAND sh -c "git diff --quiet --exit-code || echo +"
+    OUTPUT_VARIABLE GIT_CODE_MODIFIED
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  execute_process(COMMAND git describe --tags --abbre=0
+    OUTPUT_VARIABLE GIT_TAG
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  execute_process(COMMAND git log --pretty=format:'%H' -n 1
+    OUTPUT_VARIABLE GIT_REV
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+  string(STRIP "${GIT_TAG}" GIT_TAG)
+  string(SUBSTRING "${GIT_REV}" 1 8 GIT_REV)
+
+  if ("${GIT_TAG}" STREQUAL "")
+    execute_process(COMMAND git rev-parse --abbrev-ref HEAD
+      OUTPUT_VARIABLE GIT_TAG
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  endif ()
+
+  set(VERSION_STRING "${GIT_TAG}-${GIT_REV}${GIT_CODE_MODIFIED}")
+
+  message("Using version string: ${VERSION_STRING}")
+else ()
+  set(VERSION_STRING "2.1-unknown")
+  set(GIT_TAG "2.1")
+
+  message(WARNING "Git not found, using version string: ${VERSION_STRING}")
+endif ()
+
 # Add subproject
 add_subdirectory(${PROJECT_SOURCE_DIR}/simplessd
   ${CMAKE_BINARY_DIR}/simplessd
@@ -54,23 +91,19 @@ if (MSVC)
   add_compile_options(/wd4819)  # Surpress unicode warning
   add_compile_options(/wd4305)  # Surpress truncation warning
 else ()
-  if (DEBUG_BUILD)
-    set(CMAKE_CXX_FLAGS
-      "-O0 -g -rdynamic -pthread -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
-  else ()
-    set(CMAKE_CXX_FLAGS
-      "-O2 -rdynamic -pthread -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
-  endif ()
+  set(CMAKE_CXX_FLAGS "-g -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_FULL='\"${VERSION_STRING}\"' ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_TAG='\"${GIT_TAG}-\"' ${CMAKE_CXX_FLAGS}")
 
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9")
-      message(FATAL_ERROR "GNU g++ < 4.9 does not support <regex>.\
-Please update your compiler.")
-    endif ()
+  if (DEBUG_BUILD)
+    set(CMAKE_CXX_FLAGS "-O0 ${CMAKE_CXX_FLAGS}")
+  else ()
+    set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
   endif ()
 endif ()
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specify source files
