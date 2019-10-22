@@ -66,8 +66,7 @@
       <int> Select SimpleSSD interface
 
       Possible values:
-        0: No interface - direct connection to HIL layer
-        1: NVMe - Use Non-Volatile Memory Express
+        0: NVMe - Use Non-Volatile Memory Express
      -->
     <config name="Interface">0</config>
     <!--

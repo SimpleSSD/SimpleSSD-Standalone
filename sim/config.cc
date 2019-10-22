@@ -32,7 +32,7 @@ Config::Config() {
   debugFile = "debug.txt";
   latencyFile = "latency.txt";
   progressPeriod = 0;
-  interface = InterfaceType::None;
+  interface = InterfaceType::NVMe;
   scheduler = SchedulerType::Noop;
   submissionLatency = 0;
   completionLatency = 0;

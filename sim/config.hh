@@ -41,7 +41,6 @@ class Config : public SimpleSSD::BaseConfig {
   };
 
   enum class InterfaceType : uint8_t {
-    None,
     NVMe,
   };
 
