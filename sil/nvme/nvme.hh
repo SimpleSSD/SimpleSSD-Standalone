@@ -123,6 +123,9 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
 
   void postInterrupt(uint16_t, bool) override;
   void getPCIID(uint16_t &, uint16_t &) override;
+
+  void initStats(std::vector<SimpleSSD::Stat> &) override;
+  void getStats(std::vector<double> &) override;
 };
 
 }  // namespace Standalone::SIL::NVMe

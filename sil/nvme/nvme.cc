@@ -533,4 +533,12 @@ void Driver::getPCIID(uint16_t &vid, uint16_t &ssvid) {
   ssvid = 0x8086;
 }
 
+void Driver::initStats(std::vector<SimpleSSD::Stat> &list) {
+  simplessd.getStatList(list, "");
+}
+
+void Driver::getStats(std::vector<double> &values) {
+  simplessd.getStatValues(values);
+}
+
 }  // namespace Standalone::SIL::NVMe

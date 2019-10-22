@@ -24,16 +24,20 @@
 #include "bil/entry.hh"
 #include "igl/request/request_generator.hh"
 #include "igl/trace/trace_replayer.hh"
-#include "sil/none/none.hh"
 #include "sil/nvme/nvme.hh"
 #include "sim/engine.hh"
 #include "sim/signal.hh"
-#include "simplessd/util/simplessd.hh"
+#include "simplessd/sim/simplessd.hh"
 #include "util/print.hh"
 
+using namespace Standalone;
+
 // Global objects
-Engine engine;
+ObjectData standaloneObject;
+EventEngine engine;
 ConfigReader simConfig;
+SimpleSSD::SimpleSSD simplessd;
+SimpleSSD::ConfigReader ssdConfig;
 BIL::DriverInterface *pInterface = nullptr;
 BIL::BlockIOEntry *pBIOEntry = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
@@ -42,8 +46,8 @@ std::ostream *pDebugLog = nullptr;
 std::ostream *pLatencyFile = nullptr;
 std::thread *pThread = nullptr;
 std::mutex killLock;
-SimpleSSD::Event statEvent;
-std::vector<SimpleSSD::Stats> statList;
+Event statEvent;
+std::vector<SimpleSSD::Stat> statList;
 std::ofstream logOut;
 std::ofstream debugLogOut;
 std::ofstream latencyFile;
@@ -84,20 +88,18 @@ int main(int argc, char *argv[]) {
   installSignalHandler(cleanup);
 
   // Read simulation config file
-  if (!simConfig.init(argv[1])) {
-    std::cerr << " Failed to open simulation configuration file!" << std::endl;
-
-    return 2;
-  }
+  simConfig.load(argv[1]);
+  ssdConfig.load(argv[2]);
 
   // Log setting
   bool noLogPrintOnScreen = true;
 
-  std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
+  std::string logPath =
+      simConfig.readString(Section::Simulation, Config::Key::StatFile);
   std::string debugLogPath =
-      simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
+      simConfig.readString(Section::Simulation, Config::Key::DebugFile);
   std::string latencyLogPath =
-      simConfig.readString(CONFIG_GLOBAL, GLOBAL_LATENCY_LOG_FILE);
+      simConfig.readString(Section::Simulation, Config::Key::Latencyfile);
 
   if (logPath.compare("STDOUT") == 0) {
     noLogPrintOnScreen = false;
@@ -161,16 +163,17 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize SimpleSSD
-  auto ssdConfig = initSimpleSSDEngine(&engine, pDebugLog, pDebugLog, argv[2]);
+  simplessd.init(&engine, &ssdConfig);
 
   // Create Driver
-  switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_INTERFACE)) {
-    case INTERFACE_NONE:
-      pInterface = new SIL::None::Driver(engine, ssdConfig);
+  standaloneObject.engine = &engine;
+  standaloneObject.config = &simConfig;
+  standaloneObject.log = simplessd.getObject().log;
 
-      break;
-    case INTERFACE_NVME:
-      pInterface = new SIL::NVMe::Driver(engine, ssdConfig);
+  switch ((Config::InterfaceType)simConfig.readUint(Section::Simulation,
+                                                    Config::Key::Interface)) {
+    case Config::InterfaceType::NVMe:
+      pInterface = new SIL::NVMe::Driver(engine, simplessd);
 
       break;
     default:
@@ -180,29 +183,32 @@ int main(int argc, char *argv[]) {
   }
 
   // Create Block I/O Layer
-  pBIOEntry =
-      new BIL::BlockIOEntry(simConfig, engine, pInterface, pLatencyFile);
+  pBIOEntry = new BIL::BlockIOEntry(standaloneObject, pInterface, pLatencyFile);
 
-  std::function<void()> endCallback = []() {
-    // If stat printout is scheduled, delete it
-    if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
-      engine.descheduleEvent(statEvent);
-    }
+  Event endCallback = engine.createEvent(
+      [](uint64_t, uint64_t) {
+        // If stat printout is scheduled, delete it
+        if (simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) >
+            0) {
+          engine.deschedule(statEvent);
+        }
 
-    // Stop simulation
-    engine.stopEngine();
-  };
+        // Stop simulation
+        engine.stopEngine();
+      },
+      "endCallback");
 
   // Create I/O generator
-  switch (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_SIM_MODE)) {
-    case MODE_REQUEST_GENERATOR:
+  switch ((Config::ModeType)simConfig.readUint(Section::Simulation,
+                                               Config::Key::Mode)) {
+    case Config::ModeType::RequestGenerator:
       pIOGen =
-          new IGL::RequestGenerator(engine, *pBIOEntry, endCallback, simConfig);
+          new IGL::RequestGenerator(standaloneObject, *pBIOEntry, endCallback);
 
       break;
-    case MODE_TRACE_REPLAYER:
+    case Config::ModeType::TraceReplayer:
       pIOGen =
-          new IGL::TraceReplayer(engine, *pBIOEntry, endCallback, simConfig);
+          new IGL::TraceReplayer(standaloneObject, *pBIOEntry, endCallback);
 
       break;
     default:
@@ -213,30 +219,35 @@ int main(int argc, char *argv[]) {
       return 5;
   }
 
-  std::function<void()> beginCallback = []() {
-    uint64_t bytesize;
-    uint32_t bs;
+  Event beginCallback = engine.createEvent(
+      [](uint64_t, uint64_t) {
+        uint64_t bytesize;
+        uint32_t bs;
 
-    pInterface->getInfo(bytesize, bs);
-    pIOGen->init(bytesize, bs);
-    pIOGen->begin();
-  };
+        pInterface->getInfo(bytesize, bs);
+        pIOGen->init(bytesize, bs);
+        pIOGen->begin();
+      },
+      "beginCallback");
 
   // Insert stat event
   pInterface->initStats(statList);
 
-  if (simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) > 0) {
-    statEvent = engine.allocateEvent([](uint64_t tick) {
-      statistics(tick);
+  if (simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) > 0) {
+    statEvent = engine.createEvent(
+        [](uint64_t tick, uint64_t) {
+          statistics(tick);
 
-      engine.scheduleEvent(
-          statEvent,
-          tick + simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) *
-                     1000000000ULL);
-    });
-    engine.scheduleEvent(
-        statEvent,
-        simConfig.readUint(CONFIG_GLOBAL, GLOBAL_LOG_PERIOD) * 1000000000ULL);
+          engine.schedule(statEvent, 0ull,
+                          tick + simConfig.readUint(Section::Simulation,
+                                                    Config::Key::StatPeriod) *
+                                     1000000000ULL);
+        },
+        "statEvent");
+    engine.schedule(
+        statEvent, 0ull,
+        simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) *
+            1000000000ULL);
   }
 
   // Do Simulation
@@ -245,7 +256,8 @@ int main(int argc, char *argv[]) {
   pInterface->init(beginCallback);
 
   if (noLogPrintOnScreen) {
-    int period = (int)simConfig.readUint(CONFIG_GLOBAL, GLOBAL_PROGRESS_PERIOD);
+    int period = (int)simConfig.readUint(Section::Simulation,
+                                         Config::Key::ProgressPeriod);
 
     if (period > 0) {
       pThread = new std::thread(threadFunc, period);
@@ -265,7 +277,7 @@ void cleanup(int) {
 
   killLock.lock();
 
-  tick = engine.getCurrentTick();
+  tick = engine.getTick();
 
   if (tick == 0) {
     // Exit program
@@ -277,8 +289,6 @@ void cleanup(int) {
 
   // Erase progress
   printf("\33[2K                                                           \r");
-
-  releaseSimpleSSDEngine();
 
   pIOGen->printStats(std::cout);
   engine.printStats(std::cout);
