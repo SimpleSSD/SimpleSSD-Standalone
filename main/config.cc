@@ -122,18 +122,25 @@ bool Config::writeUint(uint32_t idx, uint64_t value) {
   switch (idx) {
     case Key::Mode:
       mode = (ModeType)value;
+      break;
     case Key::StatPeriod:
       statPeriod = value;
+      break;
     case Key::ProgressPeriod:
       progressPeriod = value;
+      break;
     case Key::Interface:
       interface = (InterfaceType)value;
+      break;
     case Key::Scheduler:
       scheduler = (SchedulerType)value;
+      break;
     case Key::SubmissionLatency:
       submissionLatency = value;
+      break;
     case Key::CompletionLatency:
       completionLatency = value;
+      break;
     default:
       ret = false;
       break;
@@ -151,10 +158,13 @@ bool Config::writeString(uint32_t idx, std::string &value) {
       break;
     case Key::StatFile:
       statFile = value;
+      break;
     case Key::DebugFile:
       debugFile = value;
+      break;
     case Key::Latencyfile:
       latencyFile = value;
+      break;
     default:
       ret = false;
       break;

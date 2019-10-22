@@ -36,13 +36,13 @@ uint64_t EventEngine::getTick() {
   return simTick;
 }
 
-#ifdef SIMPLESSD_DEBUG
+#ifdef SIMPLESSD_STANDALONE_DEBUG
 Event EventEngine::createEvent(SimpleSSD::EventFunction &&func,
-                               std::string &&name) noexcept {
+                               std::string &&name) {
   Event eid = new EventData(std::move(func), std::move(name));
 #else
 Event EventEngine::createEvent(SimpleSSD::EventFunction &&func,
-                               std::string &&) noexcept {
+                               std::string &&) {
   Event eid = new EventData(std::move(func));
 #endif
 
@@ -66,8 +66,8 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
 
   if (tick < tickCopy) {
     fprintf(stderr,
-            "Tried to schedule %" PRIu64 " < simTick to event %" PRIu64 ".\n",
-            tick, eid);
+            "Tried to schedule %" PRIu64 " < simTick to event %" PRIx64 "h.\n",
+            tick, (uint64_t)eid);
 
     abort();
   }

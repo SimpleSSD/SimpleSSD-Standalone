@@ -211,11 +211,13 @@ void print_backtrace() {
   Dwfl_Module *module = nullptr;
   Dwfl_Line *line = nullptr;
 
-  Dwfl_Callbacks callbacks = {
-      .find_elf = dwfl_linux_proc_find_elf,
-      .find_debuginfo = dwfl_standard_find_debuginfo,
-      .debuginfo_path = &debuginfo,
-  };
+  Dwfl_Callbacks callbacks;
+
+  memset(&callbacks, 0, sizeof(Dwfl_Callbacks));
+
+  callbacks.find_elf = dwfl_linux_proc_find_elf;
+  callbacks.find_debuginfo = dwfl_standard_find_debuginfo;
+  callbacks.debuginfo_path = &debuginfo;
 
   // Initialize DWARF debug info access
   dwfl = dwfl_begin(&callbacks);

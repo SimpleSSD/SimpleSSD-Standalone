@@ -49,8 +49,8 @@ typedef struct _BIO {
         type(BIOType::Read),
         offset(0),
         length(0),
-        submittedAt(0),
-        callback(InvalidEventID) {}
+        callback(InvalidEventID),
+        submittedAt(0) {}
 } BIO;
 
 typedef struct _Progress {

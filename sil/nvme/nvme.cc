@@ -54,7 +54,6 @@ void Driver::init(Event eid) {
     uint64_t value;
     uint8_t buffer[8];
   } temp;
-  uint64_t tick = 0;
 
   // Step 1. Read CAP
   controller->read(
@@ -214,7 +213,7 @@ void Driver::_init2() {
                 [this](uint16_t s, uint32_t dw, uint64_t) { _init3(s, dw); });
 }
 
-void Driver::_init3(uint16_t status, uint32_t dw0) {
+void Driver::_init3(uint16_t, uint32_t dw0) {
   // Step 8-2. Check response
   if (dw0 != 0x00000000) {
     warn("NVMe SSD responsed too many I/O queue");
@@ -285,7 +284,6 @@ void Driver::submitCommand(uint16_t iv, uint8_t *cmd, InterruptHandler &&func,
   uint16_t cid = 0;
   uint16_t opcode = cmd[0];
   uint32_t tail = 0;
-  uint64_t tick = getTick();
   Queue *queue = nullptr;
 
   // Push to queue
@@ -461,7 +459,6 @@ void Driver::postInterrupt(uint16_t iv, bool post) {
   uint32_t cqdata[4];
 
   if (post) {
-    uint64_t tick = getTick();
     uint16_t count = 0;
     Queue *queue = nullptr;
 
