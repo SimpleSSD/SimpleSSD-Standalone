@@ -111,6 +111,7 @@ else ()
   set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
 
   if (DEBUG_BUILD)
+    add_definitions(-DSIMPLESSD_STANDALONE_DEBUG)
     add_compile_options(-O0)
   else ()
     add_compile_options(-O2)
