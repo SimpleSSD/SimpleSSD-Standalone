@@ -38,12 +38,18 @@ typedef struct _BIO {
   uint64_t length;
 
   // I/O completion
-  std::function<void(uint64_t)> callback;
+  Event callback;
 
   // Statistics
   uint64_t submittedAt;
 
-  _BIO() : id(0), type(BIOType::Read), offset(0), length(0), submittedAt(0) {}
+  _BIO()
+      : id(0),
+        type(BIOType::Read),
+        offset(0),
+        length(0),
+        submittedAt(0),
+        callback(InvalidEventID) {}
 } BIO;
 
 typedef struct _Progress {
@@ -73,8 +79,8 @@ class BlockIOEntry : public Object {
   uint64_t sumLatency;
   uint64_t squareSumLatency;
 
-  std::function<void(uint64_t)> callback;
-  void completion(uint64_t);
+  Event callback;
+  void completion(uint64_t, uint64_t);
 
  public:
   BlockIOEntry(ObjectData &, DriverInterface *, std::ostream *);

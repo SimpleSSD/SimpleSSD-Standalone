@@ -25,8 +25,7 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
       minLatency(std::numeric_limits<uint64_t>::max()),
       maxLatency(0),
       sumLatency(0),
-      squareSumLatency(0),
-      callback([this](uint64_t id) { completion(id); }) {
+      squareSumLatency(0) {
   switch ((Config::SchedulerType)readConfigUint(Section::Simulation,
                                                 Config::Key::Scheduler)) {
     case Config::SchedulerType::Noop:
@@ -38,6 +37,10 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
 
       break;
   }
+
+  callback = createEvent([this](uint64_t t, uint64_t d) {
+    completion(t, d);
+  }, "BIL::BlockIOEntry::callback");
 
   pScheduler->init();
 }
@@ -58,7 +61,7 @@ void BlockIOEntry::submitIO(BIO &bio) {
   pScheduler->submitIO(copy);
 }
 
-void BlockIOEntry::completion(uint64_t id) {
+void BlockIOEntry::completion(uint64_t now, uint64_t id) {
   uint64_t tick = getTick();
 
   for (auto iter = ioQueue.begin(); iter != ioQueue.end(); iter++) {
@@ -82,7 +85,7 @@ void BlockIOEntry::completion(uint64_t id) {
                       << std::to_string(tick) << std::endl;
       }
 
-      iter->callback(id);
+      scheduleAbs(iter->callback, id, now);
 
       ioQueue.erase(iter);
 
