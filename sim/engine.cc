@@ -103,6 +103,10 @@ bool EventEngine::isScheduled(Event eid) {
   return eid->isScheduled();
 }
 
+uint64_t EventEngine::when(Event eid) {
+  return eid->scheduledAt;
+}
+
 bool EventEngine::doNextEvent() {
   uint64_t tickCopy;
 

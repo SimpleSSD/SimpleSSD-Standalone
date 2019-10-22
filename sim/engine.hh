@@ -102,6 +102,7 @@ class EventEngine : public SimpleSSD::Engine {
   void schedule(Event, uint64_t, uint64_t);
   void deschedule(Event);
   bool isScheduled(Event);
+  uint64_t when(Event);
 
   void createCheckpoint(std::ostream &) const;
   void restoreCheckpoint(std::istream &);
