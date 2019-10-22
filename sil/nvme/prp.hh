@@ -15,9 +15,7 @@
 
 #define PAGE_SIZE 4096
 
-namespace SIL {
-
-namespace NVMe {
+namespace Standalone::SIL::NVMe {
 
 class PRP {
  private:
@@ -38,8 +36,6 @@ class PRP {
   void writeData(uint64_t, uint64_t, uint8_t *);
 };
 
-}  // namespace NVMe
-
-}  // namespace SIL
+}  // namespace Standalone::SIL::NVMe
 
 #endif

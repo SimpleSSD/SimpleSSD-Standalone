@@ -107,6 +107,10 @@ uint64_t EventEngine::when(Event eid) {
   return eid->scheduledAt;
 }
 
+SimpleSSD::InterruptFunction &EventEngine::getInterruptFunction() {
+  return intrFunction;
+}
+
 bool EventEngine::doNextEvent() {
   uint64_t tickCopy;
 

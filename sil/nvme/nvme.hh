@@ -11,79 +11,70 @@
 #define __DRIVERS_NVME__
 
 #include <list>
-#include <queue>
+#include <unordered_map>
 
 #include "bil/interface.hh"
 #include "sil/nvme/prp.hh"
 #include "sil/nvme/queue.hh"
-#include "simplessd/hil/nvme/interface.hh"
-#include "simplessd/util/interface.hh"
+#include "simplessd/hil/nvme/controller.hh"
+#include "simplessd/sim/simplessd.hh"
+#include "simplessd/util/scheduler.hh"
 
 #define QUEUE_ENTRY_ADMIN 256
 #define QUEUE_ENTRY_IO 1024
 
-namespace SIL {
+namespace Standalone::SIL::NVMe {
 
-namespace NVMe {
+using InterruptHandler = std::function<void(uint16_t, uint32_t, uint64_t)>;
 
 // Copied from SimpleSSD-FullSystem
-typedef struct _DMAEntry {
-  uint64_t beginAt;
-  uint64_t finishedAt;
+struct DMAEntry {
   uint64_t addr;
   uint64_t size;
   uint8_t *buffer;
-  void *context;
-  SimpleSSD::DMAFunction func;
+  SimpleSSD::Event eid;
 
-  _DMAEntry(SimpleSSD::DMAFunction &f)
-      : beginAt(0),
-        finishedAt(0),
-        addr(0),
-        size(0),
-        buffer(nullptr),
-        context(nullptr),
-        func(f) {}
-} DMAEntry;
+  DMAEntry()
+      : addr(0), size(0), buffer(nullptr), eid(SimpleSSD::InvalidEventID) {}
 
-typedef std::function<void(uint16_t, uint32_t, void *)> ResponseHandler;
+  static void backup(std::ostream &, DMAEntry *) {}
+  static DMAEntry *restore(std::istream &, SimpleSSD::ObjectData &) {
+    return nullptr;
+  }
+};
 
-typedef struct _CommandEntry {
+struct CommandEntry {
   uint16_t iv;  // Same as Queue ID
   uint16_t opcode;
   uint16_t cid;
-  void *context;
+  InterruptHandler func;
+  uint64_t data;
 
-  ResponseHandler callback;
+  CommandEntry(uint16_t i, uint16_t o, uint16_t c, InterruptHandler &&f,
+               uint64_t d)
+      : iv(i), opcode(o), cid(c), func(std::move(f)), data(d) {}
+};
 
-  _CommandEntry(uint16_t i, uint16_t o, uint16_t c, void *p, ResponseHandler &f)
-      : iv(i), opcode(o), cid(c), context(p), callback(f) {}
-} CommandEntry;
-
-typedef struct _IOWrapper {
+struct IOWrapper {
   uint64_t id;
   PRP *prp;
-  std::function<void(uint64_t)> bioCallback;
+  Event eid;
 
-  _IOWrapper(uint64_t i, PRP *p, std::function<void(uint64_t)> &f)
-      : id(i), prp(p), bioCallback(f) {}
-} IOWrapper;
+  IOWrapper(uint64_t i, PRP *p, Event e) : id(i), prp(p), eid(e) {}
+};
 
-class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
+class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
  private:
+  SimpleSSD::HIL::NVMe::Controller *controller;
+
   // PCI Express (for DMA throttling)
-  SimpleSSD::PCIExpress::PCIE_GEN pcieGen;
-  uint8_t pcieLane;
+  SimpleSSD::DelayFunction delayFunction;
 
   // DMA scheduling
-  SimpleSSD::Event dmaReadEvent;
-  SimpleSSD::Event dmaWriteEvent;
-  std::queue<DMAEntry> dmaReadQueue;
-  std::queue<DMAEntry> dmaWriteQueue;
-  bool dmaReadPending;
-  bool dmaWritePending;
+  SimpleSSD::Scheduler<DMAEntry *> scheduler;
 
   // NVMe Identify
+  Event beginEvent;
   uint64_t capacity;
   uint32_t LBAsize;
   uint32_t namespaceID;
@@ -98,50 +89,42 @@ class Driver : public BIL::DriverInterface, SimpleSSD::HIL::NVMe::Interface {
   Queue *ioSQ;
   Queue *ioCQ;
   std::list<CommandEntry> pendingCommandList;
+  std::unordered_map<uint64_t, IOWrapper> pendingIOList;
 
-  void dmaReadDone();
-  void submitDMARead();
-  void dmaWriteDone();
-  void submitDMAWrite();
+  uint64_t preSubmit(DMAEntry *);
+  void postDone(DMAEntry *);
 
   void increaseCommandID(uint16_t &);
 
-  void _init0(uint16_t, void *);
-  void _init1(uint16_t, void *);
-  void _init2(uint16_t, void *);
-  void _init3(uint16_t, uint32_t, void *);
-  void _init4(uint16_t, void *);
-  void _init5(uint16_t, void *);
+  PRP *adminPRP;
 
-  void _io(uint16_t, void *);
+  void _init0();
+  void _init1();
+  void _init2();
+  void _init3(uint16_t, uint32_t);
+  void _init4(uint16_t);
+  void _init5(uint16_t);
+  void callback(uint16_t, uint64_t);
 
-  void submitCommand(uint16_t, uint8_t *, ResponseHandler &, void *);
+  void submitCommand(uint16_t, uint8_t *, InterruptHandler &&, uint64_t = 0);
 
  public:
-  Driver(Engine &, SimpleSSD::ConfigReader &);
+  Driver(ObjectData &, SimpleSSD::SimpleSSD &);
   ~Driver();
 
   // BIL::DriverInterface
-  void init(std::function<void()> &) override;
+  void init(Event) override;
   void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
 
-  void initStats(std::vector<SimpleSSD::Stats> &) override;
-  void getStats(std::vector<double> &) override;
+  // SimpleSSD::Interface
+  void read(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event) override;
+  void write(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event) override;
 
-  // SimpleSSD::DMAInterface
-  void dmaRead(uint64_t, uint64_t, uint8_t *, SimpleSSD::DMAFunction &,
-               void * = nullptr) override;
-  void dmaWrite(uint64_t, uint64_t, uint8_t *, SimpleSSD::DMAFunction &,
-                void * = nullptr) override;
-
-  // SimpleSSD::HIL::NVMe::Interface
-  void updateInterrupt(uint16_t, bool) override;
-  void getVendorID(uint16_t &, uint16_t &) override;
+  void postInterrupt(uint16_t, bool) override;
+  void getPCIID(uint16_t &, uint16_t &) override;
 };
 
-}  // namespace NVMe
-
-}  // namespace SIL
+}  // namespace Standalone::SIL::NVMe
 
 #endif

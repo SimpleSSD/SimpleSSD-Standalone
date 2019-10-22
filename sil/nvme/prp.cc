@@ -10,12 +10,9 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "simplessd/sim/trace.hh"
 #include "simplessd/util/algorithm.hh"
 
-namespace SIL {
-
-namespace NVMe {
+namespace Standalone::SIL::NVMe {
 
 PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
   uint8_t mode = 0;
@@ -63,10 +60,6 @@ PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
 #else
   memory = (uint8_t *)aligned_alloc(PAGE_SIZE, capacity);
 #endif
-
-  if (memory == nullptr) {
-    SimpleSSD::panic("Failed to allocate memory for PRP region");
-  }
 
   memset(memory, 0, capacity);
 
@@ -150,6 +143,4 @@ void PRP::writeData(uint64_t offset, uint64_t size, uint8_t *buffer) {
   }
 }
 
-}  // namespace NVMe
-
-}  // namespace SIL
+}  // namespace Standalone::SIL::NVMe

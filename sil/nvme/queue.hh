@@ -12,9 +12,7 @@
 
 #include <cinttypes>
 
-namespace SIL {
-
-namespace NVMe {
+namespace Standalone::SIL::NVMe {
 
 class Queue {
  private:
@@ -40,8 +38,6 @@ class Queue {
   void peekData(uint8_t *, uint16_t);  // Get data without increasing head
 };
 
-}  // namespace NVMe
-
-}  // namespace SIL
+}  // namespace Standalone::SIL::NVMe
 
 #endif
