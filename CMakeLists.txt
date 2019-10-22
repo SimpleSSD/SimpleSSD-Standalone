@@ -66,6 +66,9 @@ else ()
   message(WARNING "Git not found, using version string: ${VERSION_STRING}")
 endif ()
 
+# Check pthread
+find_package(Threads REQUIRED)
+
 # Add subproject
 add_subdirectory(${PROJECT_SOURCE_DIR}/simplessd
   ${CMAKE_BINARY_DIR}/simplessd
@@ -81,6 +84,9 @@ include_directories(
 # Set version tag
 set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_FULL='\"${VERSION_STRING}\"' ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_TAG='\"${GIT_TAG}-\"' ${CMAKE_CXX_FLAGS}")
+
+# Linker flags
+set(LD_FLAGS "")
 
 # Platform specific settings
 if (MSVC)
@@ -105,9 +111,7 @@ else ()
   add_compile_options(-Wextra)
   add_compile_options(-Werror)
 
-  add_compile_options(-ldw)
-  add_compile_options(-lunwind)
-
+  set(LD_FLAGS "-ldw -lunwind -lstdc++fs")
   set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
 
   if (DEBUG_BUILD)
@@ -164,7 +168,6 @@ set(SRC_MAIN
   main/signal.cc
 )
 set(SRC_UTIL
-  util/convert.cc
   util/print.cc
   util/stopwatch.cc
 )
@@ -188,4 +191,8 @@ add_executable(simplessd-standalone
   ${SRC_MAIN}
   ${SRC_UTIL}
 )
-target_link_libraries(simplessd-standalone simplessd)
+target_link_libraries(simplessd-standalone
+  simplessd
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${LD_FLAGS}
+)
