@@ -13,76 +13,104 @@
 #include <vector>
 
 #include "sim/config_reader.hh"
-#include "simplessd/sim/config_reader.hh"
-#include "simplessd/sim/engine.hh"
+#include "sim/engine.hh"
 #include "simplessd/sim/log.hh"
 #include "simplessd/sim/object.hh"
 
-using ObjectData = struct _ObjectData {
-  SimpleSSD::ObjectData object;
-  ConfigReader *simConfig;
+namespace Standalone {
 
-  _ObjectData() : simConfig(nullptr) {}
-  _ObjectData(SimpleSSD::Engine *e, SimpleSSD::ConfigReader *sc,
-              SimpleSSD::Log *l, ConfigReader *c)
-      : object(e, sc, l), simConfig(c) {}
+struct ObjectData {
+  ConfigReader *config;
+  EventEngine *engine;
+  SimpleSSD::Log *log;
+
+  ObjectData() : config(nullptr), engine(nullptr) {}
+  ObjectData(ConfigReader *c, EventEngine *e, SimpleSSD::Log *l)
+      : config(c), engine(e), log(l) {}
 };
 
-/**
- * \brief Object object declaration
- *
- * Simulation object. All simulation module must inherit this class. Provides
- * API for accessing config, engine and log system.
- */
-class Object : public SimpleSSD::Object {
+class Object {
  protected:
-  ConfigReader *config;
+  ObjectData &object;
+
+  /* Helper APIs for Engine */
+  inline uint64_t getTick() noexcept { return object.engine->getTick(); }
+  inline Event createEvent(SimpleSSD::EventFunction ef,
+                           std::string s) noexcept {
+    return object.engine->createEvent(std::move(ef), std::move(s));
+  }
+  inline void scheduleNow(Event e, uint64_t c = 0) noexcept {
+    object.engine->schedule(e, c, object.engine->getTick());
+  }
+  inline void scheduleAbs(Event e, uint64_t c, uint64_t t) noexcept {
+    object.engine->schedule(e, c, t);
+  }
+  inline void deschedule(Event e) noexcept { object.engine->deschedule(e); }
+  inline bool isScheduled(Event e) noexcept {
+    return object.engine->isScheduled(e);
+  }
 
   /* Helper APIs for Config */
-  inline int64_t readSimConfigInt(Section s, uint32_t k) noexcept {
-    return config->readInt(s, k);
+  inline int64_t readConfigInt(Section s, uint32_t k) noexcept {
+    return object.config->readInt(s, k);
   }
-  inline uint64_t readSimConfigUint(Section s, uint32_t k) noexcept {
-    return config->readUint(s, k);
+  inline uint64_t readConfigUint(Section s, uint32_t k) noexcept {
+    return object.config->readUint(s, k);
   }
-  inline float readSimConfigFloat(Section s, uint32_t k) noexcept {
-    return config->readFloat(s, k);
+  inline float readConfigFloat(Section s, uint32_t k) noexcept {
+    return object.config->readFloat(s, k);
   }
-  inline std::string readSimConfigString(Section s, uint32_t k) noexcept {
-    return config->readString(s, k);
+  inline std::string readConfigString(Section s, uint32_t k) noexcept {
+    return object.config->readString(s, k);
   }
-  inline bool readSimConfigBoolean(Section s, uint32_t k) noexcept {
-    return config->readBoolean(s, k);
+  inline bool readConfigBoolean(Section s, uint32_t k) noexcept {
+    return object.config->readBoolean(s, k);
   }
-  inline bool writeSimConfigInt(Section s, uint32_t k, int64_t v) noexcept {
-    return config->writeInt(s, k, v);
+  inline bool writeConfigInt(Section s, uint32_t k, int64_t v) noexcept {
+    return object.config->writeInt(s, k, v);
   }
-  inline bool writeSimConfigUint(Section s, uint32_t k, uint64_t v) noexcept {
-    return config->writeUint(s, k, v);
+  inline bool writeConfigUint(Section s, uint32_t k, uint64_t v) noexcept {
+    return object.config->writeUint(s, k, v);
   }
-  inline bool writeSimConfigFloat(Section s, uint32_t k, float v) noexcept {
-    return config->writeFloat(s, k, v);
+  inline bool writeConfigFloat(Section s, uint32_t k, float v) noexcept {
+    return object.config->writeFloat(s, k, v);
   }
-  inline bool writeSimConfigString(Section s, uint32_t k,
-                                   std::string &v) noexcept {
-    return config->writeString(s, k, v);
+  inline bool writeConfigString(Section s, uint32_t k,
+                                std::string &v) noexcept {
+    return object.config->writeString(s, k, v);
   }
-  inline bool writeSimConfigBoolean(Section s, uint32_t k, bool v) noexcept {
-    return config->writeBoolean(s, k, v);
+  inline bool writeConfigBoolean(Section s, uint32_t k, bool v) noexcept {
+    return object.config->writeBoolean(s, k, v);
+  }
+
+  /* Helper APIs for Log */
+  inline void info_log(const char *format, ...) noexcept {
+    va_list args;
+
+    va_start(args, format);
+    object.log->print(SimpleSSD::Log::LogID::Info, format, args);
+    va_end(args);
+  }
+  inline void warn_log(const char *format, ...) noexcept {
+    va_list args;
+
+    va_start(args, format);
+    object.log->print(SimpleSSD::Log::LogID::Warn, format, args);
+    va_end(args);
+  }
+  inline void panic_log(const char *format, ...) noexcept {
+    va_list args;
+
+    va_start(args, format);
+    object.log->print(SimpleSSD::Log::LogID::Panic, format, args);
+    va_end(args);
   }
 
  public:
-  Object(ObjectData &o) : SimpleSSD::Object(o.object), config(o.simConfig) {}
+  Object(ObjectData &o) : object(o) {}
   virtual ~Object() {}
-
-  /* Statistic API */
-  virtual void getStatList(std::vector<Stat> &, std::string) noexcept = 0;
-  virtual void getStatValues(std::vector<double> &) noexcept = 0;
-  virtual void resetStatValues() noexcept = 0;
-
-  /* No checkpoint in standalone (do we need it?) */
-  void createCheckpoint(std::ostream &) const noexcept override {}
-  void restoreCheckpoint(std::istream &) noexcept override {}
 };
+
+}  // namespace Standalone
 
 #endif
