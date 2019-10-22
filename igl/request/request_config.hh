@@ -12,7 +12,7 @@
 
 #include "simplessd/sim/base_config.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
 class RequestConfig : public SimpleSSD::BaseConfig {
  public:
@@ -80,6 +80,6 @@ class RequestConfig : public SimpleSSD::BaseConfig {
   bool writeBoolean(uint32_t, bool) override;
 };
 
-}  // namespace IGL
+}  // namespace Standalone::IGL
 
 #endif

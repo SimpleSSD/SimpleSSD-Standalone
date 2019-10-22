@@ -11,20 +11,19 @@
 #define __IGL_IO_GEN__
 
 #include "bil/entry.hh"
-#include "sim/cfg_reader.hh"
-#include "sim/engine.hh"
+#include "sim/object.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
-class IOGenerator {
+class IOGenerator : public Object {
  protected:
-  Engine &engine;
   BIL::BlockIOEntry &bioEntry;
-  std::function<void()> &endCallback;
+
+  Event endCallback;
 
  public:
-  IOGenerator(Engine &e, BIL::BlockIOEntry &b, std::function<void()> &c)
-      : engine(e), bioEntry(b), endCallback(c) {}
+  IOGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+      : Object(o), bioEntry(b), endCallback(e) {}
   virtual ~IOGenerator() {}
 
   virtual void init(uint64_t, uint32_t) = 0;
@@ -33,6 +32,6 @@ class IOGenerator {
   virtual void getProgress(float &) = 0;
 };
 
-}  // namespace IGL
+}  // namespace Standalone::IGL
 
 #endif

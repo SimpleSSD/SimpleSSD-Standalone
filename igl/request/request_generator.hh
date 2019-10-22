@@ -17,10 +17,8 @@
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
-#include "sim/cfg_reader.hh"
-#include "sim/engine.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
 class RequestGenerator : public IOGenerator {
  private:
@@ -29,9 +27,9 @@ class RequestGenerator : public IOGenerator {
   uint64_t io_size;
   uint64_t io_submitted;
 
-  IO_TYPE type;
+  RequestConfig::IOType type;
 
-  IO_MODE mode;
+  RequestConfig::IOMode mode;
   uint64_t iodepth;
 
   uint64_t io_count;
@@ -65,16 +63,14 @@ class RequestGenerator : public IOGenerator {
   bool nextIOIsRead();
   void rescheduleSubmit(uint64_t);
 
-  SimpleSSD::Event submitEvent;
-  SimpleSSD::EventFunction submitIO;
-  SimpleSSD::EventFunction iocallback;
+  Event submitEvent;
+  Event completionEvent;
 
-  void _submitIO(uint64_t);
-  void _iocallback(uint64_t);
+  void submitIO(uint64_t);
+  void iocallback(uint64_t, uint64_t);
 
  public:
-  RequestGenerator(Engine &, BIL::BlockIOEntry &, std::function<void()> &,
-                   ConfigReader &);
+  RequestGenerator(ObjectData &, BIL::BlockIOEntry &, Event);
   ~RequestGenerator();
 
   void init(uint64_t, uint32_t) override;
@@ -83,6 +79,6 @@ class RequestGenerator : public IOGenerator {
   void getProgress(float &) override;
 };
 
-}  // namespace IGL
+}  // namespace Standalone::IGL
 
 #endif

@@ -7,7 +7,7 @@
 
 #include "igl/request/request_config.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
 const char NAME_IO_SIZE[] = "io_size";
 const char NAME_IO_TYPE[] = "readwrite";
@@ -252,4 +252,4 @@ bool RequestConfig::writeBoolean(uint32_t idx, bool value) {
   return ret;
 }
 
-}  // namespace IGL
+}  // namespace Standalone::IGL

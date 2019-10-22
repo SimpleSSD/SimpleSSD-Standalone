@@ -9,81 +9,93 @@
 
 #include <iostream>
 
-#include "simplessd/sim/trace.hh"
 #include "simplessd/util/algorithm.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
-RequestGenerator::RequestGenerator(Engine &e, BIL::BlockIOEntry &b,
-                                   std::function<void()> &f, ConfigReader &c)
-    : IOGenerator(e, b, f),
+RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+    : IOGenerator(o, b, e),
       io_submitted(0),
       io_count(0),
       read_count(0),
       io_depth(0),
       reserveTermination(false) {
   // Read config
-  io_size = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_SIZE);
-  type = (IO_TYPE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_TYPE);
-  mode = (IO_MODE)c.readUint(CONFIG_REQ_GEN, REQUEST_IO_MODE);
-  iodepth = c.readUint(CONFIG_REQ_GEN, REQUEST_IO_DEPTH);
-  rwmixread = c.readFloat(CONFIG_REQ_GEN, REQUEST_IO_MIX_RATIO);
-  offset = c.readUint(CONFIG_REQ_GEN, REQUEST_OFFSET);
-  size = c.readUint(CONFIG_REQ_GEN, REQUEST_SIZE);
-  thinktime = c.readUint(CONFIG_REQ_GEN, REQUEST_THINKTIME);
-  blocksize = c.readUint(CONFIG_REQ_GEN, REQUEST_BLOCK_SIZE);
-  blockalign = c.readUint(CONFIG_REQ_GEN, REQUEST_BLOCK_ALIGN);
-  randseed = c.readUint(CONFIG_REQ_GEN, REQUEST_RANDOM_SEED);
-  time_based = c.readBoolean(CONFIG_REQ_GEN, REQUEST_TIME_BASED);
-  runtime = c.readUint(CONFIG_REQ_GEN, REQUEST_RUN_TIME);
+  io_size = readConfigUint(Section::RequestGenerator, RequestConfig::Key::Size);
+  type = (RequestConfig::IOType)readConfigUint(Section::RequestGenerator,
+                                               RequestConfig::Key::Type);
+  mode = (RequestConfig::IOMode)readConfigUint(Section::RequestGenerator,
+                                               RequestConfig::Key::Mode);
+  iodepth =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::Depth);
+  rwmixread =
+      readConfigFloat(Section::RequestGenerator, RequestConfig::Key::ReadMix);
+  offset =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::Offset);
+  size = readConfigUint(Section::RequestGenerator, RequestConfig::Key::Limit);
+  thinktime =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::ThinkTime);
+  blocksize =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::BlockSize);
+  blockalign =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::BlockAlign);
+  randseed =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::RandomSeed);
+  time_based = readConfigBoolean(Section::RequestGenerator,
+                                 RequestConfig::Key::TimeBased);
+  runtime =
+      readConfigUint(Section::RequestGenerator, RequestConfig::Key::RunTime);
 
   if (blockalign == 0) {
     blockalign = blocksize;
   }
 
-  if (mode == IO_SYNC) {
+  if (mode == RequestConfig::IOMode::Synchronous) {
     iodepth = 1;
-    mode = IO_ASYNC;
+    mode = RequestConfig::IOMode::Asynchronous;
   }
 
-  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
-  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
+  submissionLatency =
+      readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
+  completionLatency =
+      readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
 
   // Set random engine
   randengine.seed(randseed);
 
-  submitIO = [this](uint64_t tick) { _submitIO(tick); };
-  iocallback = [this](uint64_t id) { _iocallback(id); };
-
-  submitEvent = engine.allocateEvent(submitIO);
+  submitEvent = createEvent([this](uint64_t t, uint64_t) { submitIO(t); },
+                            "IGL::RequestGenerator::submitEvent");
+  completionEvent =
+      createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
+                  "IGL::RequestGenerator::completionEvent");
 }
 
 RequestGenerator::~RequestGenerator() {}
 
 void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
   if (offset > bytesize) {
-    SimpleSSD::panic("offset is larger than SSD size");
+    panic("offset is larger than SSD size");
   }
   if (blocksize < bs) {
-    SimpleSSD::panic("blocksize is smaller than SSD's logical block");
+    panic("blocksize is smaller than SSD's logical block");
   }
   if (blockalign < bs) {
-    SimpleSSD::panic("blockalign is smaller than SSD's logical block");
+    panic("blockalign is smaller than SSD's logical block");
   }
   if (blocksize % bs != 0) {
-    SimpleSSD::warn("blocksize is not aligned to SSD's logical block");
+    warn("blocksize is not aligned to SSD's logical block");
 
     blocksize /= bs;
     blocksize *= bs;
   }
   if (blockalign % bs != 0) {
-    SimpleSSD::warn("blockalign is not aligned to SSD's logical block");
+    warn("blockalign is not aligned to SSD's logical block");
 
     blockalign /= bs;
     blockalign *= bs;
   }
   if (offset % blockalign != 0) {
-    SimpleSSD::warn("offset is not aligned to blockalign");
+    warn("offset is not aligned to blockalign");
 
     offset /= blockalign;
     offset *= blockalign;
@@ -92,20 +104,20 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
     size = bytesize - offset;
   }
   if (size == 0) {
-    SimpleSSD::panic("Invalid offset and size provided");
+    panic("Invalid offset and size provided");
   }
 
   randgen = std::uniform_int_distribution<uint64_t>(offset, offset + size);
 }
 
 void RequestGenerator::begin() {
-  initTime = engine.getCurrentTick();
+  initTime = getTick();
 
-  _submitIO(initTime);
+  submitIO(initTime);
 }
 
 void RequestGenerator::printStats(std::ostream &out) {
-  uint64_t tick = engine.getCurrentTick();
+  uint64_t tick = getTick();
 
   out << "*** Statistics of Request Generator ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -139,8 +151,8 @@ void RequestGenerator::getProgress(float &val) {
     return;
   }
 
-  if (time_based) {                           // Read-only variable after init
-    uint64_t tick = engine.getCurrentTick();  // Thread-safe
+  if (time_based) {             // Read-only variable after init
+    uint64_t tick = getTick();  // Thread-safe
 
     // initTime is read-only after begin() called
     val = (float)(tick - initTime) / runtime;
@@ -155,7 +167,9 @@ void RequestGenerator::getProgress(float &val) {
 void RequestGenerator::generateAddress(uint64_t &off, uint64_t &len) {
   // This function generates address to access
   // based on I/O type, blocksize/align and offset/size
-  if (type == IO_RANDREAD || type == IO_RANDWRITE || type == IO_RANDRW) {
+  if (type == RequestConfig::IOType::RandRead ||
+      type == RequestConfig::IOType::RandWrite ||
+      type == RequestConfig::IOType::RandRW) {
     off = randgen(randengine);  // randgen range: [offset, offset + size)
     off -= off % blockalign;
     len = blocksize;
@@ -183,19 +197,21 @@ bool RequestGenerator::nextIOIsRead() {
   // This function determine next I/O is read or write
   // based on rwmixread
   // io_count should not zero
-  if (type == IO_READWRITE || type == IO_RANDRW) {
+  if (type == RequestConfig::IOType::ReadWrite ||
+      type == RequestConfig::IOType::RandRW) {
     if (rwmixread > (float)read_count / io_count) {
       return true;
     }
   }
-  else if (type == IO_READ || type == IO_RANDREAD) {
+  else if (type == RequestConfig::IOType::Read ||
+           type == RequestConfig::IOType::RandRead) {
     return true;
   }
 
   return false;
 }
 
-void RequestGenerator::_submitIO(uint64_t) {
+void RequestGenerator::submitIO(uint64_t) {
   BIL::BIO bio;
 
   // This function uses io_count (=0 at very beginning)
@@ -205,16 +221,16 @@ void RequestGenerator::_submitIO(uint64_t) {
 
   // This function also uses io_count (=1 at very beginning)
   if (nextIOIsRead()) {
-    bio.type = BIL::BIO_READ;
+    bio.type = BIL::BIOType::Read;
     read_count++;
   }
   else {
-    bio.type = BIL::BIO_WRITE;
+    bio.type = BIL::BIOType::Write;
   }
 
   io_submitted += bio.length;
 
-  bio.callback = iocallback;
+  bio.callback = completionEvent;
 
   // push to queue
   io_depth++;
@@ -226,14 +242,14 @@ void RequestGenerator::_submitIO(uint64_t) {
   rescheduleSubmit(submissionLatency);
 }
 
-void RequestGenerator::_iocallback(uint64_t) {
+void RequestGenerator::iocallback(uint64_t now, uint64_t) {
   io_depth--;
 
   if (reserveTermination) {
     // No I/O will be generated anymore
     // If no pending I/O call endCallback
     if (io_depth == 0) {
-      endCallback();
+      scheduleAbs(endCallback, 0ull, now);
     }
   }
   else {
@@ -243,7 +259,7 @@ void RequestGenerator::_iocallback(uint64_t) {
 }
 
 void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
-  uint64_t tick = engine.getCurrentTick();
+  uint64_t tick = getTick();
 
   // We are done
   if ((!time_based && io_submitted >= io_size) ||
@@ -253,7 +269,7 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
     // We need to double-check this for following case:
     // _iocallback (all I/O completed) -> rescheduleSubmit
     if (io_depth == 0) {
-      endCallback();
+      scheduleNow(endCallback, 0ull);
     }
 
     return;
@@ -264,7 +280,9 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
     bool doSchedule = true;
 
     // Check conflict
-    if (engine.isScheduled(submitEvent, &scheduledTick)) {
+    if (isScheduled(submitEvent)) {
+      scheduledTick = when(submitEvent);
+
       if (scheduledTick >= tick + breakTime) {
         doSchedule = false;
       }
@@ -272,9 +290,9 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
 
     // We can schedule it
     if (doSchedule) {
-      engine.scheduleEvent(submitEvent, tick + breakTime);
+      scheduleAbs(submitEvent, 0ull, tick + breakTime);
     }
   }
 }
 
-}  // namespace IGL
+}  // namespace Standalone::IGL
