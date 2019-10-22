@@ -12,21 +12,20 @@
 
 #include "bil/interface.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
-class Scheduler {
+class Scheduler : public Object {
  protected:
-  Engine &engine;
   DriverInterface *pInterface;
 
  public:
-  Scheduler(Engine &e, DriverInterface *i) : engine(e), pInterface(i) {}
+  Scheduler(ObjectData &o, DriverInterface *i) : Object(o), pInterface(i) {}
   virtual ~Scheduler() {}
 
   virtual void init() = 0;
   virtual void submitIO(BIO &) = 0;
 };
 
-}  // namespace BIL
+}  // namespace Standalone::BIL
 
 #endif

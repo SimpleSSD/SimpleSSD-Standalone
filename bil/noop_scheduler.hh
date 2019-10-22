@@ -12,17 +12,17 @@
 
 #include "bil/scheduler.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
 class NoopScheduler : public Scheduler {
  public:
-  NoopScheduler(Engine &, DriverInterface *);
+  NoopScheduler(ObjectData &, DriverInterface *);
   ~NoopScheduler();
 
   void init();
   void submitIO(BIO &);
 };
 
-}  // namespace BIL
+}  // namespace Standalone::BIL
 
 #endif

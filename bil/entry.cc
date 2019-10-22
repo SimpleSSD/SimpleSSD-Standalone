@@ -11,15 +11,12 @@
 
 #include "bil/interface.hh"
 #include "bil/noop_scheduler.hh"
-#include "simplessd/sim/trace.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
-BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i,
-                           std::ostream *o)
-    : conf(c),
-      engine(e),
-      pLatencyFile(o),
+BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
+    : Object(o),
+      pLatencyFile(f),
       pScheduler(nullptr),
       pDriver(i),
       lastProgress(0),
@@ -30,13 +27,14 @@ BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i,
       sumLatency(0),
       squareSumLatency(0),
       callback([this](uint64_t id) { completion(id); }) {
-  switch (c.readUint(CONFIG_GLOBAL, GLOBAL_SCHEDULER)) {
-    case SCHEDULER_NOOP:
-      pScheduler = new NoopScheduler(e, i);
+  switch ((Config::SchedulerType)readConfigUint(Section::Simulation,
+                                                Config::Key::Scheduler)) {
+    case Config::SchedulerType::Noop:
+      pScheduler = new NoopScheduler(o, i);
 
       break;
     default:
-      SimpleSSD::panic("Invalid I/O scheduler specified");
+      panic("Invalid I/O scheduler specified");
 
       break;
   }
@@ -52,7 +50,7 @@ void BlockIOEntry::submitIO(BIO &bio) {
   BIO copy(bio);
 
   io_count++;
-  bio.submittedAt = engine.getCurrentTick();
+  bio.submittedAt = getTick();
 
   ioQueue.push_back(bio);
   copy.callback = callback;
@@ -61,7 +59,7 @@ void BlockIOEntry::submitIO(BIO &bio) {
 }
 
 void BlockIOEntry::completion(uint64_t id) {
-  uint64_t tick = engine.getCurrentTick();
+  uint64_t tick = getTick();
 
   for (auto iter = ioQueue.begin(); iter != ioQueue.end(); iter++) {
     if (iter->id == id) {
@@ -141,7 +139,7 @@ void BlockIOEntry::printStats(std::ostream &out) {
 }
 
 void BlockIOEntry::getProgress(Progress &data) {
-  uint64_t tick = engine.getCurrentTick();
+  uint64_t tick = getTick();
   uint64_t diff = tick - lastProgress;
 
   if (diff == 0) {
@@ -176,4 +174,4 @@ void BlockIOEntry::getProgress(Progress &data) {
   lastProgress = tick;
 }
 
-}  // namespace BIL
+}  // namespace Standalone::BIL

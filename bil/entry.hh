@@ -15,27 +15,25 @@
 #include <functional>
 #include <list>
 
-#include "sim/cfg_reader.hh"
-#include "sim/engine.hh"
+#include "sim/object.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
 class Scheduler;
 class DriverInterface;
 
-enum BIO_TYPE : uint8_t {
-  BIO_READ,
-  BIO_WRITE,
-  BIO_FLUSH,
-  BIO_TRIM,
-  BIO_NUM,
+enum class BIOType : uint8_t {
+  Read,
+  Write,
+  Flush,
+  Trim,
 };
 
 typedef struct _BIO {
   uint64_t id;
 
   // I/O definition
-  BIO_TYPE type;
+  BIOType type;
   uint64_t offset;
   uint64_t length;
 
@@ -45,7 +43,7 @@ typedef struct _BIO {
   // Statistics
   uint64_t submittedAt;
 
-  _BIO() : id(0), type(BIO_READ), offset(0), length(0), submittedAt(0) {}
+  _BIO() : id(0), type(BIOType::Read), offset(0), length(0), submittedAt(0) {}
 } BIO;
 
 typedef struct _Progress {
@@ -54,10 +52,8 @@ typedef struct _Progress {
   uint64_t latency;
 } Progress;
 
-class BlockIOEntry {
+class BlockIOEntry : public Object {
  private:
-  ConfigReader &conf;
-  Engine &engine;
   std::list<BIO> ioQueue;
 
   std::ostream *pLatencyFile;
@@ -81,7 +77,7 @@ class BlockIOEntry {
   void completion(uint64_t);
 
  public:
-  BlockIOEntry(ConfigReader &, Engine &, DriverInterface *, std::ostream *);
+  BlockIOEntry(ObjectData &, DriverInterface *, std::ostream *);
   ~BlockIOEntry();
 
   void submitIO(BIO &);
@@ -90,6 +86,6 @@ class BlockIOEntry {
   void getProgress(Progress &);
 };
 
-}  // namespace BIL
+}  // namespace Standalone::BIL
 
 #endif

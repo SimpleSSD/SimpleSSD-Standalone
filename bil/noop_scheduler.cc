@@ -7,9 +7,10 @@
 
 #include "bil/noop_scheduler.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
-NoopScheduler::NoopScheduler(Engine &e, DriverInterface *i) : Scheduler(e, i) {}
+NoopScheduler::NoopScheduler(ObjectData &o, DriverInterface *i)
+    : Scheduler(o, i) {}
 
 NoopScheduler::~NoopScheduler() {}
 
@@ -19,4 +20,4 @@ void NoopScheduler::submitIO(BIO &bio) {
   pInterface->submitIO(bio);
 }
 
-}  // namespace BIL
+}  // namespace Standalone::BIL

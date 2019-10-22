@@ -13,28 +13,20 @@
 #include <functional>
 
 #include "bil/entry.hh"
-#include "simplessd/sim/statistics.hh"
+#include "sim/object.hh"
 
-namespace BIL {
+namespace Standalone::BIL {
 
-class DriverInterface {
- protected:
-  Engine &engine;
-
-  std::function<void()> beginFunction;
-
+class DriverInterface : public Object {
  public:
-  DriverInterface(Engine &e) : engine(e) {}
+  DriverInterface(ObjectData &o) : Object(o) {}
   virtual ~DriverInterface() {}
 
-  virtual void init(std::function<void()> &) = 0;
+  virtual void init(SimpleSSD::Event) = 0;
   virtual void getInfo(uint64_t &, uint32_t &) = 0;
   virtual void submitIO(BIO &) = 0;
-
-  virtual void initStats(std::vector<SimpleSSD::Stats> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
 };
 
-}  // namespace BIL
+}  // namespace Standalone::BIL
 
 #endif
