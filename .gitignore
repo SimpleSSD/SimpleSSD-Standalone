@@ -1,4 +1,5 @@
 # CMake Temporary Files
+build/
 CMakeFiles/
 *.cmake
 CMakeCache.txt
@@ -6,6 +7,7 @@ CMakeCache.txt
 # SimpleSSD output
 libsimplessd.a
 libmcpat.a
+libpugixml.a
 simplessd-standalone
 
 # Visual Studio Specific
