@@ -163,6 +163,24 @@ int main(int argc, char *argv[]) {
     pLatencyFile = &latencyFile;
   }
 
+  // Store config file
+  {
+    std::string full(argv[3]);
+    std::string name("standalone.xml");
+
+    joinPath(full, name);
+
+    simConfig.save(full);
+  }
+  {
+    std::string full(argv[3]);
+    std::string name("simplessd.xml");
+
+    joinPath(full, name);
+
+    ssdConfig.save(full);
+  }
+
   // Initialize SimpleSSD
   simplessd.init(&engine, &ssdConfig);
 
