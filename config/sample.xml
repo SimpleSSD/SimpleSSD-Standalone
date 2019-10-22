@@ -259,4 +259,4 @@
     <!-- <bool> Offset/Length is hexadecimal, not decimal -->
     <config name="UseHexadecimal">0</config>
   </section>
-</simplessd>
+</standalone>

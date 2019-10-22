@@ -14,6 +14,8 @@
 
 namespace Standalone {
 
+#define CONFIG_STANDALONE_NODE_NAME "standalone"
+
 //! ConfigReader constructor
 ConfigReader::ConfigReader() {}
 
@@ -33,7 +35,7 @@ void ConfigReader::load(const char *path) noexcept {
   }
 
   // Check node
-  auto config = file.child(CONFIG_NODE_NAME);
+  auto config = file.child(CONFIG_STANDALONE_NODE_NAME);
 
   if (config) {
     // Check version
@@ -87,7 +89,7 @@ void ConfigReader::load(std::string &path) noexcept {
  */
 void ConfigReader::save(const char *path) noexcept {
   // Create simplessd node
-  auto config = file.append_child(CONFIG_NODE_NAME);
+  auto config = file.append_child(CONFIG_STANDALONE_NODE_NAME);
   config.append_attribute("version").set_value(SIMPLESSD_STANDALONE_FULL);
 
   // Append configuration sections
