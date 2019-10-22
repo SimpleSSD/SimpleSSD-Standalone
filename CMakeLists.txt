@@ -78,21 +78,42 @@ include_directories(
   ${DRAMPOWER_SOURCE_DIR}
 )
 
+# Set version tag
+set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_FULL='\"${VERSION_STRING}\"' ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_TAG='\"${GIT_TAG}-\"' ${CMAKE_CXX_FLAGS}")
+
 # Platform specific settings
 if (MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   add_compile_options(/wd4819)  # Surpress unicode warning
   add_compile_options(/wd4305)  # Surpress truncation warning
 else ()
-  set(CMAKE_CXX_FLAGS "-g -rdynamic -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+  # Check libunwind/libelf
+  include(CheckIncludeFiles)
+  check_include_files("libunwind.h" HAVE_UNWIND_H)
+  check_include_files("elfutils/libdwfl.h" HAVE_LIBDWFL_H)
+
+  if (NOT HAVE_UNWIND_H)
+    message(FATAL_ERROR "Please install libunwind-dev or libunwind-devel.")
+  endif ()
+  if (NOT HAVE_LIBDWFL_H)
+    message(FATAL_ERROR "Please install libdw-dev or elfutils-devel.")
+  endif ()
+
+  add_compile_options(-g)
+  add_compile_options(-Wall)
+  add_compile_options(-Wextra)
+  add_compile_options(-Werror)
+
+  add_compile_options(-ldw)
+  add_compile_options(-lunwind)
+
   set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_FULL='\"${VERSION_STRING}\"' ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_TAG='\"${GIT_TAG}-\"' ${CMAKE_CXX_FLAGS}")
 
   if (DEBUG_BUILD)
-    set(CMAKE_CXX_FLAGS "-O0 ${CMAKE_CXX_FLAGS}")
+    add_compile_options(-O0)
   else ()
-    set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
+    add_compile_options(-O2)
   endif ()
 endif ()
 
