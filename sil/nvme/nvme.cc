@@ -36,6 +36,10 @@ Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
       SimpleSSD::Section::HostInterface, SimpleSSD::HIL::Config::Key::PCIeLane);
 
   delayFunction = SimpleSSD::PCIExpress::makeFunction(gen, lane);
+
+  // Create controller
+  auto id = simplessd.createController(this);
+  controller = (SimpleSSD::HIL::NVMe::Controller *)simplessd.getController(id);
 }
 
 Driver::~Driver() {
