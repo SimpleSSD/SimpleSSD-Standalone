@@ -12,6 +12,8 @@
 
 #include <chrono>
 
+namespace Standalone {
+
 class Stopwatch {
  private:
   std::chrono::high_resolution_clock::time_point begin;
@@ -29,5 +31,7 @@ class Stopwatch {
   void stop();
   double getDuration();
 };
+
+}  // namespace Standalone
 
 #endif

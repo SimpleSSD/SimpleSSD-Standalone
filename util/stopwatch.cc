@@ -7,6 +7,8 @@
 
 #include "util/stopwatch.hh"
 
+namespace Standalone {
+
 Stopwatch::Stopwatch() {}
 
 Stopwatch::~Stopwatch() {}
@@ -29,3 +31,5 @@ double Stopwatch::getDuration() {
   return std::chrono::duration_cast<std::chrono::duration<double>>(end - begin)
       .count();
 }
+
+}  // namespace Standalone
