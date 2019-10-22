@@ -12,8 +12,8 @@
 
 #include <vector>
 
-#include "sim/config_reader.hh"
-#include "sim/engine.hh"
+#include "main/config_reader.hh"
+#include "main/engine.hh"
 #include "simplessd/sim/log.hh"
 #include "simplessd/sim/object.hh"
 

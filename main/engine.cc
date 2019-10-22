@@ -5,7 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sim/engine.hh"
+#include "main/engine.hh"
 
 namespace Standalone {
 

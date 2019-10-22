@@ -15,7 +15,7 @@
 #include <functional>
 #include <list>
 
-#include "sim/object.hh"
+#include "main/object.hh"
 
 namespace Standalone::BIL {
 

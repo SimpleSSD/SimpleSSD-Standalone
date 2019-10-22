@@ -5,7 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sim/config.hh"
+#include "main/config.hh"
 
 #include <cstring>
 
@@ -74,7 +74,7 @@ void Config::storeTo(pugi::xml_node &section) {
 
 void Config::update() {
   panic_if((uint8_t)mode > (uint8_t)ModeType::TraceReplayer, "Invalid Mode.");
-  panic_if((uint8_t)interface > (uint8_t)InterfaceType::None,
+  panic_if((uint8_t)interface > (uint8_t)InterfaceType::NVMe,
            "Invalid Interface.");
   panic_if((uint8_t)scheduler > (uint8_t)SchedulerType::Noop,
            "Invalid Scheduler.");

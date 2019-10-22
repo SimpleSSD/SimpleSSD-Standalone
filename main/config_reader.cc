@@ -5,7 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sim/config_reader.hh"
+#include "main/config_reader.hh"
 
 #include <cstring>
 #include <iostream>

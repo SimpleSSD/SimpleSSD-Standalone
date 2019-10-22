@@ -5,7 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sim/signal.hh"
+#include "main/signal.hh"
 
 #include <cinttypes>
 #include <csignal>

@@ -24,9 +24,10 @@
 #include "bil/entry.hh"
 #include "igl/request/request_generator.hh"
 #include "igl/trace/trace_replayer.hh"
+#include "main/engine.hh"
+#include "main/object.hh"
+#include "main/signal.hh"
 #include "sil/nvme/nvme.hh"
-#include "sim/engine.hh"
-#include "sim/signal.hh"
 #include "simplessd/sim/simplessd.hh"
 #include "util/print.hh"
 
@@ -173,7 +174,7 @@ int main(int argc, char *argv[]) {
   switch ((Config::InterfaceType)simConfig.readUint(Section::Simulation,
                                                     Config::Key::Interface)) {
     case Config::InterfaceType::NVMe:
-      pInterface = new SIL::NVMe::Driver(engine, simplessd);
+      pInterface = new SIL::NVMe::Driver(standaloneObject, simplessd);
 
       break;
     default:

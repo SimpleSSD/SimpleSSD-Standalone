@@ -14,7 +14,7 @@
 
 #include "igl/request/request_config.hh"
 #include "igl/trace/trace_config.hh"
-#include "sim/config.hh"
+#include "main/config.hh"
 #include "simplessd/lib/pugixml/src/pugixml.hpp"
 
 namespace Standalone {

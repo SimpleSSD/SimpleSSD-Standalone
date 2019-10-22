@@ -13,7 +13,7 @@
 #include <functional>
 
 #include "bil/entry.hh"
-#include "sim/object.hh"
+#include "main/object.hh"
 #include "simplessd/sim/simplessd.hh"
 
 namespace Standalone::BIL {

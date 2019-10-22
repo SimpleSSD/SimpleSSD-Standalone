@@ -11,7 +11,7 @@
 #define __IGL_IO_GEN__
 
 #include "bil/entry.hh"
-#include "sim/object.hh"
+#include "main/object.hh"
 
 namespace Standalone::IGL {
 
