@@ -17,8 +17,8 @@ Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
     : BIL::DriverInterface(o, s),
       scheduler(
           s.getObject(), "SIL::NVMe::Driver::scheduler",
-          [this](DMAEntry *d) -> uint64_t { return preSubmit(d); },
-          [this](DMAEntry *d) -> uint64_t { return preSubmit(d); },
+          [this](DMAEntry *d) -> uint64_t { return preSubmitRead(d); },
+          [this](DMAEntry *d) -> uint64_t { return preSubmitWrite(d); },
           [this](DMAEntry *d) { postDone(d); },
           [this](DMAEntry *d) { postDone(d); }, DMAEntry::backup,
           DMAEntry::restore),
@@ -455,7 +455,15 @@ void Driver::postDone(DMAEntry *entry) {
   delete entry;
 }
 
-uint64_t Driver::preSubmit(DMAEntry *entry) {
+uint64_t Driver::preSubmitRead(DMAEntry *entry) {
+  memcpy(entry->buffer, (uint8_t *)entry->addr, entry->size);
+
+  return delayFunction(entry->size);
+}
+
+uint64_t Driver::preSubmitWrite(DMAEntry *entry) {
+  memcpy((uint8_t *)entry->addr, entry->buffer, entry->size);
+
   return delayFunction(entry->size);
 }
 

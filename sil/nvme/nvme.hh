@@ -91,7 +91,8 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   std::list<CommandEntry> pendingCommandList;
   std::unordered_map<uint64_t, IOWrapper> pendingIOList;
 
-  uint64_t preSubmit(DMAEntry *);
+  uint64_t preSubmitRead(DMAEntry *);
+  uint64_t preSubmitWrite(DMAEntry *);
   void postDone(DMAEntry *);
 
   void increaseCommandID(uint16_t &);
