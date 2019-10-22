@@ -5,58 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-/*
- * This file contains some codes from original gem5 project.
- * See src/sim/backtrace_glib.cc and src/sim/init_signals.cc of gem5.
- * Followings are copyright from gem5.
- */
-
-/*
- * Copyright (c) 2015 ARM Limited
- * All rights reserved
- *
- * The license below extends only to copyright in the software and shall
- * not be construed as granting a license to any other intellectual
- * property including but not limited to intellectual property relating
- * to a hardware implementation of the functionality of the software
- * licensed hereunder.  You may use the software subject to the license
- * terms below provided that you ensure that this notice is replicated
- * unmodified and in its entirety in all distributions of the software,
- * modified or unmodified, in source code or in binary form.
- *
- * Copyright (c) 2000-2005 The Regents of The University of Michigan
- * Copyright (c) 2008 The Hewlett-Packard Development Company
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met: redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer;
- * redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution;
- * neither the name of the copyright holders nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Authors: Andreas Sandberg, Nathan Binkert
- */
-
 #include "sim/signal.hh"
-
-#include <signal.h>
 
 #include <cinttypes>
 #include <csignal>
@@ -109,16 +58,19 @@ LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
 
 #else
 
-#include <execinfo.h>
+#include <cxxabi.h>
+#include <elfutils/libdwfl.h>
+#include <signal.h>
 #include <unistd.h>
 
-#define FRAMECOUNT 32
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
 
-static uint8_t stack[SIGSTKSZ * 2];
+static uint8_t stack[SIGSTKSZ];
 
 void print_backtrace();
 
-static bool setupStack() {
+static bool setupSignalStack() {
   stack_t st;
 
   st.ss_sp = stack;
@@ -171,7 +123,7 @@ void fpeHandler(int sig) {
 #endif
 
 void print_backtrace() {
-  std::cerr << "--- BEGIN LIBC BACKTRACE ---" << std::endl;
+  std::cerr << "--- BEGIN BACKTRACE ---" << std::endl;
 
 #ifdef _MSC_VER
   CONTEXT context;
@@ -182,6 +134,7 @@ void print_backtrace() {
   char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(char)];
   PSYMBOL_INFO symInfo = (PSYMBOL_INFO)buffer;
   IMAGEHLP_MODULE modInfo;
+  IMAGEHLP_LINE64 lineInfo;
   DWORD64 displacement;
 
   RtlCaptureContext(&context);
@@ -198,6 +151,7 @@ void print_backtrace() {
   symInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
   symInfo->MaxNameLen = MAX_SYM_NAME;
   modInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
+  lineInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
   if (!SymInitialize(hProcess, nullptr, true)) {
     std::cerr << "Failed to initialize symbol table." << std::endl;
@@ -218,16 +172,24 @@ void print_backtrace() {
         std::cerr << modInfo.ModuleName;
       }
       else {
-        std::cerr << "<Unknown Module>";
+        std::cerr << "???: ";
       }
 
-      // Get Symbole Name
+      // Get Symbol Name
       if (SymFromAddr(hProcess, frame.AddrPC.Offset, &displacement, symInfo)) {
-        std::cerr << "(" << symInfo->Name << "+0x" << std::hex << displacement
+        std::cerr << symInfo->Name << "+" << std::hex << displacement << "h ";
+      }
+
+      std::cerr << "[" << std::hex << frame.AddrPC.Offset << "] ";
+
+      // Get File Name
+      if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &displacement,
+                             &lineInfo)) {
+        std::cerr << "(" << lineInfo.FileName << ":" << lineInfo.LineNumber
                   << ")";
       }
 
-      std::cerr << "[0x" << std::hex << frame.AddrPC.Offset << "]" << std::endl;
+      std::cerr << std::endl;
     }
     else {
       break;
@@ -238,18 +200,116 @@ void print_backtrace() {
   CloseHandle(hThread);
   CloseHandle(hProcess);
 #else
-  void *buffer[FRAMECOUNT];
-  int size;
+  unw_cursor_t cursor;
+  unw_context_t context;
+  unw_word_t ip, offset;
+  char func[256];
+  char *cxxname;
+  char *debuginfo = nullptr;
+  int ret;
+  Dwfl *dwfl = nullptr;
+  Dwfl_Module *module = nullptr;
+  Dwfl_Line *line = nullptr;
 
-  size = backtrace(buffer, sizeof(buffer) / sizeof(*buffer));
+  Dwfl_Callbacks callbacks = {
+      .find_elf = dwfl_linux_proc_find_elf,
+      .find_debuginfo = dwfl_standard_find_debuginfo,
+      .debuginfo_path = &debuginfo,
+  };
 
-  backtrace_symbols_fd(buffer, size, STDERR_FILENO);
+  // Initialize DWARF debug info access
+  dwfl = dwfl_begin(&callbacks);
 
-  if (size == sizeof(buffer))
-    std::cerr << "Warning: Backtrace may have been truncated." << std::endl;
+  if (dwfl != nullptr) {
+    if (dwfl_linux_proc_report(dwfl, getpid()) != 0 ||
+        dwfl_report_end(dwfl, nullptr, nullptr) != 0) {
+      dwfl_end(dwfl);
+      dwfl = nullptr;
+    }
+  }
+
+  // Initialize libunwind backtrace
+  ret = unw_getcontext(&context);
+
+  if (ret == 0) {
+    ret = unw_init_local(&cursor, &context);
+
+    if (ret == 0) {
+      // For each stack frame
+      while (unw_step(&cursor) > 0) {
+        cxxname = nullptr;
+
+        // instruction pointer + stack pointer
+        unw_get_reg(&cursor, UNW_REG_IP, &ip);
+
+        // function name + CXXAPI function name parse
+        if (unw_get_proc_name(&cursor, func, 256, &offset) == 0) {
+          cxxname = abi::__cxa_demangle(func, nullptr, nullptr, &ret);
+
+          if (ret != 0) {
+            free(cxxname);
+            cxxname = nullptr;
+          }
+        }
+        else {
+          strcpy(func, "???");
+        }
+
+        // Print module name
+        Dwarf_Addr addr = (Dwarf_Addr)(ip - 4);  // Why -4?
+
+        if (dwfl) {
+          module = dwfl_addrmodule(dwfl, addr);
+
+          std::cerr << dwfl_module_addrname(module, addr) << ": ";
+        }
+        else {
+          std::cerr << "???: ";
+        }
+
+        // Print function name
+        if (cxxname) {
+          std::cerr << cxxname;
+        }
+        else {
+          std::cerr << func;
+        }
+
+        // Print offset + instruction pointer
+        fprintf(stderr, "+%" PRIx64 "h [%" PRIx64 "] ", offset, ip);
+
+        // Print filename + line number
+        if (dwfl) {
+          line = dwfl_getsrc(dwfl, addr);
+
+          if (line) {
+            int ln = 0;
+            const char *file =
+                dwfl_lineinfo(line, &addr, &ln, nullptr, nullptr, nullptr);
+
+            fprintf(stderr, "(%s:%d)", file, ln);
+          }
+        }
+
+        std::cerr << std::endl;
+      }
+    }
+    else {
+      std::cerr << "Error: libunwind: unw_init_local() failed (ret = " << ret
+                << ")." << std::endl;
+    }
+  }
+  else {
+    std::cerr << "Error: libunwind: unw_getcontext() failed (ret = " << ret
+              << ")." << std::endl;
+  }
+
+  if (dwfl != nullptr) {
+    dwfl_end(dwfl);
+  }
 #endif
 
-  std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
+  std::cerr << "--- END BACKTRACE ---" << std::endl;
 }
 
 void installSignalHandler(void (*handler)(int)) {
@@ -261,7 +321,7 @@ void installSignalHandler(void (*handler)(int)) {
   installHandler(SIGINT, handler);
   installHandler(SIGABRT, abortHandler, SA_RESETHAND | SA_NODEFER);
 
-  setupStack();
+  setupSignalStack();
 
   installHandler(SIGSEGV, segfaultHandler,
                  SA_RESETHAND | SA_NODEFER | SA_ONSTACK);
