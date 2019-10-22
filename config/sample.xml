@@ -221,7 +221,10 @@
       For example, blkparse uses following format as timestamp:
         23.000002331 (23 seconds + 2331 nano-seconds)
       As above timestamp can be decomposed into second and nano-second parts,
-      specify Second and Nanosecond options.
+      example specified Second and Nanosecond group fields.
+
+      Each group except 'Operation' must point an integer number, not a floating
+      point number. Operation group must point a string.
      -->
     <!--
       <int> Group ID for operation string
