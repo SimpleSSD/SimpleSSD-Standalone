@@ -7,16 +7,28 @@
 
 #include "sim/engine.hh"
 
+namespace Standalone {
+
 EventEngine::EventEngine()
-    : SimpleSSD::Engine(),
-      simTick(0),
-      forceStop(false),
-      counter(0),
-      eventHandled(0) {
+    : SimpleSSD::Engine(), simTick(0), forceStop(false), eventHandled(0) {
   watch.start();
 }
 
 EventEngine::~EventEngine() {}
+
+void EventEngine::setFunction(SimpleSSD::EventFunction w,
+                              SimpleSSD::InterruptFunction i) {
+  engineEvent.func = std::move(w);
+#ifdef SIMPLESSD_STANDALONE_DEBUG
+  engineEvent.name = "SimpleSSD::Engine::EventFunction";
+#endif
+
+  intrFunction = std::move(i);
+}
+
+void EventEngine::schedule(uint64_t tick) {
+  schedule(&engineEvent, 0ull, tick);
+}
 
 uint64_t EventEngine::getTick() {
   std::lock_guard<std::mutex> guard(mTick);
@@ -24,103 +36,71 @@ uint64_t EventEngine::getTick() {
   return simTick;
 }
 
-SimpleSSD::Event EventEngine::createEvent(SimpleSSD::EventFunction func,
-                                          std::string) {
-  auto iter = eventList.insert({++counter, func});
+#ifdef SIMPLESSD_DEBUG
+Event EventEngine::createEvent(SimpleSSD::EventFunction &&func,
+                               std::string &&name) noexcept {
+  Event eid = new EventData(std::move(func), std::move(name));
+#else
+Event EventEngine::createEvent(SimpleSSD::EventFunction &&func,
+                               std::string &&) noexcept {
+  Event eid = new EventData(std::move(func));
+#endif
 
-  if (!iter.second) {
-    fprintf(stderr, "Fail to allocate event\n");
+  eventList.emplace_back(eid);
 
-    abort();
-  }
-
-  return counter;
+  return eid;
 }
 
-void EventEngine::schedule(SimpleSSD::Event eid, uint64_t tick) {
-  auto iter = eventList.find(eid);
-
-  if (iter != eventList.end()) {
-    uint64_t tickCopy;
-
-    {
-      std::lock_guard<std::mutex> guard(mTick);
-      tickCopy = simTick;
-    }
-
-    if (tick < tickCopy) {
-      fprintf(stderr,
-              "Tried to schedule %" PRIu64 " < simTick to event %" PRIu64 ".\n",
-              tick, eid);
-
-      abort();
-    }
-
-    eventQueue.insert_or_assign(eid, tick);
+void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
+  if (UNLIKELY(eid == InvalidEventID)) {
+    // No need to schedule
+    return;
   }
-  else {
-    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
+
+  uint64_t tickCopy;
+
+  {
+    std::lock_guard<std::mutex> guard(mTick);
+    tickCopy = simTick;
+  }
+
+  if (tick < tickCopy) {
+    fprintf(stderr,
+            "Tried to schedule %" PRIu64 " < simTick to event %" PRIu64 ".\n",
+            tick, eid);
 
     abort();
+  }
+
+  auto insert = jobQueue.end();
+
+  for (auto entry = jobQueue.begin(); entry != jobQueue.end(); ++entry) {
+    if (entry->eid->scheduledAt > tick) {
+      insert = entry;
+
+      break;
+    }
+  }
+
+  eid->scheduledAt = tick;
+
+  jobQueue.emplace(insert, Job(eid, data));
+}
+
+void EventEngine::deschedule(Event eid) {
+  eid->deschedule();
+
+  for (auto iter = jobQueue.begin(); iter != jobQueue.end(); ++iter) {
+    if (iter->eid == eid) {
+      jobQueue.erase(iter);
+
+      return;
+    }
   }
 }
 
-void EventEngine::deschedule(SimpleSSD::Event eid) {
-  auto iter = eventList.find(eid);
-
-  if (iter != eventList.end()) {
-    auto iter = eventQueue.find(eid);
-
-    if (iter == eventQueue.end()) {
-      fprintf(stderr, "Event %" PRIu64 " not scheduled.\n", eid);
-
-      abort();
-    }
-
-    eventQueue.erase(iter);
-  }
-  else {
-    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
-
-    abort();
-  }
-}
-
-bool EventEngine::isScheduled(SimpleSSD::Event eid) {
-  bool ret = false;
-  auto iter = eventList.find(eid);
-
-  if (iter != eventList.end()) {
-    auto iter = eventQueue.find(eid);
-
-    return iter != eventQueue.end();
-  }
-  else {
-    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
-
-    abort();
-  }
-
-  return ret;
-}
-
-void EventEngine::destroyEvent(SimpleSSD::Event eid) {
-  auto iter = eventList.find(eid);
-
-  if (iter != eventList.end()) {
-    eventList.erase(iter);
-
-    auto iter = eventQueue.find(eid);
-
-    if (iter != eventQueue.end()) {
-      eventQueue.erase(iter);
-    }
-  }
-  else {
-    fprintf(stderr, "Event %" PRIu64 " does not exists.\n", eid);
-
-    abort();
-  }
+bool EventEngine::isScheduled(Event eid) {
+  return eid->isScheduled();
 }
 
 bool EventEngine::doNextEvent() {
@@ -130,28 +110,18 @@ bool EventEngine::doNextEvent() {
     return false;
   }
 
-  if (eventQueue.size() > 0) {
-    auto now = eventQueue.begin();
+  if (jobQueue.size() > 0) {
+    auto job = std::move(jobQueue.front());
+    jobQueue.pop_front();
 
     {
       std::lock_guard<std::mutex> guard(mTick);
 
-      simTick = now->second;
+      simTick = job.eid->scheduledAt;
       tickCopy = simTick;
     }
 
-    auto iter = eventList.find(now->first);
-
-    if (iter != eventList.end()) {
-      iter->second(tickCopy);
-    }
-    else {
-      fprintf(stderr, "Event %" PRIu64 " does not exists.\n", now->first);
-
-      abort();
-    }
-
-    eventQueue.erase(now);
+    job.eid->func(tickCopy, job.data);
 
     {
       std::lock_guard<std::mutex> guard(m);
@@ -189,3 +159,5 @@ void EventEngine::getStat(uint64_t &val) {
   std::lock_guard<std::mutex> guard(m);
   val = eventHandled;
 }
+
+}  // namespace Standalone
