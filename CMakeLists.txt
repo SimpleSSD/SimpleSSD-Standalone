@@ -151,20 +151,17 @@ set(SRC_LIB_DRAMPOWER
   lib/drampower/src/TraceParser.cc
   lib/drampower/src/libdrampower/LibDRAMPower.cc
 )
-set(SRC_SIL_NONE
-  sil/none/none.cc
-)
 set(SRC_SIL_NVME
   sil/nvme/nvme.cc
   sil/nvme/prp.cc
   sil/nvme/queue.cc
 )
-set(SRC_SIM
-  sim/cfg_reader.cc
-  sim/engine.cc
-  sim/global_config.cc
-  sim/main.cc
-  sim/signal.cc
+set(SRC_MAIN
+  main/config_reader.cc
+  main/config.cc
+  main/engine.cc
+  main/main.cc
+  main/signal.cc
 )
 set(SRC_UTIL
   util/convert.cc
@@ -177,9 +174,8 @@ SOURCE_GROUP("Source Files\\bil" FILES ${SRC_BIL})
 SOURCE_GROUP("Source Files\\igl\\request" FILES ${SRC_IGL_REQUEST})
 SOURCE_GROUP("Source Files\\igl\\trace" FILES ${SRC_IGL_TRACE})
 SOURCE_GROUP("Source Files\\lib\\drampower" FILES ${SRC_LIB_DRAMPOWER})
-SOURCE_GROUP("Source Files\\sil\\none" FILES ${SRC_SIL_NONE})
 SOURCE_GROUP("Source Files\\sil\\nvme" FILES ${SRC_SIL_NVME})
-SOURCE_GROUP("Source Files\\sim" FILES ${SRC_SIM})
+SOURCE_GROUP("Source Files\\main" FILES ${SRC_MAIN})
 SOURCE_GROUP("Source Files\\util" FILES ${SRC_UTIL})
 
 # Define executable
@@ -188,9 +184,8 @@ add_executable(simplessd-standalone
   ${SRC_IGL_REQUEST}
   ${SRC_IGL_TRACE}
   ${SRC_LIB_DRAMPOWER}
-  ${SRC_SIL_NONE}
   ${SRC_SIL_NVME}
-  ${SRC_SIM}
+  ${SRC_MAIN}
   ${SRC_UTIL}
 )
 target_link_libraries(simplessd-standalone simplessd)
