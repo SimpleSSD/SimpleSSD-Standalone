@@ -169,23 +169,23 @@ void print_backtrace() {
     if (frame.AddrPC.Offset != 0) {
       // Get Module Name
       if (SymGetModuleInfo(hProcess, frame.AddrPC.Offset, &modInfo)) {
-        std::cerr << modInfo.ModuleName;
+        std::cerr << modInfo.ModuleName << ": (";
       }
       else {
-        std::cerr << "???: ";
+        std::cerr << "???: (";
       }
 
       // Get Symbol Name
       if (SymFromAddr(hProcess, frame.AddrPC.Offset, &displacement, symInfo)) {
-        std::cerr << symInfo->Name << "+" << std::hex << displacement << "h ";
+        std::cerr << symInfo->Name << "+0x" << std::hex << displacement << ") ";
       }
 
-      std::cerr << "[" << std::hex << frame.AddrPC.Offset << "] ";
+      std::cerr << "[0x" << std::hex << frame.AddrPC.Offset << "] ";
 
       // Get File Name
       if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &displacement,
                              &lineInfo)) {
-        std::cerr << "(" << lineInfo.FileName << ":" << lineInfo.LineNumber
+        std::cerr << "\n\t(" << lineInfo.FileName << ":" << lineInfo.LineNumber
                   << ")";
       }
 
@@ -263,10 +263,12 @@ void print_backtrace() {
         if (dwfl) {
           module = dwfl_addrmodule(dwfl, addr);
 
-          std::cerr << dwfl_module_addrname(module, addr) << ": ";
+          std::cerr << dwfl_module_info(module, nullptr, nullptr, nullptr,
+                                        nullptr, nullptr, nullptr, nullptr)
+                    << ": (";
         }
         else {
-          std::cerr << "???: ";
+          std::cerr << "???: (";
         }
 
         // Print function name
@@ -278,7 +280,7 @@ void print_backtrace() {
         }
 
         // Print offset + instruction pointer
-        fprintf(stderr, "+%" PRIx64 "h [%" PRIx64 "] ", offset, ip);
+        fprintf(stderr, "+0x%" PRIx64 ") [0x%" PRIx64 "] ", offset, ip);
 
         // Print filename + line number
         if (dwfl) {
@@ -289,7 +291,7 @@ void print_backtrace() {
             const char *file =
                 dwfl_lineinfo(line, &addr, &ln, nullptr, nullptr, nullptr);
 
-            fprintf(stderr, "(%s:%d)", file, ln);
+            fprintf(stderr, "\n\t(%s:%d)", file, ln);
           }
         }
 
