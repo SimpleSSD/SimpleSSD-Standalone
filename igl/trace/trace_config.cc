@@ -7,7 +7,7 @@
 
 #include "igl/trace/trace_config.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
 const char NAME_FILE[] = "File";
 const char NAME_TIMING_MODE[] = "TimingMode";
@@ -285,4 +285,4 @@ bool TraceConfig::writeBoolean(uint32_t idx, bool value) {
   return ret;
 }
 
-}  // namespace IGL
+}  // namespace Standalone::IGL

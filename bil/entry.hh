@@ -23,6 +23,7 @@ class Scheduler;
 class DriverInterface;
 
 enum class BIOType : uint8_t {
+  None,
   Read,
   Write,
   Flush,

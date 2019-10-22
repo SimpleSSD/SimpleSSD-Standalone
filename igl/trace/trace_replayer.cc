@@ -7,14 +7,12 @@
 
 #include "igl/trace/trace_replayer.hh"
 
-#include "simplessd/sim/trace.hh"
 #include "simplessd/util/algorithm.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
-TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
-                             std::function<void()> &f, ConfigReader &c)
-    : IOGenerator(e, b, f),
+TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+    : IOGenerator(o, b, e),
       useLBAOffset(false),
       useLBALength(false),
       nextIOIsSync(false),
@@ -25,11 +23,12 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
       write_count(0),
       io_depth(0) {
   // Check file
-  auto filename = c.readString(CONFIG_TRACE, TRACE_FILE);
+  auto filename =
+      readConfigString(Section::TraceReplayer, TraceConfig::Key::File);
   file.open(filename);
 
   if (!file.is_open()) {
-    SimpleSSD::panic("Failed to open trace file %s!", filename.c_str());
+    panic("Failed to open trace file %s!", filename.c_str());
   }
 
   file.seekg(0, std::ios::end);
@@ -38,41 +37,48 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   // Create regex
   try {
-    regex = std::regex(c.readString(CONFIG_TRACE, TRACE_LINE_REGEX));
+    regex = std::regex(
+        readConfigString(Section::TraceReplayer, TraceConfig::Key::Regex));
   }
   catch (std::regex_error &e) {
-    SimpleSSD::panic("Invalid regular expression!");
+    panic("Invalid regular expression!");
   }
 
   // Fill flags
-  mode = (TIMING_MODE)c.readUint(CONFIG_TRACE, TRACE_TIMING_MODE);
-  submissionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_SUBMISSION_LATENCY);
-  completionLatency = c.readUint(CONFIG_GLOBAL, GLOBAL_COMPLETION_LATENCY);
-  maxQueueDepth = c.readUint(CONFIG_TRACE, TRACE_QUEUE_DEPTH);
-  max_io = c.readUint(CONFIG_TRACE, TRACE_IO_LIMIT);
-  groupID[ID_OPERATION] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_OPERATION);
-  groupID[ID_BYTE_OFFSET] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_OFFSET);
-  groupID[ID_BYTE_LENGTH] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_BYTE_LENGTH);
-  groupID[ID_LBA_OFFSET] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_OFFSET);
-  groupID[ID_LBA_LENGTH] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_LBA_LENGTH);
-  groupID[ID_TIME_SEC] = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_SEC);
-  groupID[ID_TIME_MS] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_MILI_SEC);
-  groupID[ID_TIME_US] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_MICRO_SEC);
-  groupID[ID_TIME_NS] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_NANO_SEC);
-  groupID[ID_TIME_PS] =
-      (uint32_t)c.readUint(CONFIG_TRACE, TRACE_GROUP_PICO_SEC);
-  useHex = c.readBoolean(CONFIG_TRACE, TRACE_USE_HEX);
+  mode = (TraceConfig::TimingModeType)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::TimingMode);
+  submissionLatency =
+      readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
+  completionLatency =
+      readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
+  maxQueueDepth =
+      readConfigUint(Section::TraceReplayer, TraceConfig::Key::Depth);
+  max_io = readConfigUint(Section::TraceReplayer, TraceConfig::Key::Limit);
+  groupID[ID_OPERATION] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupOperation);
+  groupID[ID_BYTE_OFFSET] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupByteOffset);
+  groupID[ID_BYTE_LENGTH] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupByteLength);
+  groupID[ID_LBA_OFFSET] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupLBAOffset);
+  groupID[ID_LBA_LENGTH] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupLBALength);
+  groupID[ID_TIME_SEC] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupSecond);
+  groupID[ID_TIME_MS] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupMiliSecond);
+  groupID[ID_TIME_US] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupMicroSecond);
+  groupID[ID_TIME_NS] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupNanoSecond);
+  groupID[ID_TIME_PS] = (uint32_t)readConfigUint(
+      Section::TraceReplayer, TraceConfig::Key::GroupPicoSecond);
+  useHex = readConfigBoolean(Section::TraceReplayer,
+                             TraceConfig::Key::UseHexadecimal);
 
   if (groupID[ID_OPERATION] == 0) {
-    SimpleSSD::panic("Operation group ID cannot be 0");
+    panic("Operation group ID cannot be 0");
   }
 
   if (groupID[ID_LBA_OFFSET] > 0) {
@@ -83,18 +89,19 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
   }
 
   if (useLBALength || useLBAOffset) {
-    lbaSize = (uint32_t)c.readUint(CONFIG_TRACE, TRACE_LBA_SIZE);
+    lbaSize = (uint32_t)readConfigUint(Section::TraceReplayer,
+                                       TraceConfig::Key::LBASize);
 
-    if (SimpleSSD::popcount(lbaSize) != 1) {
-      SimpleSSD::panic("LBA size should be power of 2");
+    if (popcount32(lbaSize) != 1) {
+      panic("LBA size should be power of 2");
     }
   }
 
   if (!useLBAOffset && groupID[ID_BYTE_OFFSET] == 0) {
-    SimpleSSD::panic("Both LBA Offset and Byte Offset group ID cannot be 0");
+    panic("Both LBA Offset and Byte Offset group ID cannot be 0");
   }
   if (!useLBALength && groupID[ID_BYTE_LENGTH] == 0) {
-    SimpleSSD::panic("Both LBA Length and Byte Length group ID cannot be 0");
+    panic("Both LBA Length and Byte Length group ID cannot be 0");
   }
 
   timeValids[0] = groupID[ID_TIME_SEC] > 0 ? true : false;
@@ -105,15 +112,16 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
 
   if (!(timeValids[0] || timeValids[1] || timeValids[2] || timeValids[3] ||
         timeValids[4])) {
-    if (mode == MODE_STRICT) {
-      SimpleSSD::panic("No valid time field specified");
+    if (mode == TraceConfig::TimingModeType::Strict) {
+      panic("No valid time field specified");
     }
   }
 
-  submitIO = [this](uint64_t) { _submitIO(); };
-  iocallback = [this](uint64_t id) { _iocallback(id); };
-
-  submitEvent = engine.allocateEvent(submitIO);
+  submitEvent = createEvent([this](uint64_t, uint64_t) { submitIO(); },
+                            "IGL::TraceReplayer::submitEvent");
+  completionEvent =
+      createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
+                  "IGL::TraceReplayer::completionEvent");
 }
 
 TraceReplayer::~TraceReplayer() {
@@ -125,18 +133,18 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
   blocksize = bs;
 
   if ((useLBALength || useLBAOffset) && lbaSize < bs) {
-    SimpleSSD::warn("LBA size of trace file is smaller than SSD's LBA size");
+    warn("LBA size of trace file is smaller than SSD's LBA size");
   }
 }
 
 void TraceReplayer::begin() {
-  initTime = engine.getCurrentTick();
+  initTime = getTick();
 
   handleNextLine(true);
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
-  uint64_t tick = engine.getCurrentTick();
+  uint64_t tick = getTick();
 
   out << "*** Statistics of Trace Replayer ***" << std::endl;
   out << "Tick: " << tick << std::endl;
@@ -216,13 +224,13 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   }
 
   if (!valid) {
-    SimpleSSD::panic("Time parse failed");
+    panic("Time parse failed");
   }
 
   return tick;
 }
 
-BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
+BIL::BIOType TraceReplayer::getType(std::string type) {
   io_count++;
 
   switch (type[0]) {
@@ -230,23 +238,23 @@ BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
     case 'R':
       read_count++;
 
-      return BIL::BIO_READ;
+      return BIL::BIOType::Read;
     case 'w':
     case 'W':
       write_count++;
 
-      return BIL::BIO_WRITE;
+      return BIL::BIOType::Write;
     case 'f':
     case 'F':
-      return BIL::BIO_FLUSH;
+      return BIL::BIOType::Flush;
     case 't':
     case 'T':
     case 'd':
     case 'D':
-      return BIL::BIO_TRIM;
+      return BIL::BIOType::Trim;
   }
 
-  return BIL::BIO_NUM;
+  return BIL::BIOType::None;
 }
 
 void TraceReplayer::handleNextLine(bool begin) {
@@ -274,7 +282,7 @@ void TraceReplayer::handleNextLine(bool begin) {
 
       if (io_depth == 0) {
         // No on-the-fly I/O
-        endCallback();
+        scheduleNow(endCallback);
       }
 
       return;
@@ -288,7 +296,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   uint64_t tick = mergeTime(match);
 
   if (begin) {
-    if (mode == MODE_STRICT) {
+    if (mode == TraceConfig::TimingModeType::Strict) {
       firstTick = tick;  // Only used by MODE_STRICT
     }
     else {
@@ -319,7 +327,7 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
-  bio.callback = iocallback;
+  bio.callback = completionEvent;
   bio.id = io_count;
 
   // Limit check
@@ -330,7 +338,7 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   // Range check
   if (bio.offset + bio.length > ssdSize) {
-    SimpleSSD::warn("I/O %" PRIu64 ": I/O out of range", bio.id);
+    warn("I/O %" PRIu64 ": I/O out of range", bio.id);
 
     while (bio.offset >= ssdSize) {
       bio.offset -= ssdSize;
@@ -344,41 +352,41 @@ void TraceReplayer::handleNextLine(bool begin) {
   io_submitted += bio.length;
   io_depth++;
 
-  if (mode == MODE_STRICT) {
-    engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
+  if (mode == TraceConfig::TimingModeType::Strict) {
+    scheduleAbs(submitEvent, 0ull, tick - firstTick + initTime);
   }
   else if (begin) {
-    _submitIO();
+    submitIO();
   }
 }
 
-void TraceReplayer::_submitIO() {
+void TraceReplayer::submitIO() {
   if (bio.submittedAt != 0) {
     // DEBUG
-    SimpleSSD::panic("Already submitted!");
+    panic("Already submitted!");
   }
 
   bioEntry.submitIO(bio);
 
-  if (mode == MODE_ASYNC) {
+  if (mode == TraceConfig::TimingModeType::Aynchronous) {
     rescheduleSubmit(submissionLatency);
   }
-  else if (mode == MODE_STRICT) {
+  else if (mode == TraceConfig::TimingModeType::Strict) {
     handleNextLine();
   }
 }
 
-void TraceReplayer::_iocallback(uint64_t) {
+void TraceReplayer::iocallback(uint64_t now, uint64_t) {
   io_depth--;
 
   if (reserveTermination) {
     // Everything is done
     if (io_depth == 0) {
-      endCallback();
+      scheduleAbs(endCallback, 0ull, now);
     }
   }
 
-  if (mode == MODE_SYNC || nextIOIsSync) {
+  if (mode == TraceConfig::TimingModeType::Synchronoous || nextIOIsSync) {
     // MODE_ASYNC submission blocked by I/O depth limitation
     // Let's submit here
     nextIOIsSync = false;
@@ -388,20 +396,20 @@ void TraceReplayer::_iocallback(uint64_t) {
 }
 
 void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
-  if (mode == MODE_ASYNC) {
+  if (mode == TraceConfig::TimingModeType::Aynchronous) {
     if (io_depth >= maxQueueDepth) {
       nextIOIsSync = true;
 
       return;
     }
   }
-  else if (mode == MODE_STRICT) {
+  else if (mode == TraceConfig::TimingModeType::Strict) {
     return;
   }
 
   handleNextLine();
 
-  engine.scheduleEvent(submitEvent, engine.getCurrentTick() + breakTime);
+  scheduleAbs(submitEvent, 0ull, getTick() + breakTime);
 }
 
-}  // namespace IGL
+}  // namespace Standalone::IGL

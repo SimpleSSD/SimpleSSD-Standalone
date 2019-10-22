@@ -18,10 +18,8 @@
 
 #include "bil/entry.hh"
 #include "igl/io_gen.hh"
-#include "sim/cfg_reader.hh"
-#include "sim/engine.hh"
 
-namespace IGL {
+namespace Standalone::IGL {
 
 class TraceReplayer : public IOGenerator {
  private:
@@ -46,7 +44,7 @@ class TraceReplayer : public IOGenerator {
 
   uint64_t fileSize;
 
-  TIMING_MODE mode;
+  TraceConfig::TimingModeType mode;
   uint64_t submissionLatency;
   uint64_t completionLatency;
   uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
@@ -78,20 +76,18 @@ class TraceReplayer : public IOGenerator {
   BIL::BIO bio;
 
   uint64_t mergeTime(std::smatch &);
-  BIL::BIO_TYPE getType(std::string);
+  BIL::BIOType getType(std::string);
   void handleNextLine(bool = false);
   void rescheduleSubmit(uint64_t);
 
-  SimpleSSD::Event submitEvent;
-  SimpleSSD::EventFunction submitIO;
-  SimpleSSD::EventFunction iocallback;
+  Event submitEvent;
+  Event completionEvent;
 
-  void _submitIO();
-  void _iocallback(uint64_t);
+  void submitIO();
+  void iocallback(uint64_t, uint64_t);
 
  public:
-  TraceReplayer(Engine &, BIL::BlockIOEntry &, std::function<void()> &,
-                ConfigReader &);
+  TraceReplayer(ObjectData &, BIL::BlockIOEntry &, Event);
   ~TraceReplayer();
 
   void init(uint64_t, uint32_t) override;
@@ -100,6 +96,6 @@ class TraceReplayer : public IOGenerator {
   void getProgress(float &) override;
 };
 
-}  // namespace IGL
+}  // namespace Standalone::IGL
 
 #endif
