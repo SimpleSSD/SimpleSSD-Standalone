@@ -9,6 +9,8 @@
 
 #include <cstring>
 
+namespace Standalone {
+
 const char NAME_MODE[] = "Mode";
 const char NAME_LOG_PERIOD[] = "LogPeriod";
 const char NAME_OUTPUT_DIRECTORY[] = "OutputDirectory";
@@ -160,3 +162,5 @@ bool Config::writeString(uint32_t idx, std::string &value) {
 
   return ret;
 }
+
+}  // namespace Standalone

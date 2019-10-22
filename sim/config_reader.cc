@@ -12,11 +12,10 @@
 
 #include "simplessd/sim/base_config.hh"
 
+namespace Standalone {
+
 //! ConfigReader constructor
 ConfigReader::ConfigReader() {}
-
-//! ConfigReader destructor
-ConfigReader::~ConfigReader() {}
 
 /**
  * \brief Load configuration from file
@@ -39,7 +38,8 @@ void ConfigReader::load(const char *path) noexcept {
   if (config) {
     // Check version
     auto version = config.attribute("version").value();
-    if (strncmp(version, SIMPLESSD_STANDALONE_TAG, strlen(SIMPLESSD_STANDALONE_TAG)) != 0) {
+    if (strncmp(version, SIMPLESSD_STANDALONE_TAG,
+                strlen(SIMPLESSD_STANDALONE_TAG)) != 0) {
       std::cerr << "Configuration file version does not match" << std::endl;
       std::cerr << " File version: " << version << std::endl;
       std::cerr << " Program version: " SIMPLESSD_STANDALONE_FULL << std::endl;
@@ -282,3 +282,5 @@ bool ConfigReader::writeBoolean(Section section, uint32_t key, bool value) {
 
   return ret;
 }
+
+}  // namespace Standalone

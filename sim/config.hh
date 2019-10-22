@@ -12,6 +12,8 @@
 
 #include "simplessd/sim/base_config.hh"
 
+namespace Standalone {
+
 /**
  * \brief SimConfig object declaration
  *
@@ -75,5 +77,7 @@ class Config : public SimpleSSD::BaseConfig {
   bool writeUint(uint32_t, uint64_t) override;
   bool writeString(uint32_t, std::string &) override;
 };
+
+}  // namespace Standalone
 
 #endif

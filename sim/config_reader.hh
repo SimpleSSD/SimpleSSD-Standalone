@@ -17,6 +17,8 @@
 #include "sim/config.hh"
 #include "simplessd/lib/pugixml/src/pugixml.hpp"
 
+namespace Standalone {
+
 //! Configuration section enum.
 enum class Section {
   Simulation,
@@ -42,7 +44,6 @@ class ConfigReader {
   ConfigReader();
   ConfigReader(const ConfigReader &) = delete;
   ConfigReader(ConfigReader &&) noexcept = default;
-  ~ConfigReader();
 
   ConfigReader &operator=(const ConfigReader &) = delete;
   ConfigReader &operator=(ConfigReader &&) noexcept = default;
@@ -65,5 +66,7 @@ class ConfigReader {
   bool writeString(Section, uint32_t, std::string);
   bool writeBoolean(Section, uint32_t, bool);
 };
+
+}  // namespace Standalone
 
 #endif
