@@ -186,8 +186,8 @@ void print_backtrace() {
       // Get File Name
       if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &dword,
                              &lineInfo)) {
-        std::cerr << "\n\t(" << lineInfo.FileName << ":" << lineInfo.LineNumber
-                  << ")";
+        std::cerr << std::dec << "\n\t(" << lineInfo.FileName << ":"
+                  << lineInfo.LineNumber << ")";
       }
 
       std::cerr << std::endl;
