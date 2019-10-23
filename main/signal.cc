@@ -59,7 +59,7 @@ LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
 #else
 
 #include <cxxabi.h>
-#include <elfutils/libdwfl.h>
+#include <dlfcn.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -206,30 +206,7 @@ void print_backtrace() {
   unw_word_t ip, offset;
   char func[256];
   char *cxxname;
-  char *debuginfo = nullptr;
   int ret;
-  Dwfl *dwfl = nullptr;
-  Dwfl_Module *module = nullptr;
-  Dwfl_Line *line = nullptr;
-
-  Dwfl_Callbacks callbacks;
-
-  memset(&callbacks, 0, sizeof(Dwfl_Callbacks));
-
-  callbacks.find_elf = dwfl_linux_proc_find_elf;
-  callbacks.find_debuginfo = dwfl_standard_find_debuginfo;
-  callbacks.debuginfo_path = &debuginfo;
-
-  // Initialize DWARF debug info access
-  dwfl = dwfl_begin(&callbacks);
-
-  if (dwfl != nullptr) {
-    if (dwfl_linux_proc_report(dwfl, getpid()) != 0 ||
-        dwfl_report_end(dwfl, nullptr, nullptr) != 0) {
-      dwfl_end(dwfl);
-      dwfl = nullptr;
-    }
-  }
 
   // Initialize libunwind backtrace
   ret = unw_getcontext(&context);
@@ -259,18 +236,7 @@ void print_backtrace() {
         }
 
         // Print module name
-        Dwarf_Addr addr = (Dwarf_Addr)(ip - 4);  // Why -4?
-
-        if (dwfl) {
-          module = dwfl_addrmodule(dwfl, addr);
-
-          std::cerr << dwfl_module_info(module, nullptr, nullptr, nullptr,
-                                        nullptr, nullptr, nullptr, nullptr)
-                    << ": (";
-        }
-        else {
-          std::cerr << "???: (";
-        }
+        std::cerr << "???: (";
 
         // Print function name
         if (cxxname) {
@@ -284,17 +250,6 @@ void print_backtrace() {
         fprintf(stderr, "+0x%" PRIx64 ") [0x%" PRIx64 "] ", offset, ip);
 
         // Print filename + line number
-        if (dwfl) {
-          line = dwfl_getsrc(dwfl, addr);
-
-          if (line) {
-            int ln = 0;
-            const char *file =
-                dwfl_lineinfo(line, &addr, &ln, nullptr, nullptr, nullptr);
-
-            fprintf(stderr, "\n\t(%s:%d)", file, ln);
-          }
-        }
 
         std::cerr << std::endl;
       }
@@ -307,10 +262,6 @@ void print_backtrace() {
   else {
     std::cerr << "Error: libunwind: unw_getcontext() failed (ret = " << ret
               << ")." << std::endl;
-  }
-
-  if (dwfl != nullptr) {
-    dwfl_end(dwfl);
   }
 #endif
 
