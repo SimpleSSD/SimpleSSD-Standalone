@@ -254,7 +254,7 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
   }
   else {
     // Check on-the-fly I/O depth
-    rescheduleSubmit(submissionLatency + completionLatency);
+    rescheduleSubmit(submissionLatency + completionLatency + thinktime);
   }
 }
 
