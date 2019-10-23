@@ -97,13 +97,9 @@ else ()
   # Check libunwind/libelf
   include(CheckIncludeFiles)
   check_include_files("libunwind.h" HAVE_UNWIND_H)
-  check_include_files("elfutils/libdwfl.h" HAVE_LIBDWFL_H)
 
   if (NOT HAVE_UNWIND_H)
     message(FATAL_ERROR "Please install libunwind-dev or libunwind-devel.")
-  endif ()
-  if (NOT HAVE_LIBDWFL_H)
-    message(FATAL_ERROR "Please install libdw-dev or elfutils-devel.")
   endif ()
 
   add_compile_options(-g)
@@ -111,7 +107,7 @@ else ()
   add_compile_options(-Wextra)
   add_compile_options(-Werror)
 
-  set(LD_FLAGS "-ldw -lunwind -lstdc++fs")
+  set(LD_FLAGS "-lunwind -lstdc++fs")
   set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
 
   if (DEBUG_BUILD)
