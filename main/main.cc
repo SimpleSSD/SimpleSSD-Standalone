@@ -108,8 +108,6 @@ int main(int argc, char *argv[]) {
                         SimpleSSD::Config::Key::DebugFile, debugLogPath);
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
                         SimpleSSD::Config::Key::OutputFile, debugLogPath);
-  ssdConfig.writeString(SimpleSSD::Section::Simulation,
-                        SimpleSSD::Config::Key::ErrorFile, debugLogPath);
 
   if (logPath.compare("STDOUT") == 0) {
     noLogPrintOnScreen = false;
