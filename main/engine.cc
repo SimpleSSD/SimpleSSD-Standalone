@@ -14,7 +14,14 @@ EventEngine::EventEngine()
   watch.start();
 }
 
-EventEngine::~EventEngine() {}
+EventEngine::~EventEngine() {
+  // Delete all events
+  for (auto &iter : eventList) {
+    delete iter;
+  }
+
+  eventList.clear();
+}
 
 void EventEngine::setFunction(SimpleSSD::EventFunction w,
                               SimpleSSD::InterruptFunction i) {
