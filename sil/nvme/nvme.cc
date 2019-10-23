@@ -516,9 +516,6 @@ void Driver::postInterrupt(uint16_t iv, bool post) {
             phase = !phase;
           }
         }
-        else {
-          panic("Invalid interrupt");
-        }
       }
       else {
         if (count > 0) {

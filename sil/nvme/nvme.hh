@@ -80,7 +80,7 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   uint32_t namespaceID;
 
   // Queue
-  uint16_t maxQueueEntries;
+  uint32_t maxQueueEntries;
   uint16_t adminCommandID;
   uint16_t ioCommandID;
   bool phase;
