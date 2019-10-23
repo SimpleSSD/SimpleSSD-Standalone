@@ -168,8 +168,10 @@ void print_backtrace() {
     }
 
     if (frame.AddrPC.Offset != 0) {
+      DWORD64 address = frame.AddrPC.Offset - 1;
+
       // Get Module Name
-      if (SymGetModuleInfo(hProcess, frame.AddrPC.Offset, &modInfo)) {
+      if (SymGetModuleInfo(hProcess, address, &modInfo)) {
         std::cerr << modInfo.ModuleName << ": (";
       }
       else {
@@ -177,15 +179,14 @@ void print_backtrace() {
       }
 
       // Get Symbol Name
-      if (SymFromAddr(hProcess, frame.AddrPC.Offset, &displacement, symInfo)) {
+      if (SymFromAddr(hProcess, address, &displacement, symInfo)) {
         std::cerr << symInfo->Name << "+0x" << std::hex << displacement << ") ";
       }
 
-      std::cerr << "[0x" << std::hex << frame.AddrPC.Offset << "] ";
+      std::cerr << "[0x" << std::hex << address << "] ";
 
       // Get File Name
-      if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &dword,
-                             &lineInfo)) {
+      if (SymGetLineFromAddr(hProcess, address, &dword, &lineInfo)) {
         std::cerr << std::dec << "\n\t(" << lineInfo.FileName << ":"
                   << lineInfo.LineNumber << ")";
       }
@@ -221,6 +222,7 @@ void print_backtrace() {
 
         // instruction pointer + stack pointer
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
+        --ip;  // Return address -> call
 
         // function name + CXXAPI function name parse
         if (unw_get_proc_name(&cursor, func, 256, &offset) == 0) {
