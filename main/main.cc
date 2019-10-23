@@ -322,6 +322,8 @@ void cleanup(int) {
     delete pThread;
   }
 
+  killLock.unlock();
+
   delete pBIOEntry;  // Used by progress thread
 
   if (logOut.is_open()) {
