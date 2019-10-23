@@ -66,7 +66,7 @@ LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-static uint8_t stack[65536];
+static uint8_t stack[131072];  // 128KB
 
 void print_backtrace();
 
@@ -172,18 +172,18 @@ void print_backtrace() {
 
       // Get Module Name
       if (SymGetModuleInfo(hProcess, address, &modInfo)) {
-        std::cerr << modInfo.ModuleName << ": (";
+        std::cerr << modInfo.ModuleName << ":" << std::endl;
       }
       else {
-        std::cerr << "???: (";
+        std::cerr << "???:" << std::endl;
       }
+
+      fprintf(stderr, "\t[0x%" PRIx64 "] (", address);
 
       // Get Symbol Name
       if (SymFromAddr(hProcess, address, &displacement, symInfo)) {
-        std::cerr << symInfo->Name << "+0x" << std::hex << displacement << ") ";
+        std::cerr << symInfo->Name << "+0x" << std::hex << displacement << ")";
       }
-
-      std::cerr << "[0x" << std::hex << address << "] ";
 
       // Get File Name
       if (SymGetLineFromAddr(hProcess, address, &dword, &lineInfo)) {
@@ -261,18 +261,21 @@ void print_backtrace() {
         }
 
         // Print module name
-        Dwarf_Addr addr = (Dwarf_Addr)(ip - 4);  // Why -4?
+        Dwarf_Addr addr = (Dwarf_Addr)(ip - 1);  // IP is return address
 
         if (dwfl) {
           module = dwfl_addrmodule(dwfl, addr);
 
           std::cerr << dwfl_module_info(module, nullptr, nullptr, nullptr,
                                         nullptr, nullptr, nullptr, nullptr)
-                    << ": (";
+                    << ":" << std::endl;
         }
         else {
-          std::cerr << "???: (";
+          std::cerr << "???:" << std::endl;
         }
+
+        // Print instruction pointer
+        fprintf(stderr, "\t[0x%" PRIx64 "] (", ip);
 
         // Print function name
         if (cxxname) {
@@ -283,7 +286,7 @@ void print_backtrace() {
         }
 
         // Print offset + instruction pointer
-        fprintf(stderr, "+0x%" PRIx64 ") [0x%" PRIx64 "] ", offset, ip);
+        fprintf(stderr, "+0x%" PRIx64 ")", offset);
 
         // Print filename + line number
         if (dwfl) {
