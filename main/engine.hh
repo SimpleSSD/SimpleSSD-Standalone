@@ -11,7 +11,7 @@
 #define __SIM_ENGINE__
 
 #include <iostream>
-#include <map>
+#include <list>
 #include <mutex>
 #include <thread>
 
@@ -78,7 +78,7 @@ class EventEngine : public SimpleSSD::Engine {
   bool forceStop;
 
   std::vector<Event> eventList;
-  std::multimap<uint64_t, Job> jobQueue;
+  std::list<Job> jobQueue;
 
   Stopwatch watch;
 

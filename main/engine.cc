@@ -83,16 +83,26 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
     abort();
   }
 
+  auto insert = jobQueue.end();
+
+  for (auto entry = jobQueue.begin(); entry != jobQueue.end(); ++entry) {
+    if (entry->eid->scheduledAt > tick) {
+      insert = entry;
+
+      break;
+    }
+  }
+
   eid->scheduledAt = tick;
 
-  jobQueue.emplace(tick, Job(eid, data));
+  jobQueue.emplace(insert, Job(eid, data));
 }
 
 void EventEngine::deschedule(Event eid) {
   eid->deschedule();
 
   for (auto iter = jobQueue.begin(); iter != jobQueue.end(); ++iter) {
-    if (iter->second.eid == eid) {
+    if (iter->eid == eid) {
       jobQueue.erase(iter);
 
       return;
@@ -120,10 +130,8 @@ bool EventEngine::doNextEvent() {
   }
 
   if (jobQueue.size() > 0) {
-    auto iter = jobQueue.begin();
-    auto job = std::move(iter->second);
-
-    jobQueue.erase(iter);
+    auto job = std::move(jobQueue.front());
+    jobQueue.pop_front();
 
     {
       std::lock_guard<std::mutex> guard(mTick);
@@ -132,7 +140,6 @@ bool EventEngine::doNextEvent() {
       tickCopy = simTick;
     }
 
-    job.eid->deschedule();
     job.eid->func(tickCopy, job.data);
 
     {
