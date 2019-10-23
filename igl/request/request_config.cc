@@ -58,6 +58,39 @@ void RequestConfig::loadFrom(pugi::xml_node &section) {
 }
 
 void RequestConfig::storeTo(pugi::xml_node &section) {
+  // Re-generate _type and _mode
+  switch (type) {
+    case IOType::Read:
+      _type = "read";
+      break;
+    case IOType::Write:
+      _type = "write";
+      break;
+    case IOType::RandRead:
+      _type = "randread";
+      break;
+    case IOType::RandWrite:
+      _type = "randwrite";
+      break;
+    case IOType::ReadWrite:
+      _type = "readwrite";
+      break;
+    case IOType::RandRW:
+      _type = "randrw";
+      break;
+    default:
+      _type ="?";
+      panic_if(true, "Unexpected readwrite.");
+      break;
+  }
+
+  if (iodepth == 1) {
+    _mode = "sync";
+  }
+  else {
+    _mode = "async";
+  }
+
   STORE_NAME_UINT(section, NAME_IO_SIZE, io_size);
   STORE_NAME_STRING(section, NAME_IO_TYPE, _type);
   STORE_NAME_FLOAT(section, NAME_IO_MIX_RATIO, rwmixread);
