@@ -242,20 +242,18 @@ int main(int argc, char *argv[]) {
   pInterface->initStats(statList);
 
   if (simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) > 0) {
+    uint64_t period =
+        simConfig.readUint(Section::Simulation, Config::Key::StatPeriod);
+
     statEvent = engine.createEvent(
-        [](uint64_t tick, uint64_t) {
+        [period](uint64_t tick, uint64_t) {
           statistics(tick);
 
-          engine.schedule(statEvent, 0ull,
-                          tick + simConfig.readUint(Section::Simulation,
-                                                    Config::Key::StatPeriod) *
-                                     1000000000ULL);
+          engine.schedule(statEvent, 0ull, tick + period);
         },
         "statEvent");
-    engine.schedule(
-        statEvent, 0ull,
-        simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) *
-            1000000000ULL);
+
+    engine.schedule(statEvent, 0ull, period);
   }
 
   // Do Simulation
