@@ -66,7 +66,7 @@ LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-static uint8_t stack[SIGSTKSZ];
+static uint8_t stack[65536];
 
 void print_backtrace();
 
