@@ -1,0 +1,6 @@
+# Extra
+*.xml
+*.o
+
+# Test binaries
+test_config_reader
