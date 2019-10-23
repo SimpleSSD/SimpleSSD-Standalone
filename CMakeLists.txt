@@ -81,9 +81,8 @@ include_directories(
   ${DRAMPOWER_SOURCE_DIR}
 )
 
-# Set version tag
-set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_FULL='\"${VERSION_STRING}\"' ${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "-DSIMPLESSD_STANDALONE_TAG='\"${GIT_TAG}-\"' ${CMAKE_CXX_FLAGS}")
+# Make version
+configure_file(main/version.cc.in version.cc)
 
 # Linker flags
 set(LD_FLAGS "")
@@ -186,6 +185,7 @@ add_executable(simplessd-standalone
   ${SRC_SIL_NVME}
   ${SRC_MAIN}
   ${SRC_UTIL}
+  ${CMAKE_CURRENT_BINARY_DIR}/version.cc
 )
 target_link_libraries(simplessd-standalone
   simplessd
