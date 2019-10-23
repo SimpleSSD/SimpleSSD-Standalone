@@ -34,6 +34,10 @@ void EventEngine::setFunction(SimpleSSD::EventFunction w,
 }
 
 void EventEngine::schedule(uint64_t tick) {
+  if (LIKELY(engineEvent.isScheduled())) {
+    deschedule(&engineEvent);
+  }
+
   schedule(&engineEvent, 0ull, tick);
 }
 
