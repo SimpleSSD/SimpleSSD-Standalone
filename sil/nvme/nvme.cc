@@ -22,11 +22,19 @@ Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
           [this](DMAEntry *d) { postDone(d); },
           [this](DMAEntry *d) { postDone(d); }, DMAEntry::backup,
           DMAEntry::restore),
+      beginEvent(InvalidEventID),
+      capacity(0),
+      LBAsize(0),
+      namespaceID(0),
+      maxQueueEntries(0),
+      adminCommandID(0),
+      ioCommandID(0),
       phase(true),
       adminSQ(nullptr),
       adminCQ(nullptr),
       ioSQ(nullptr),
-      ioCQ(nullptr) {
+      ioCQ(nullptr),
+      adminPRP(nullptr) {
   auto &simobj = s.getObject();
 
   auto gen = (SimpleSSD::PCIExpress::Generation)simobj.config->readUint(

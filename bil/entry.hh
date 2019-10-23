@@ -57,6 +57,8 @@ typedef struct _Progress {
   uint64_t iops;
   uint64_t bandwidth;
   uint64_t latency;
+
+  _Progress() : iops(0), bandwidth(0), latency(0) {}
 } Progress;
 
 class BlockIOEntry : public Object {

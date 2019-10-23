@@ -360,9 +360,9 @@ void statistics(uint64_t tick) {
 }
 
 void threadFunc(int tick) {
-  uint64_t current;
+  uint64_t current = 0.f;
   uint64_t old = 0;
-  float progress;
+  float progress = 0.f;
   auto duration = std::chrono::seconds(tick);
   BIL::Progress data;
 
