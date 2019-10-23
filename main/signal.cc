@@ -136,6 +136,7 @@ void print_backtrace() {
   IMAGEHLP_MODULE modInfo;
   IMAGEHLP_LINE64 lineInfo;
   DWORD64 displacement;
+  DWORD dword;
 
   RtlCaptureContext(&context);
 
@@ -183,7 +184,7 @@ void print_backtrace() {
       std::cerr << "[0x" << std::hex << frame.AddrPC.Offset << "] ";
 
       // Get File Name
-      if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &displacement,
+      if (SymGetLineFromAddr(hProcess, frame.AddrPC.Offset, &dword,
                              &lineInfo)) {
         std::cerr << "\n\t(" << lineInfo.FileName << ":" << lineInfo.LineNumber
                   << ")";
