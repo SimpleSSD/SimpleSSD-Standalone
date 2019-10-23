@@ -102,6 +102,15 @@ int main(int argc, char *argv[]) {
   std::string latencyLogPath =
       simConfig.readString(Section::Simulation, Config::Key::Latencyfile);
 
+  ssdConfig.writeString(SimpleSSD::Section::Simulation,
+                        SimpleSSD::Config::Key::OutputDirectory, argv[3]);
+  ssdConfig.writeString(SimpleSSD::Section::Simulation,
+                        SimpleSSD::Config::Key::DebugFile, debugLogPath);
+  ssdConfig.writeString(SimpleSSD::Section::Simulation,
+                        SimpleSSD::Config::Key::OutputFile, debugLogPath);
+  ssdConfig.writeString(SimpleSSD::Section::Simulation,
+                        SimpleSSD::Config::Key::ErrorFile, debugLogPath);
+
   if (logPath.compare("STDOUT") == 0) {
     noLogPrintOnScreen = false;
     pLog = &std::cout;
@@ -125,27 +134,9 @@ int main(int argc, char *argv[]) {
     pLog = &logOut;
   }
 
-  if (debugLogPath.compare("STDOUT") == 0) {
+  if (debugLogPath.compare("STDOUT") == 0 ||
+      debugLogPath.compare("STDERR") == 0) {
     noLogPrintOnScreen = false;
-    pDebugLog = &std::cout;
-  }
-  else if (debugLogPath.compare("STDERR") == 0) {
-    noLogPrintOnScreen = false;
-    pDebugLog = &std::cerr;
-  }
-  else if (debugLogPath.length() != 0) {
-    std::string full(argv[3]);
-
-    joinPath(full, debugLogPath);
-    debugLogOut.open(full);
-
-    if (!debugLogOut.is_open()) {
-      std::cerr << " Failed to open log file: " << full << std::endl;
-
-      return 3;
-    }
-
-    pDebugLog = &debugLogOut;
   }
 
   if (latencyLogPath.length() != 0) {
