@@ -33,8 +33,6 @@
  *
  */
 
-#include <algorithm>
-
 #include "CommandAnalysis.h"
 
 using std::cerr;
