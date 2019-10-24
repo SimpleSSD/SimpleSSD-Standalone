@@ -36,36 +36,6 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/simplessd/CMakeLists.txt")
 Check you initialized submodules.")
 endif ()
 
-# Get git version info
-find_package(Git)
-if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  execute_process(COMMAND sh -c "git diff --quiet --exit-code || echo +"
-    OUTPUT_VARIABLE GIT_CODE_MODIFIED
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-  execute_process(COMMAND git describe --tags --abbre=8
-    OUTPUT_VARIABLE GIT_TAG
-    ERROR_QUIET
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-  string(STRIP "${GIT_TAG}" GIT_TAG)
-
-  if ("${GIT_TAG}" STREQUAL "")
-    set(VERSION_STRING "2.1-unknown")
-    set(GIT_TAG "2.1")
-  else ()
-    set(VERSION_STRING "${GIT_TAG}${GIT_CODE_MODIFIED}")
-  endif ()
-
-  message("Using version string: ${VERSION_STRING}")
-else ()
-  set(VERSION_STRING "2.1-unknown")
-  set(GIT_TAG "2.1")
-
-  message(WARNING "Git not found, using version string: ${VERSION_STRING}")
-endif ()
-
 # Check pthread
 find_package(Threads REQUIRED)
 
@@ -82,7 +52,12 @@ include_directories(
 )
 
 # Make version
-configure_file(main/version.cc.in version.cc)
+set(INPUT_VERSION_FILE "${PROJECT_SOURCE_DIR}/main/version.cc.in")
+set(OUTPUT_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/version.cc")
+set(PROJECT_DIRECTORY "${PROJECT_SOURCE_DIR}")
+set(VERSION_TARGET "standalone_version")
+
+include(${PROJECT_SOURCE_DIR}/simplessd/util/scripts/simplessd_version.cmake)
 
 # Linker flags
 set(LD_FLAGS "")
@@ -189,8 +164,13 @@ add_executable(simplessd-standalone
   ${SRC_SIL_NVME}
   ${SRC_MAIN}
   ${SRC_UTIL}
-  ${CMAKE_CURRENT_BINARY_DIR}/version.cc
+  ${OUTPUT_VERSION_FILE}
 )
+
+# Force version checking in every build
+add_dependencies(simplessd-standalone ${VERSION_TARGET})
+
+# Link libraries
 target_link_libraries(simplessd-standalone
   simplessd
   ${CMAKE_THREAD_LIBS_INIT}
