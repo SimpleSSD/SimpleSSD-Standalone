@@ -11,5 +11,6 @@
 #define __SIM_SIGNAL__
 
 void installSignalHandler(void (*)(int));
+void blockSIGINT();
 
 #endif

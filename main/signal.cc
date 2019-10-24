@@ -28,6 +28,10 @@ void (*closeHandler)(int) = nullptr;
 
 void print_backtrace();
 
+void blockSIGINT() {
+  // Do nothing
+}
+
 BOOL consoleHandler(DWORD type) {
   if (closeHandler) {
     closeHandler(0);
@@ -78,6 +82,15 @@ static bool setupSignalStack() {
   st.ss_flags = 0;
 
   return sigaltstack(&st, nullptr) == 0;
+}
+
+void blockSIGINT() {
+  sigset_t mask;
+
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGINT);
+
+  pthread_sigmask(SIG_BLOCK, &mask, nullptr);
 }
 
 static void raiseSignal(int sig) {

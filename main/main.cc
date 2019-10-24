@@ -364,6 +364,9 @@ void threadFunc(int tick) {
   auto duration = std::chrono::seconds(tick);
   BIL::Progress data;
 
+  // Block SIGINT
+  blockSIGINT();
+
   while (true) {
     std::this_thread::sleep_for(duration);
 
