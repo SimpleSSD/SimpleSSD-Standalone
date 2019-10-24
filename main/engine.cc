@@ -44,11 +44,11 @@ void EventEngine::schedule(uint64_t tick) {
 uint64_t EventEngine::getTick() {
   std::lock_guard<std::mutex> guard(mTick);
 
-  return getTick_unsafe();
+  return simTick;
 }
 
-uint64_t EventEngine::getTick_unsafe() {
-  return simTick;
+void EventEngine::forceUnlock() {
+  mTick.unlock();
 }
 
 #ifdef SIMPLESSD_STANDALONE_DEBUG

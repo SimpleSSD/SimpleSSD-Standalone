@@ -287,7 +287,10 @@ void cleanup(int sig) {
 
   killLock.lock();
 
-  tick = engine.getTick_unsafe();
+  // Unlock mTick mutex - Only main thread can run SIGINT handler (cleanup)
+  engine.forceUnlock();
+
+  tick = engine.getTick();
 
   if (tick == 0) {
     // Exit program
