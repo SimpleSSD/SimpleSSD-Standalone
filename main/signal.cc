@@ -34,7 +34,7 @@ void blockSIGINT() {
 
 BOOL consoleHandler(DWORD type) {
   if (closeHandler) {
-    closeHandler(0);
+    closeHandler(1);
   }
 
   return TRUE;

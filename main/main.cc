@@ -278,8 +278,12 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void cleanup(int) {
+void cleanup(int sig) {
   uint64_t tick;
+
+  if (sig != 0) {
+    std::cout << std::endl << "Simulation terminated with signal." << std::endl;
+  }
 
   killLock.lock();
 
