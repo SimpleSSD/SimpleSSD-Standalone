@@ -287,7 +287,7 @@ void cleanup(int sig) {
 
   killLock.lock();
 
-  tick = engine.getTick();
+  tick = engine.getTick_unsafe();
 
   if (tick == 0) {
     // Exit program

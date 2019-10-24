@@ -97,6 +97,7 @@ class EventEngine : public SimpleSSD::Engine {
   void schedule(uint64_t) override;
 
   uint64_t getTick() override;
+  uint64_t getTick_unsafe();
 
   Event createEvent(SimpleSSD::EventFunction &&, std::string &&);
   void schedule(Event, uint64_t, uint64_t);
