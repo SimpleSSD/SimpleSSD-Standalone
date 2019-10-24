@@ -12,8 +12,7 @@
 
 namespace Standalone {
 
-extern const char SIMPLESSD_STANDALONE_TAG[];
-extern const char SIMPLESSD_STANDALONE_FULL[];
+extern const char SIMPLESSD_STANDALONE_VERSION[];
 
 }  // namespace Standalone
 

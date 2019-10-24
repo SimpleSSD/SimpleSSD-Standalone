@@ -9,7 +9,6 @@
 
 namespace Standalone {
 
-const char SIMPLESSD_STANDALONE_TAG[] = "@GIT_TAG@";
-const char SIMPLESSD_STANDALONE_FULL[] = "@VERSION_STRING@";
+const char SIMPLESSD_STANDALONE_VERSION[] = "@VERSION_STRING@";
 
 }
