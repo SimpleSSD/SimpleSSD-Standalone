@@ -173,6 +173,8 @@ void TraceReplayer::getProgress(float &val) {
     val = (float)ptr / fileSize;
   }
   else {
+    std::lock_guard<std::mutex> guard(m);
+
     // Use submitted I/O count in progress calculation
     // If trace file contains I/O requests smaller than max_io, progress value
     // cannot reach 1.0 (100%)
