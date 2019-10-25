@@ -70,19 +70,7 @@ LONG WINAPI exceptionHandler(LPEXCEPTION_POINTERS pExceptionInfo) {
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-static uint8_t stack[131072];  // 128KB
-
 void print_backtrace();
-
-static bool setupSignalStack() {
-  stack_t st;
-
-  st.ss_sp = stack;
-  st.ss_size = sizeof(stack);
-  st.ss_flags = 0;
-
-  return sigaltstack(&st, nullptr) == 0;
-}
 
 void blockSIGINT() {
   sigset_t mask;
@@ -343,11 +331,7 @@ void installSignalHandler(void (*handler)(int)) {
 #else
   installHandler(SIGINT, handler);
   installHandler(SIGABRT, abortHandler, SA_RESETHAND | SA_NODEFER);
-
-  setupSignalStack();
-
-  installHandler(SIGSEGV, segfaultHandler,
-                 SA_RESETHAND | SA_NODEFER | SA_ONSTACK);
-  installHandler(SIGFPE, fpeHandler, SA_RESETHAND | SA_NODEFER | SA_ONSTACK);
+  installHandler(SIGSEGV, segfaultHandler, SA_RESETHAND | SA_NODEFER);
+  installHandler(SIGFPE, fpeHandler, SA_RESETHAND | SA_NODEFER);
 #endif
 }
