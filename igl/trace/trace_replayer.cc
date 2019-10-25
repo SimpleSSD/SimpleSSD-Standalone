@@ -40,7 +40,7 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
     regex = std::regex(
         readConfigString(Section::TraceReplayer, TraceConfig::Key::Regex));
   }
-  catch (std::regex_error &e) {
+  catch (std::regex_error &) {
     panic("Invalid regular expression!");
   }
 
@@ -52,7 +52,7 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
   completionLatency =
       readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
   maxQueueDepth =
-      readConfigUint(Section::TraceReplayer, TraceConfig::Key::Depth);
+      (uint32_t)readConfigUint(Section::TraceReplayer, TraceConfig::Key::Depth);
   max_io = readConfigUint(Section::TraceReplayer, TraceConfig::Key::Limit);
   groupID[ID_OPERATION] = (uint32_t)readConfigUint(
       Section::TraceReplayer, TraceConfig::Key::GroupOperation);

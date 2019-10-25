@@ -79,7 +79,7 @@ void RequestConfig::storeTo(pugi::xml_node &section) {
       _type = "randrw";
       break;
     default:
-      _type ="?";
+      _type = "?";
       panic_if(true, "Unexpected readwrite.");
       break;
   }

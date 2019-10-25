@@ -49,20 +49,22 @@ void TraceConfig::loadFrom(pugi::xml_node &section) {
   for (auto node = section.first_child(); node; node = node.next_sibling()) {
     LOAD_NAME_STRING(node, NAME_FILE, file);
     LOAD_NAME_UINT_TYPE(node, NAME_TIMING_MODE, TimingModeType, mode);
-    LOAD_NAME_UINT(node, NAME_IO_DEPTH, queueDepth);
+    LOAD_NAME_UINT_TYPE(node, NAME_IO_DEPTH, uint32_t, queueDepth);
     LOAD_NAME_UINT(node, NAME_IO_LIMIT, iolimit);
     LOAD_NAME_STRING(node, NAME_LINE_REGEX, regex);
-    LOAD_NAME_UINT(node, NAME_GROUP_OPERATION, groupOperation);
-    LOAD_NAME_UINT(node, NAME_GROUP_BYTE_OFFSET, groupByteOffset);
-    LOAD_NAME_UINT(node, NAME_GROUP_BYTE_LENGTH, groupByteLength);
-    LOAD_NAME_UINT(node, NAME_GROUP_LBA_OFFSET, groupLBAOffset);
-    LOAD_NAME_UINT(node, NAME_GROUP_LBA_LENGTH, groupLBALength);
-    LOAD_NAME_UINT(node, NAME_GROUP_SEC, groupSecond);
-    LOAD_NAME_UINT(node, NAME_GROUP_MILI_SEC, groupMiliSecond);
-    LOAD_NAME_UINT(node, NAME_GROUP_MICRO_SEC, groupMicroSecond);
-    LOAD_NAME_UINT(node, NAME_GROUP_NANO_SEC, groupNanoSecond);
-    LOAD_NAME_UINT(node, NAME_GROUP_PICO_SEC, groupPicoSecond);
-    LOAD_NAME_UINT(node, NAME_LBA_SIZE, lbaSize);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_OPERATION, uint32_t, groupOperation);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_BYTE_OFFSET, uint32_t,
+                        groupByteOffset);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_BYTE_LENGTH, uint32_t,
+                        groupByteLength);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_LBA_OFFSET, uint32_t, groupLBAOffset);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_LBA_LENGTH, uint32_t, groupLBALength);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_SEC, uint32_t, groupSecond);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_MILI_SEC, uint32_t, groupMiliSecond);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_MICRO_SEC, uint32_t, groupMicroSecond);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_NANO_SEC, uint32_t, groupNanoSecond);
+    LOAD_NAME_UINT_TYPE(node, NAME_GROUP_PICO_SEC, uint32_t, groupPicoSecond);
+    LOAD_NAME_UINT_TYPE(node, NAME_LBA_SIZE, uint32_t, lbaSize);
     LOAD_NAME_BOOLEAN(node, NAME_USE_HEX, useHexadecimal);
   }
 }
@@ -206,43 +208,43 @@ bool TraceConfig::writeUint(uint32_t idx, uint64_t value) {
       mode = (TimingModeType)value;
       break;
     case Key::Depth:
-      queueDepth = value;
+      queueDepth = (uint32_t)value;
       break;
     case Key::Limit:
       iolimit = value;
       break;
     case Key::GroupOperation:
-      groupOperation = value;
+      groupOperation = (uint32_t)value;
       break;
     case Key::GroupByteOffset:
-      groupByteOffset = value;
+      groupByteOffset = (uint32_t)value;
       break;
     case Key::GroupByteLength:
-      groupByteLength = value;
+      groupByteLength = (uint32_t)value;
       break;
     case Key::GroupLBAOffset:
-      groupLBAOffset = value;
+      groupLBAOffset = (uint32_t)value;
       break;
     case Key::GroupLBALength:
-      groupLBALength = value;
+      groupLBALength = (uint32_t)value;
       break;
     case Key::GroupSecond:
-      groupSecond = value;
+      groupSecond = (uint32_t)value;
       break;
     case Key::GroupMiliSecond:
-      groupMiliSecond = value;
+      groupMiliSecond = (uint32_t)value;
       break;
     case Key::GroupMicroSecond:
-      groupMicroSecond = value;
+      groupMicroSecond = (uint32_t)value;
       break;
     case Key::GroupNanoSecond:
-      groupNanoSecond = value;
+      groupNanoSecond = (uint32_t)value;
       break;
     case Key::GroupPicoSecond:
-      groupPicoSecond = value;
+      groupPicoSecond = (uint32_t)value;
       break;
     case Key::LBASize:
-      lbaSize = value;
+      lbaSize = (uint32_t)value;
       break;
     default:
       ret = false;
