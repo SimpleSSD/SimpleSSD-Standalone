@@ -283,6 +283,8 @@ void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
     if (isScheduled(submitEvent)) {
       scheduledTick = when(submitEvent);
 
+      deschedule(submitEvent);
+
       if (scheduledTick >= tick + breakTime) {
         doSchedule = false;
       }
