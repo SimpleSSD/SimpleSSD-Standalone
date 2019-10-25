@@ -422,7 +422,7 @@ void Driver::callback(uint16_t status, uint64_t data) {
 }
 
 void Driver::read(uint64_t addr, uint64_t size, uint8_t *buffer,
-                  SimpleSSD::Event eid) {
+                  SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");
 
@@ -435,12 +435,13 @@ void Driver::read(uint64_t addr, uint64_t size, uint8_t *buffer,
   entry->size = size;
   entry->buffer = buffer;
   entry->eid = eid;
+  entry->data = data;
 
   scheduler.read(entry);
 }
 
 void Driver::write(uint64_t addr, uint64_t size, uint8_t *buffer,
-                   SimpleSSD::Event eid) {
+                   SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");
 
@@ -453,12 +454,13 @@ void Driver::write(uint64_t addr, uint64_t size, uint8_t *buffer,
   entry->size = size;
   entry->buffer = buffer;
   entry->eid = eid;
+  entry->data = data;
 
   scheduler.write(entry);
 }
 
 void Driver::postDone(DMAEntry *entry) {
-  object.engine->getInterruptFunction()(entry->eid, getTick());
+  object.engine->getInterruptFunction()(entry->eid, getTick(), entry->data);
 
   delete entry;
 }

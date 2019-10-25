@@ -33,6 +33,7 @@ struct DMAEntry {
   uint64_t size;
   uint8_t *buffer;
   SimpleSSD::Event eid;
+  uint64_t data;
 
   DMAEntry()
       : addr(0), size(0), buffer(nullptr), eid(SimpleSSD::InvalidEventID) {}
@@ -119,8 +120,10 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void submitIO(BIL::BIO &) override;
 
   // SimpleSSD::Interface
-  void read(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event) override;
-  void write(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event) override;
+  void read(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event,
+            uint64_t = 0) override;
+  void write(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event,
+             uint64_t = 0) override;
 
   void postInterrupt(uint16_t, bool) override;
   void getPCIID(uint16_t &, uint16_t &) override;
