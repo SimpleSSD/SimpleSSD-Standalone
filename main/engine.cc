@@ -81,8 +81,9 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
 
   if (tick < tickCopy) {
     fprintf(stderr,
-            "Tried to schedule %" PRIu64 " < simTick to event %" PRIx64 "h.\n",
-            tick, (uint64_t)eid);
+            "Tried to schedule event %" PRIx64 "h at %" PRIu64
+            " < simTick (%" PRIu64 ").\n",
+            (uint64_t)eid, tick, tickCopy);
 
     abort();
   }
@@ -105,11 +106,12 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
 void EventEngine::deschedule(Event eid) {
   eid->deschedule();
 
-  for (auto iter = jobQueue.begin(); iter != jobQueue.end(); ++iter) {
+  for (auto iter = jobQueue.begin(); iter != jobQueue.end();) {
     if (iter->eid == eid) {
-      jobQueue.erase(iter);
-
-      return;
+      iter = jobQueue.erase(iter);
+    }
+    else {
+      ++iter;
     }
   }
 }
@@ -144,6 +146,7 @@ bool EventEngine::doNextEvent() {
       tickCopy = simTick;
     }
 
+    job.eid->deschedule();
     job.eid->func(tickCopy, job.data);
 
     {
