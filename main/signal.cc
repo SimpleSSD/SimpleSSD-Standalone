@@ -169,7 +169,7 @@ void print_backtrace() {
 
   if (!SymInitialize(hProcess, nullptr, true)) {
     std::cerr << "Failed to initialize symbol table." << std::endl;
-    std::cerr << "--- END LIBC BACKTRACE ---" << std::endl;
+    std::cerr << "--- END BACKTRACE ---" << std::endl;
 
     return;
   }
