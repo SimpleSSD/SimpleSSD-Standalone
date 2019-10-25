@@ -466,13 +466,17 @@ void Driver::postDone(DMAEntry *entry) {
 }
 
 uint64_t Driver::preSubmitRead(DMAEntry *entry) {
-  memcpy(entry->buffer, (uint8_t *)entry->addr, entry->size);
+  if (entry->buffer) {
+    memcpy(entry->buffer, (uint8_t *)entry->addr, entry->size);
+  }
 
   return delayFunction(entry->size);
 }
 
 uint64_t Driver::preSubmitWrite(DMAEntry *entry) {
-  memcpy((uint8_t *)entry->addr, entry->buffer, entry->size);
+  if (entry->buffer) {
+    memcpy((uint8_t *)entry->addr, entry->buffer, entry->size);
+  }
 
   return delayFunction(entry->size);
 }
