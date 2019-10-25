@@ -38,9 +38,8 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
       break;
   }
 
-  callback = createEvent([this](uint64_t t, uint64_t d) {
-    completion(t, d);
-  }, "BIL::BlockIOEntry::callback");
+  callback = createEvent([this](uint64_t t, uint64_t d) { completion(t, d); },
+                         "BIL::BlockIOEntry::callback");
 
   pScheduler->init();
 }
@@ -158,8 +157,8 @@ void BlockIOEntry::getProgress(Progress &data) {
   {
     std::lock_guard<std::mutex> guard(m);
 
-    data.iops = progress.iops * ratio;
-    data.bandwidth = progress.bandwidth * ratio;
+    data.iops = (uint64_t)(progress.iops * ratio);
+    data.bandwidth = (uint64_t)(progress.bandwidth * ratio);
 
     if (io_progress == 0) {
       data.latency = 0;

@@ -49,9 +49,7 @@ class Object {
   inline bool isScheduled(Event e) noexcept {
     return object.engine->isScheduled(e);
   }
-  inline uint64_t when(Event e) noexcept {
-    return object.engine->when(e);
-  }
+  inline uint64_t when(Event e) noexcept { return object.engine->when(e); }
 
   /* Helper APIs for Config */
   inline int64_t readConfigInt(Section s, uint32_t k) noexcept {
