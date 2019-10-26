@@ -120,6 +120,25 @@ void RequestGenerator::printStats(std::ostream &out) {
   uint64_t tick = getTick();
 
   out << "*** Statistics of Request Generator ***" << std::endl;
+  out << "I/O mode: ";
+
+  if (iodepth == 1) {
+    out << "Sync ";
+  }
+  else {
+    out << "Async (depth: " << iodepth << ") ";
+  }
+
+  out << "blocksize: " << blocksize << " bytes" << std::endl;
+  out << "Termination mode: ";
+
+  if (time_based) {
+    out << "Time based (runtime: " << runtime << "ps)" << std::endl;
+  }
+  else {
+    out << "I/O size based (size: " << io_size << " bytes)" << std::endl;
+  }
+
   out << "Tick: " << tick << std::endl;
   out << "Time (ps): " << initTime << " - " << tick << " (" << tick - initTime
       << ")" << std::endl;
