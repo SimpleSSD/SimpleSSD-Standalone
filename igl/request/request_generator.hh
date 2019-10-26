@@ -61,7 +61,6 @@ class RequestGenerator : public IOGenerator {
 
   void generateAddress(uint64_t &, uint64_t &);
   bool nextIOIsRead();
-  void rescheduleSubmit(uint64_t);
 
   Event submitEvent;
   Event completionEvent;

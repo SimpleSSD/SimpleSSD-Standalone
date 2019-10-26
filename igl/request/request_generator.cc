@@ -113,7 +113,7 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
 void RequestGenerator::begin() {
   initTime = getTick();
 
-  submitIO(initTime);
+  scheduleAbs(submitEvent, 0ull, initTime + submissionLatency);
 }
 
 void RequestGenerator::printStats(std::ostream &out) {
@@ -211,7 +211,7 @@ bool RequestGenerator::nextIOIsRead() {
   return false;
 }
 
-void RequestGenerator::submitIO(uint64_t) {
+void RequestGenerator::submitIO(uint64_t now) {
   BIL::BIO bio;
 
   // This function uses io_count (=0 at very beginning)
@@ -239,7 +239,9 @@ void RequestGenerator::submitIO(uint64_t) {
   bioEntry.submitIO(bio);
 
   // Check on-the-fly I/O depth
-  rescheduleSubmit(submissionLatency);
+  if (io_depth < iodepth) {
+    scheduleAbs(submitEvent, 0ull, now + submissionLatency);
+  }
 }
 
 void RequestGenerator::iocallback(uint64_t now, uint64_t) {
@@ -253,46 +255,24 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
     }
   }
   else {
-    // Check on-the-fly I/O depth
-    rescheduleSubmit(submissionLatency + completionLatency + thinktime);
-  }
-}
+    // Check completion
+    if ((!time_based && io_submitted >= io_size) ||
+        (time_based && runtime <= (now + submissionLatency - initTime))) {
+      reserveTermination = true;
 
-void RequestGenerator::rescheduleSubmit(uint64_t breakTime) {
-  uint64_t tick = getTick();
-
-  // We are done
-  if ((!time_based && io_submitted >= io_size) ||
-      (time_based && runtime <= (tick - initTime))) {
-    reserveTermination = true;
-
-    // We need to double-check this for following case:
-    // _iocallback (all I/O completed) -> rescheduleSubmit
-    if (io_depth == 0) {
-      scheduleNow(endCallback, 0ull);
-    }
-
-    return;
-  }
-
-  if (io_depth < iodepth) {
-    uint64_t scheduledTick;
-    bool doSchedule = true;
-
-    // Check conflict
-    if (isScheduled(submitEvent)) {
-      scheduledTick = when(submitEvent);
-
-      deschedule(submitEvent);
-
-      if (scheduledTick >= tick + breakTime) {
-        doSchedule = false;
+      // We need to double-check this for following case:
+      // _iocallback (all I/O completed) -> rescheduleSubmit
+      if (io_depth == 0) {
+        scheduleNow(endCallback, 0ull);
       }
+
+      return;
     }
 
-    // We can schedule it
-    if (doSchedule) {
-      scheduleAbs(submitEvent, 0ull, tick + breakTime);
+    // Check I/O depth
+    if (io_depth < iodepth && !isScheduled(submitEvent)) {
+      scheduleAbs(submitEvent, 0ull,
+                  now + submissionLatency + completionLatency);
     }
   }
 }
