@@ -258,7 +258,7 @@ void RequestGenerator::submitIO(uint64_t now) {
   bioEntry.submitIO(bio);
 
   // Check on-the-fly I/O depth
-  if (io_depth < iodepth) {
+  if (io_depth < iodepth && !reserveTermination) {
     scheduleAbs(submitEvent, 0ull, now + submissionLatency);
   }
 }
