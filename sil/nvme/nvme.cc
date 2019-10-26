@@ -414,7 +414,8 @@ void Driver::callback(uint16_t status, uint64_t data) {
     warn("I/O error: %04X", status);
   }
 
-  scheduleNow(wrapper.eid, wrapper.id);
+  // TODO: Fix me!
+  object.engine->invoke(wrapper.eid, wrapper.id);
 
   delete prp;
 

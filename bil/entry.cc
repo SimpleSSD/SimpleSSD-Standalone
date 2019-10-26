@@ -60,7 +60,7 @@ void BlockIOEntry::submitIO(BIO &bio) {
   pScheduler->submitIO(copy);
 }
 
-void BlockIOEntry::completion(uint64_t now, uint64_t id) {
+void BlockIOEntry::completion(uint64_t, uint64_t id) {
   uint64_t tick = getTick();
 
   for (auto iter = ioQueue.begin(); iter != ioQueue.end(); iter++) {
@@ -84,7 +84,8 @@ void BlockIOEntry::completion(uint64_t now, uint64_t id) {
                       << std::to_string(tick) << std::endl;
       }
 
-      scheduleAbs(iter->callback, id, now);
+      // TODO: Fix me!
+      object.engine->invoke(iter->callback, id);
 
       ioQueue.erase(iter);
 

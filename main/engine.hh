@@ -105,6 +105,9 @@ class EventEngine : public SimpleSSD::Engine {
   void deschedule(Event);
   bool isScheduled(Event);
   uint64_t when(Event);
+  inline void invoke(Event e, uint64_t d) {
+    e->func(getTick(), d);
+  }
 
   SimpleSSD::InterruptFunction &getInterruptFunction();
 
