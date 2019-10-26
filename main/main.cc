@@ -287,6 +287,15 @@ void cleanup(int sig) {
 
   killLock.lock();
 
+  if (pThread) {
+    pThread->join();
+
+    delete pThread;
+  }
+
+  killLock.unlock();
+
+  // Now we only have main thread
   // Unlock mTick mutex - Only main thread can run SIGINT handler (cleanup)
   engine.forceUnlock();
 
@@ -309,14 +318,6 @@ void cleanup(int sig) {
   // Cleanup all here
   delete pInterface;
   delete pIOGen;
-
-  if (pThread) {
-    pThread->join();
-
-    delete pThread;
-  }
-
-  killLock.unlock();
 
   delete pBIOEntry;  // Used by progress thread
 
