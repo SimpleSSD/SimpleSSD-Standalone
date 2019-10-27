@@ -123,13 +123,36 @@ void RequestGenerator::printStats(std::ostream &out) {
   out << "I/O mode: ";
 
   if (iodepth == 1) {
-    out << "Sync ";
+    out << "Sync, ";
   }
   else {
-    out << "Async (depth: " << iodepth << ") ";
+    out << "Async (depth: " << iodepth << "), ";
   }
 
-  out << "blocksize: " << blocksize << " bytes" << std::endl;
+  out << "I/O type: ";
+
+  switch (type) {
+    case RequestConfig::IOType::Read:
+      out << "Seq. Read";
+      break;
+    case RequestConfig::IOType::Write:
+      out << "Seq. Write";
+      break;
+    case RequestConfig::IOType::RandRead:
+      out << "Rand. Read";
+      break;
+    case RequestConfig::IOType::RandWrite:
+      out << "Rand. Write";
+      break;
+    case RequestConfig::IOType::ReadWrite:
+      out << "Seq. R/W Mix";
+      break;
+    case RequestConfig::IOType::RandRW:
+      out << "Rand. R/W Mix";
+      break;
+  }
+
+  out << ", blocksize: " << blocksize << " bytes" << std::endl;
   out << "Termination mode: ";
 
   if (time_based) {
