@@ -5,3 +5,4 @@
 # Test binaries
 test_config_reader
 req_gen
+test_gen
