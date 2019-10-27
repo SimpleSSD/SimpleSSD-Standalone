@@ -1,6 +1,7 @@
 # Extra
 *.xml
 *.o
+!Makefile
 
 # Test binaries
 test_config_reader
