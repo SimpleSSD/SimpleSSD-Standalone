@@ -107,7 +107,8 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
     panic("Invalid offset and size provided");
   }
 
-  randgen = std::uniform_int_distribution<uint64_t>(offset, offset + size);
+  randgen = std::uniform_int_distribution<uint64_t>(offset,
+                                                    offset + size - blocksize);
 }
 
 void RequestGenerator::begin() {
