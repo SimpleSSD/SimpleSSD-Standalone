@@ -37,10 +37,10 @@ void printBandwidth(std::ostream &os, uint64_t bps) {
   float digit = log10(bw);
 
   if (digit < 6.0) {
-    os << std::to_string(bw) << " B/s";
+    os << bw << " B/s";
   }
   else if (digit < 9.0) {
-    os << std::to_string(bw / 1000.) << " KB/s";
+    os << bw / 1000. << " KB/s";
   }
   else if (digit < 12.0) {
     os << std::to_string(bw / 1000000.) << " MB/s";
@@ -55,10 +55,10 @@ void printLatency(std::ostream &os, uint64_t lat) {
   float digit = log10(latency);
 
   if (digit < 6.0) {
-    os << std::to_string(latency) << " ps";
+    os << latency << " ps";
   }
   else if (digit < 9.0) {
-    os << std::to_string(latency / 1000.) << " ns";
+    os << latency / 1000. << " ns";
   }
   else if (digit < 12.0) {
     os << std::to_string(latency / 1000000.) << " us";
