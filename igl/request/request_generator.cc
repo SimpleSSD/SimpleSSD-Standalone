@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "simplessd/util/algorithm.hh"
+#include "util/print.hh"
 
 namespace Standalone::IGL {
 
@@ -166,10 +167,11 @@ void RequestGenerator::printStats(std::ostream &out) {
   out << "Tick: " << tick << std::endl;
   out << "Time (ps): " << initTime << " - " << tick << " (" << tick - initTime
       << ")" << std::endl;
-  out << "I/O (bytes): " << io_submitted << " ("
-      << std::to_string((double)io_submitted / (tick - initTime) *
-                        1000000000000.)
-      << " B/s)" << std::endl;
+  out << "I/O (bytes): " << io_submitted << " (";
+
+  printBandwidth(out, io_submitted, tick - initTime);
+
+  out << ")" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << io_count - read_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;

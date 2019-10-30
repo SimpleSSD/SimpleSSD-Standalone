@@ -389,10 +389,13 @@ void threadFunc(int tick) {
     pIOGen->getProgress(progress);
     pBIOEntry->getProgress(data);
 
-    printf("\33[2K*** Progress: %.2f%% (%lf ops) IOPS: %" PRIu64 " BW: %" PRIu64
-           " B/s Avg. Lat: %" PRIu64 " ps\r",
-           progress * 100.f, (double)(current - old) / tick, data.iops,
-           data.bandwidth, data.latency);
+    printf("\33[2K*** Progress: %.2f%% (%lf ops) IOPS: %" PRIu64 " BW: ",
+           progress * 100.f, (double)(current - old) / tick, data.iops);
+    printBandwidth(std::cout, data.bandwidth);
+    printf(" Avg. Lat: ");
+    printLatency(std::cout, data.latency);
+    printf("\r");
+
     fflush(stdout);
 
     old = current;

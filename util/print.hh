@@ -14,7 +14,13 @@
 #include <iostream>
 #include <string>
 
+// Functions for statistics aligned print
 void print(std::ostream &, std::string, uint32_t);
 void print(std::ostream &, double, uint32_t);
+
+// Functions for progress print
+void printBandwidth(std::ostream &, uint64_t, uint64_t);
+void printBandwidth(std::ostream &, uint64_t);
+void printLatency(std::ostream &, uint64_t);
 
 #endif
