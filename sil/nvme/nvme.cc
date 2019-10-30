@@ -330,13 +330,7 @@ void Driver::submitCommand(uint16_t iv, uint8_t *cmd, InterruptHandler &&func,
 }
 
 void Driver::increaseCommandID(uint16_t &id) {
-  static const uint16_t maxID = 32767;
-
   id++;
-
-  if (id > maxID) {
-    id = 1;
-  }
 }
 
 void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
