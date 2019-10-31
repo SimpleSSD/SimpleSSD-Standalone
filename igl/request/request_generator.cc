@@ -166,7 +166,11 @@ void RequestGenerator::printStats(std::ostream &out) {
 
   out << "Tick: " << tick << std::endl;
   out << "Time (ps): " << initTime << " - " << tick << " (" << tick - initTime
-      << ")" << std::endl;
+      << ") (";
+
+  printLatency(out, tick - initTime);
+
+  out << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " (";
 
   printBandwidth(out, io_submitted, tick - initTime);

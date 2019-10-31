@@ -63,7 +63,12 @@ void printLatency(std::ostream &os, uint64_t lat) {
   else if (digit < 12.0) {
     os << std::to_string(latency / 1000000.) << " us";
   }
+  else if (digit < 15.0) {
+    latency = (float)(lat / 1000);
+    os << std::to_string(latency / 1000000.) << " ms";
+  }
   else {
-    os << std::to_string(latency / 1000000000.) << " ms";
+    latency = (float)(lat / 1000000);
+    os << std::to_string(latency / 1000000.) << " sec.";
   }
 }
