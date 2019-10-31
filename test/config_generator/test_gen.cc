@@ -31,16 +31,11 @@ int main(int argc, char *argv[]) {
   reader.writeUint(Section::RequestGenerator, IGL::RequestConfig::Key::Mode,
                    (uint64_t)IGL::RequestConfig::IOMode::Asynchronous);
 
-  std::vector<uint32_t> qdlist = {1, 64};
-  std::vector<uint32_t> bslist = {4096, 16384, 32768, 131072, 1048576};
-
-  // for (uint32_t qd = 1; qd <= 64; qd <<= 1) {
-  for (auto &qd : qdlist) {
+  for (uint32_t qd = 1; qd <= 64; qd <<= 1) {
     reader.writeUint(Section::RequestGenerator, IGL::RequestConfig::Key::Depth,
                      qd);
 
-    // for (uint32_t bs = 4096; bs <= 1048576; bs <<= 1) {
-    for (auto &bs : bslist) {
+    for (uint32_t bs = 4096; bs <= 1048576; bs <<= 1) {
       std::string filename(prefix);
 
       reader.writeUint(Section::RequestGenerator,
