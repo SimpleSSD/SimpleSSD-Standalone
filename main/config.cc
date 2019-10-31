@@ -28,9 +28,9 @@ Config::Config() {
   mode = ModeType::RequestGenerator;
   statPeriod = 0;
   outputDirectory = ".";
-  statFile = "stats.txt";
-  debugFile = "debug.txt";
-  latencyFile = "latency.txt";
+  statFile = "";
+  debugFile = "";
+  latencyFile = "";
   progressPeriod = 0;
   interface = InterfaceType::NVMe;
   scheduler = SchedulerType::Noop;
