@@ -158,7 +158,8 @@ void RequestGenerator::printStats(std::ostream &out) {
   out << "Termination mode: ";
 
   if (time_based) {
-    out << "Time based (runtime: " << runtime / 1000000 << " ms)" << std::endl;
+    out << "Time based (runtime: " << runtime / 1000000000 << " ms)"
+        << std::endl;
   }
   else {
     out << "I/O size based (size: " << io_size << " bytes)" << std::endl;
