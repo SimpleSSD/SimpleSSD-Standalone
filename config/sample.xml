@@ -119,7 +119,7 @@
     <!-- <float> Ratio of read in mixed I/O -->
     <config name="rwmixread">0.5</config>
     <!-- <int> Block size (Size of I/O request) -->
-    <config name="blocksize"> 4K</config>
+    <config name="blocksize">4K</config>
     <!--
       <int> Block align
 
@@ -136,11 +136,11 @@
         sync: Synchronous I/O (Asynchronous I/O with iodepth of 1)
         async: Asynchronous I/O
      -->
-    <config name="iomode"> async</config>
+    <config name="iomode">async</config>
     <!-- <int> I/O depth -->
     <config name="iodepth">32</config>
     <!-- <int> Offset -->
-    <config name="offset"> 0</config>
+    <config name="offset">0</config>
     <!--
       <int> Size
 
