@@ -60,8 +60,8 @@ void BlockIOEntry::submitIO(BIO &bio) {
   pScheduler->submitIO(copy);
 }
 
-void BlockIOEntry::completion(uint64_t, uint64_t id) {
-  uint64_t tick = getTick();
+void BlockIOEntry::completion(uint64_t now, uint64_t id) {
+  uint64_t tick = now;
 
   for (auto iter = ioQueue.begin(); iter != ioQueue.end(); iter++) {
     if (iter->id == id) {
@@ -78,7 +78,7 @@ void BlockIOEntry::completion(uint64_t, uint64_t id) {
       }
 
       if (pLatencyFile) {
-        *pLatencyFile << std::to_string(iter->id) << ", "
+        *pLatencyFile << std::to_string(now) << ", "
                       << std::to_string(iter->offset) << ", "
                       << std::to_string(iter->length) << ", "
                       << std::to_string(tick) << std::endl;
