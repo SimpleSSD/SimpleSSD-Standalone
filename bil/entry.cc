@@ -29,7 +29,7 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
   switch ((Config::SchedulerType)readConfigUint(Section::Simulation,
                                                 Config::Key::Scheduler)) {
     case Config::SchedulerType::Noop:
-      pScheduler = new NoopScheduler(o, i);
+      pScheduler = new NoopScheduler(o, pDriver);
 
       break;
     default:
