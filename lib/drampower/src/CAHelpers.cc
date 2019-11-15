@@ -110,9 +110,13 @@ void CommandAnalysis::printWarningIfPoweredDown(const string& warning, int type,
   }
 }
 
+#ifdef DRAMPOWER_DISABLE_WARNING
+void CommandAnalysis::printWarning(const string&, int, int64_t, unsigned) {}
+#else
 void CommandAnalysis::printWarning(const string& warning, int type, int64_t timestamp, unsigned bank)
 {
   cerr << "WARNING: " << warning << endl;
   cerr << "Command: " << type << ", Timestamp: " << timestamp <<
     ", Bank: " << bank << endl;
 }
+#endif
