@@ -72,6 +72,7 @@ endif ()
 if (MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   add_compile_options(/wd4819)  # Surpress unicode warning
+  add_compile_options(-DSIMPLESSD_STANDALONE_DEBUG /DEBUG)
 else ()
   # Check libunwind/libelf
   include(CheckIncludeFiles)
