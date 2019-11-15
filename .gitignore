@@ -1,5 +1,5 @@
 # CMake Temporary Files
-build/
+build*/
 CMakeFiles/
 *.cmake
 CMakeCache.txt
