@@ -21,6 +21,7 @@ project(simplessd-standalone)
 
 # Add options for debug build
 option(DEBUG_BUILD "Build SimpleSSD-Standalone in debug mode." OFF)
+option(DRAMPOWER_VERBOSE "Show warnings from DRAMPower library." OFF)
 
 # Set DRAMPower path
 set(DRAMPOWER_SOURCE_DIR
@@ -61,6 +62,11 @@ include(${PROJECT_SOURCE_DIR}/simplessd/util/scripts/simplessd_version.cmake)
 
 # Linker flags
 set(LD_FLAGS "")
+
+# DRAMPower warning
+if (NOT DRAMPOWER_VERBOSE)
+  add_definitions(-DDRAMPOWER_DISABLE_WARNING)
+endif ()
 
 # Platform specific settings
 if (MSVC)
