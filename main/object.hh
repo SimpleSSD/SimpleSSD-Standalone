@@ -86,11 +86,13 @@ class Object {
 
   /* Helper APIs for Log */
   inline void info_log(const char *format, ...) noexcept {
+/*
     va_list args;
 
     va_start(args, format);
     object.log->print(SimpleSSD::Log::LogID::Info, format, args);
     va_end(args);
+*/
   }
   inline void warn_log(const char *format, ...) noexcept {
     va_list args;
