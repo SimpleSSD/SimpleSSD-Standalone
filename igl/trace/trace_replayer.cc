@@ -118,6 +118,8 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
     }
   }
 
+  firstTick = std::numeric_limits<uint64_t>::max();
+
   submitEvent = createEvent([this](uint64_t, uint64_t) { submitIO(); },
                             "IGL::TraceReplayer::submitEvent");
   completionEvent =
@@ -141,7 +143,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 void TraceReplayer::begin() {
   initTime = getTick();
 
-  handleNextLine(true);
+  submitIO();
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
@@ -181,7 +183,7 @@ void TraceReplayer::getProgress(float &val) {
     // Use submitted I/O count in progress calculation
     // If trace file contains I/O requests smaller than max_io, progress value
     // cannot reach 1.0 (100%)
-    val = (float)io_count / max_io;
+    val = (float)io_submitted / max_io;
   }
 }
 
@@ -262,7 +264,7 @@ BIL::BIOType TraceReplayer::getType(std::string type) {
   return BIL::BIOType::None;
 }
 
-void TraceReplayer::handleNextLine(bool begin) {
+void TraceReplayer::handleNextLine() {
   std::string line;
   std::smatch match;
 
@@ -300,7 +302,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   // Get time
   uint64_t tick = mergeTime(match);
 
-  if (begin) {
+  if (UNLIKELY(firstTick == std::numeric_limits<uint64_t>::max())) {
     if (mode == TraceConfig::TimingModeType::Strict) {
       firstTick = tick;  // Only used by MODE_STRICT
     }
@@ -308,6 +310,8 @@ void TraceReplayer::handleNextLine(bool begin) {
       firstTick = initTime;
     }
   }
+
+  BIL::BIO bio;
 
   // Fill BIO
   if (useLBAOffset) {
@@ -336,7 +340,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   bio.id = io_count;
 
   // Limit check
-  if (io_count == max_io) {
+  if (io_submitted == max_io) {
     reserveTermination = true;
     // DO NOT RETURN HERE
   }
@@ -360,24 +364,15 @@ void TraceReplayer::handleNextLine(bool begin) {
   if (mode == TraceConfig::TimingModeType::Strict) {
     scheduleAbs(submitEvent, 0ull, tick - firstTick + initTime);
   }
-  else if (begin) {
-    submitIO();
-  }
+
+  bioEntry.submitIO(bio);
 }
 
 void TraceReplayer::submitIO() {
-  if (bio.submittedAt != 0) {
-    // DEBUG
-    panic("Already submitted!");
-  }
-
-  bioEntry.submitIO(bio);
+  handleNextLine();
 
   if (mode == TraceConfig::TimingModeType::Aynchronous) {
     rescheduleSubmit(submissionLatency);
-  }
-  else if (mode == TraceConfig::TimingModeType::Strict) {
-    handleNextLine();
   }
 }
 
@@ -411,8 +406,6 @@ void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
   else if (mode == TraceConfig::TimingModeType::Strict) {
     return;
   }
-
-  handleNextLine();
 
   scheduleAbs(submitEvent, 0ull, getTick() + breakTime);
 }

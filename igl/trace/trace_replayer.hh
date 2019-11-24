@@ -73,11 +73,9 @@ class TraceReplayer : public IOGenerator {
 
   uint64_t io_depth;
 
-  BIL::BIO bio;
-
   uint64_t mergeTime(std::smatch &);
   BIL::BIOType getType(std::string);
-  void handleNextLine(bool = false);
+  void handleNextLine();
   void rescheduleSubmit(uint64_t);
 
   Event submitEvent;
