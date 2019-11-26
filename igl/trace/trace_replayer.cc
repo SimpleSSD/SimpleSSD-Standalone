@@ -340,7 +340,7 @@ void TraceReplayer::handleNextLine() {
   bio.id = io_count;
 
   // Limit check
-  if (io_submitted >= max_io) {
+  if (max_io != 0 && io_submitted >= max_io) {
     reserveTermination = true;
     // DO NOT RETURN HERE
   }
