@@ -101,6 +101,8 @@ int main(int argc, char *argv[]) {
       simConfig.readString(Section::Simulation, Config::Key::DebugFile);
   std::string latencyLogPath =
       simConfig.readString(Section::Simulation, Config::Key::Latencyfile);
+  auto type = (Config::InterfaceType)simConfig.readUint(Section::Simulation,
+                                                        Config::Key::Interface);
 
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
                         SimpleSSD::Config::Key::OutputDirectory, argv[3]);
@@ -108,6 +110,19 @@ int main(int argc, char *argv[]) {
                         SimpleSSD::Config::Key::DebugFile, debugLogPath);
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
                         SimpleSSD::Config::Key::OutputFile, debugLogPath);
+
+  switch (type) {
+    case Config::InterfaceType::NVMe:
+      ssdConfig.writeUint(SimpleSSD::Section::Simulation,
+                          SimpleSSD::Config::Key::Controller,
+                          (uint64_t)SimpleSSD::Config::Mode::NVMe);
+      break;
+    default:
+      ssdConfig.writeUint(SimpleSSD::Section::Simulation,
+                          SimpleSSD::Config::Key::Controller,
+                          (uint64_t)SimpleSSD::Config::Mode::None);
+      break;
+  }
 
   if (logPath.compare("STDOUT") == 0) {
     noLogPrintOnScreen = false;
@@ -178,8 +193,7 @@ int main(int argc, char *argv[]) {
   standaloneObject.config = &simConfig;
   standaloneObject.log = simplessd.getObject().log;
 
-  switch ((Config::InterfaceType)simConfig.readUint(Section::Simulation,
-                                                    Config::Key::Interface)) {
+  switch (type) {
     case Config::InterfaceType::NVMe:
       pInterface = new SIL::NVMe::Driver(standaloneObject, simplessd);
 
