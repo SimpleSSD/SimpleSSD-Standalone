@@ -39,12 +39,14 @@ BIL::BlockIOEntry *pBIOEntry = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
+std::ostream *pLatencyFile = nullptr;
 std::thread *pThread = nullptr;
 std::mutex killLock;
 SimpleSSD::Event statEvent;
 std::vector<SimpleSSD::Stats> statList;
 std::ofstream logOut;
 std::ofstream debugLogOut;
+std::ofstream latencyFile;
 
 // Declaration
 void cleanup(int);
@@ -94,6 +96,8 @@ int main(int argc, char *argv[]) {
   std::string logPath = simConfig.readString(CONFIG_GLOBAL, GLOBAL_LOG_FILE);
   std::string debugLogPath =
       simConfig.readString(CONFIG_GLOBAL, GLOBAL_DEBUG_LOG_FILE);
+  std::string latencyLogPath =
+      simConfig.readString(CONFIG_GLOBAL, GLOBAL_LATENCY_LOG_FILE);
 
   if (logPath.compare("STDOUT") == 0) {
     noLogPrintOnScreen = false;
@@ -141,6 +145,21 @@ int main(int argc, char *argv[]) {
     pDebugLog = &debugLogOut;
   }
 
+  if (latencyLogPath.length() != 0) {
+    std::string full(argv[3]);
+
+    joinPath(full, latencyLogPath);
+    latencyFile.open(full);
+
+    if (!latencyFile.is_open()) {
+      std::cerr << " Failed to open log file: " << full << std::endl;
+
+      return 3;
+    }
+
+    pLatencyFile = &latencyFile;
+  }
+
   // Initialize SimpleSSD
   auto ssdConfig = initSimpleSSDEngine(&engine, pDebugLog, pDebugLog, argv[2]);
 
@@ -161,7 +180,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Create Block I/O Layer
-  pBIOEntry = new BIL::BlockIOEntry(simConfig, engine, pInterface);
+  pBIOEntry =
+      new BIL::BlockIOEntry(simConfig, engine, pInterface, pLatencyFile);
 
   std::function<void()> endCallback = []() {
     // If stat printout is scheduled, delete it

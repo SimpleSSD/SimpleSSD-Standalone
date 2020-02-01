@@ -122,10 +122,11 @@ TraceReplayer::TraceReplayer(Engine &e, BIL::BlockIOEntry &b,
     }
   }
 
-  submitIO = [this](uint64_t) { _submitIO(); };
-  iocallback = [this](uint64_t id) { _iocallback(id); };
+  firstTick = std::numeric_limits<uint64_t>::max();
 
-  submitEvent = engine.allocateEvent(submitIO);
+  completionEvent = [this](uint64_t id) { iocallback(id); };
+
+  submitEvent = engine.allocateEvent([this](uint64_t) { submitIO(); });
 }
 
 TraceReplayer::~TraceReplayer() {
@@ -144,7 +145,7 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 void TraceReplayer::begin() {
   initTime = engine.getCurrentTick();
 
-  handleNextLine(true);
+  submitIO();
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
@@ -261,7 +262,7 @@ BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
   return BIL::BIO_NUM;
 }
 
-void TraceReplayer::handleNextLine(bool begin) {
+void TraceReplayer::handleNextLine() {
   std::string line;
   std::smatch match;
 
@@ -299,7 +300,7 @@ void TraceReplayer::handleNextLine(bool begin) {
   // Get time
   uint64_t tick = mergeTime(match);
 
-  if (begin) {
+  if (firstTick == std::numeric_limits<uint64_t>::max()) {
     if (mode == MODE_STRICT) {
       firstTick = tick;  // Only used by MODE_STRICT
     }
@@ -307,6 +308,8 @@ void TraceReplayer::handleNextLine(bool begin) {
       firstTick = initTime;
     }
   }
+
+  BIL::BIO bio;
 
   // Fill BIO
   if (useLBAOffset) {
@@ -331,7 +334,7 @@ void TraceReplayer::handleNextLine(bool begin) {
 
   // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
-  bio.callback = iocallback;
+  bio.callback = completionEvent;
   bio.id = io_count;
 
   // Limit check
@@ -359,28 +362,19 @@ void TraceReplayer::handleNextLine(bool begin) {
   if (mode == MODE_STRICT) {
     engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
   }
-  else if (begin) {
-    _submitIO();
-  }
-}
-
-void TraceReplayer::_submitIO() {
-  if (bio.submittedAt != 0) {
-    // DEBUG
-    SimpleSSD::panic("Already submitted!");
-  }
 
   bioEntry.submitIO(bio);
+}
+
+void TraceReplayer::submitIO() {
+  handleNextLine();
 
   if (mode == MODE_ASYNC) {
     rescheduleSubmit(submissionLatency);
   }
-  else if (mode == MODE_STRICT) {
-    handleNextLine();
-  }
 }
 
-void TraceReplayer::_iocallback(uint64_t) {
+void TraceReplayer::iocallback(uint64_t) {
   io_depth--;
 
   if (reserveTermination) {
@@ -410,8 +404,6 @@ void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
   else if (mode == MODE_STRICT) {
     return;
   }
-
-  handleNextLine();
 
   engine.scheduleEvent(submitEvent, engine.getCurrentTick() + breakTime);
 }

@@ -87,19 +87,16 @@ class TraceReplayer : public IOGenerator {
 
   uint64_t io_depth;
 
-  BIL::BIO bio;
-
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);
-  void handleNextLine(bool = false);
+  void handleNextLine();
   void rescheduleSubmit(uint64_t);
 
   SimpleSSD::Event submitEvent;
-  SimpleSSD::EventFunction submitIO;
-  SimpleSSD::EventFunction iocallback;
+  SimpleSSD::EventFunction completionEvent;
 
-  void _submitIO();
-  void _iocallback(uint64_t);
+  void submitIO();
+  void iocallback(uint64_t);
 
  public:
   TraceReplayer(Engine &, BIL::BlockIOEntry &, std::function<void()> &,

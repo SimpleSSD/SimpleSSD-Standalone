@@ -27,9 +27,11 @@
 
 namespace BIL {
 
-BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i)
+BlockIOEntry::BlockIOEntry(ConfigReader &c, Engine &e, DriverInterface *i,
+                           std::ostream *o)
     : conf(c),
       engine(e),
+      pLatencyFile(o),
       pScheduler(nullptr),
       pDriver(i),
       lastProgress(0),
@@ -85,6 +87,13 @@ void BlockIOEntry::completion(uint64_t id) {
         progress.latency += tick;
         progress.iops++;
         progress.bandwidth += iter->length;
+      }
+
+      if (pLatencyFile) {
+        *pLatencyFile << std::to_string(iter->id) << ", "
+                      << std::to_string(iter->offset) << ", "
+                      << std::to_string(iter->length) << ", "
+                      << std::to_string(tick) << std::endl;
       }
 
       iter->callback(id);
