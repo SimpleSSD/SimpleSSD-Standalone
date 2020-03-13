@@ -312,9 +312,7 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
 
       // We need to double-check this for following case:
       // _iocallback (all I/O completed) -> rescheduleSubmit
-      if (io_depth == 0) {
-        scheduleNow(endCallback, 0ull);
-      }
+      scheduleNow(endCallback, 0ull);
 
       return;
     }
