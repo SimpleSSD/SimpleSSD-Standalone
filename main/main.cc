@@ -344,6 +344,8 @@ void cleanup(int sig) {
 
   std::cout << "End of simulation @ tick " << tick << std::endl;
 
+  simplessd.deinit();
+
   // Exit program
   exit(0);
 }
