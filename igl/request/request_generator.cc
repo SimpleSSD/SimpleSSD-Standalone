@@ -290,6 +290,12 @@ void RequestGenerator::submitIO(uint64_t now) {
 
   // Check on-the-fly I/O depth
   if (io_depth < iodepth && !reserveTermination) {
+    if (!time_based && io_submitted >= io_size) {
+      reserveTermination = true;
+
+      return;
+    }
+
     scheduleAbs(submitEvent, 0ull, now + submissionLatency);
   }
 }
@@ -312,7 +318,9 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
 
       // We need to double-check this for following case:
       // _iocallback (all I/O completed) -> rescheduleSubmit
-      scheduleNow(endCallback, 0ull);
+      if (io_depth == 0) {
+        scheduleNow(endCallback, 0ull);
+      }
 
       return;
     }
