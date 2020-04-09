@@ -73,7 +73,7 @@ void joinPath(std::string &lhs, std::string &rhs) {
 }
 
 int main(int argc, char *argv[]) {
-  std::cout << "SimpleSSD Standalone v2.0" << std::endl;
+  std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
   if (argc != 4) {

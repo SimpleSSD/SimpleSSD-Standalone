@@ -38,7 +38,7 @@ class TraceConfig : public SimpleSSD::BaseConfig {
 
   enum class TimingModeType : uint8_t {
     Synchronoous,
-    Aynchronous,
+    Asynchronous,
     Strict,
   };
 
