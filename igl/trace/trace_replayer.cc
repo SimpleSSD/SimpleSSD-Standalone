@@ -371,7 +371,7 @@ void TraceReplayer::handleNextLine() {
 void TraceReplayer::submitIO() {
   handleNextLine();
 
-  if (mode == TraceConfig::TimingModeType::Aynchronous) {
+  if (mode == TraceConfig::TimingModeType::Asynchronous) {
     rescheduleSubmit(submissionLatency);
   }
 }
@@ -396,7 +396,7 @@ void TraceReplayer::iocallback(uint64_t now, uint64_t) {
 }
 
 void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
-  if (mode == TraceConfig::TimingModeType::Aynchronous) {
+  if (mode == TraceConfig::TimingModeType::Asynchronous) {
     if (io_depth >= maxQueueDepth) {
       nextIOIsSync = true;
 
