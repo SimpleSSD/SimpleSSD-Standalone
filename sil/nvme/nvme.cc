@@ -416,7 +416,7 @@ void Driver::callback(uint16_t status, uint64_t data) {
   pendingIOList.erase(iter);
 }
 
-void Driver::read(uint64_t addr, uint64_t size, uint8_t *buffer,
+void Driver::read(uint64_t addr, uint32_t size, uint8_t *buffer,
                   SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");
@@ -435,7 +435,7 @@ void Driver::read(uint64_t addr, uint64_t size, uint8_t *buffer,
   scheduler.read(entry);
 }
 
-void Driver::write(uint64_t addr, uint64_t size, uint8_t *buffer,
+void Driver::write(uint64_t addr, uint32_t size, uint8_t *buffer,
                    SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");

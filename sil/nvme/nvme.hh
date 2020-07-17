@@ -120,9 +120,9 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void submitIO(BIL::BIO &) override;
 
   // SimpleSSD::Interface
-  void read(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event,
+  void read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,
             uint64_t = 0) override;
-  void write(uint64_t, uint64_t, uint8_t *, SimpleSSD::Event,
+  void write(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,
              uint64_t = 0) override;
 
   void postInterrupt(uint16_t, bool) override;
