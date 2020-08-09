@@ -386,7 +386,7 @@ void TraceReplayer::iocallback(uint64_t now, uint64_t) {
     }
   }
 
-  if (mode == TraceConfig::TimingModeType::Synchronoous || nextIOIsSync) {
+  if (mode == TraceConfig::TimingModeType::Synchronous || nextIOIsSync) {
     // MODE_ASYNC submission blocked by I/O depth limitation
     // Let's submit here
     nextIOIsSync = false;

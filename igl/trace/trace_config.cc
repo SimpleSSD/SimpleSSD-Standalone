@@ -28,7 +28,7 @@ const char NAME_LBA_SIZE[] = "LBASize";
 const char NAME_USE_HEX[] = "UseHexadecimal";
 
 TraceConfig::TraceConfig() {
-  mode = TimingModeType::Synchronoous;
+  mode = TimingModeType::Synchronous;
   queueDepth = 1;
   iolimit = 0;
   groupOperation = 0;
