@@ -42,6 +42,7 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
                          "BIL::BlockIOEntry::callback");
 
   pScheduler->init();
+  pDriver->setCompletionEvent(callback);
 }
 
 BlockIOEntry::~BlockIOEntry() {
@@ -55,7 +56,6 @@ void BlockIOEntry::submitIO(BIO &bio) {
   bio.submittedAt = getTick();
 
   ioQueue.push_back(bio);
-  copy.callback = callback;
 
   pScheduler->submitIO(copy);
 }

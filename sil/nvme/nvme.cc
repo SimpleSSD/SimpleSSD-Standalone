@@ -409,7 +409,7 @@ void Driver::callback(uint16_t status, uint64_t data) {
   }
 
   // TODO: Fix me!
-  object.engine->invoke(wrapper.eid, wrapper.id);
+  callCompletion(wrapper.id);
 
   delete prp;
 

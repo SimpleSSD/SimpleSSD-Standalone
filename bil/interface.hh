@@ -22,10 +22,18 @@ class DriverInterface : public Object {
  protected:
   SimpleSSD::SimpleSSD &simplessd;
 
+  Event completionEvent;
+
+  void callCompletion(uint64_t id) {
+    object.engine->invoke(completionEvent, id);
+  }
+
  public:
   DriverInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
-      : Object(o), simplessd(s) {}
+      : Object(o), simplessd(s), completionEvent(InvalidEventID) {}
   virtual ~DriverInterface() {}
+
+  void setCompletionEvent(Event e) { completionEvent = e; }
 
   virtual void init(Event) = 0;
   virtual void getInfo(uint64_t &, uint32_t &) = 0;
