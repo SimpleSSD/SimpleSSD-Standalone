@@ -38,9 +38,6 @@ typedef struct _BIO {
   uint64_t offset;
   uint64_t length;
 
-  // I/O completion
-  Event callback;
-
   // Statistics
   uint64_t submittedAt;
 
@@ -49,7 +46,6 @@ typedef struct _BIO {
         type(BIOType::Read),
         offset(0),
         length(0),
-        callback(InvalidEventID),
         submittedAt(0) {}
 } BIO;
 
@@ -85,11 +81,14 @@ class BlockIOEntry : public Object {
   Event callback;
   void completion(uint64_t, uint64_t);
 
+  Event iglCallback;
+
  public:
   BlockIOEntry(ObjectData &, DriverInterface *, std::ostream *);
   ~BlockIOEntry();
 
   void submitIO(BIO &);
+  void registerCallback(Event);
 
   void printStats(std::ostream &);
   void getProgress(Progress &);

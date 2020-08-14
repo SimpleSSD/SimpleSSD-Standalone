@@ -25,7 +25,8 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
       minLatency(std::numeric_limits<uint64_t>::max()),
       maxLatency(0),
       sumLatency(0),
-      squareSumLatency(0) {
+      squareSumLatency(0),
+      iglCallback(InvalidEventID) {
   switch ((Config::SchedulerType)readConfigUint(Section::Simulation,
                                                 Config::Key::Scheduler)) {
     case Config::SchedulerType::Noop:
@@ -47,6 +48,10 @@ BlockIOEntry::BlockIOEntry(ObjectData &o, DriverInterface *i, std::ostream *f)
 
 BlockIOEntry::~BlockIOEntry() {
   delete pScheduler;
+}
+
+void BlockIOEntry::registerCallback(Event e) {
+  iglCallback = e;
 }
 
 void BlockIOEntry::submitIO(BIO &bio) {
@@ -85,7 +90,7 @@ void BlockIOEntry::completion(uint64_t now, uint64_t id) {
       }
 
       // TODO: Fix me!
-      object.engine->invoke(iter->callback, id);
+      object.engine->invoke(iglCallback, id);
 
       ioQueue.erase(iter);
 

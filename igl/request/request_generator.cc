@@ -69,6 +69,8 @@ RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
   completionEvent =
       createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
                   "IGL::RequestGenerator::completionEvent");
+
+  bioEntry.registerCallback(completionEvent);
 }
 
 RequestGenerator::~RequestGenerator() {}
@@ -279,8 +281,6 @@ void RequestGenerator::submitIO(uint64_t now) {
   }
 
   io_submitted += bio.length;
-
-  bio.callback = completionEvent;
 
   // push to queue
   io_depth++;

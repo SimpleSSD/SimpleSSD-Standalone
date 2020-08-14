@@ -388,7 +388,7 @@ void Driver::submitIO(BIL::BIO &bio) {
     prp->writeData(0, 16, data);
   }
 
-  IOWrapper wrap(bio.id, prp, bio.callback);
+  IOWrapper wrap(bio.id, prp);
   pendingIOList.emplace(std::make_pair(bio.id, wrap));
 
   submitCommand(

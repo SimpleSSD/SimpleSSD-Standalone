@@ -125,6 +125,8 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
   completionEvent =
       createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
                   "IGL::TraceReplayer::completionEvent");
+
+  bioEntry.registerCallback(completionEvent);
 }
 
 TraceReplayer::~TraceReplayer() {
@@ -336,7 +338,6 @@ void TraceReplayer::handleNextLine() {
 
   // This function increases I/O count
   bio.type = getType(match[groupID[ID_OPERATION]].str());
-  bio.callback = completionEvent;
   bio.id = io_count;
 
   // Limit check

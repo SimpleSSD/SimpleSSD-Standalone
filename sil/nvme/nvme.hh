@@ -59,9 +59,8 @@ struct CommandEntry {
 struct IOWrapper {
   uint64_t id;
   PRP *prp;
-  Event eid;
 
-  IOWrapper(uint64_t i, PRP *p, Event e) : id(i), prp(p), eid(e) {}
+  IOWrapper(uint64_t i, PRP *p) : id(i), prp(p) {}
 };
 
 class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
