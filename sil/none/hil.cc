@@ -35,8 +35,8 @@ void Driver::init(Event eid) {
 }
 
 void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
-  bytesize = pHIL->getTotalPages();
   minbs = pHIL->getLPNSize();
+  bytesize = pHIL->getTotalPages() * minbs;
 }
 
 void Driver::submitIO(BIL::BIO &bio) {
