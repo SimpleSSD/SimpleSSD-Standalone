@@ -45,16 +45,39 @@
         1: Trace replayer mode (<section name="generator"> will be ignored)
      -->
     <config name="Mode">0</config>
-    <!-- <time> Statistic log print period -->
+    <!--
+      <time> Statistic log print period
+
+      Set as zero to disable periodic statistic printout.
+     -->
     <config name="LogPeriod">10ms</config>
-    <!-- <str> Output Directory -->
+    <!--
+      <str> Output Directory
+
+      This option exists for setting output directory of SimpleSSD library. So,
+      this option has no effects.
+     -->
     <config name="OutputDirectory">simout</config>
-    <!-- <str> Output filename of statistic log -->
+    <!--
+      <str> Output filename of statistic log
+
+      Leave empty to disable periodic statistic log.
+      Set as STDOUT or STDERR to print log to standard output or error.
+     -->
     <config name="StatLogFile">STDOUT</config>
-    <!-- <str> Output filename of debug log -->
+    <!--
+      <str> Output filename of debug log
+
+      Leave empty to disable debug log of simulation modules.
+      Set as STDOUT or STDERR to print log to standard output or error.
+     -->
     <config name="DebugLogFile">STDOUT</config>
-    <!-- <str> Output filename of per-I/O latency log-->
-    <config name="LatencyLogFile">STDOUT</config>
+    <!--
+      <str> Output filename of per-I/O latency log
+
+      Leave empty to disable per-request latency log.
+     -->
+    <config name="LatencyLogFile">latency.txt</config>
     <!--
       <int> Progress printont period in second (real-time)
 
