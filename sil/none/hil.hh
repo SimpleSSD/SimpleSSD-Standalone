@@ -10,7 +10,6 @@
 #ifndef __DRIVERS_HIL__
 #define __DRIVERS_HIL__
 
-#include <vector>
 #include <unordered_map>
 
 #include "bil/interface.hh"

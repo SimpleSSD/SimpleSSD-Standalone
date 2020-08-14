@@ -74,7 +74,15 @@ void Driver::submitIO(BIL::BIO &bio) {
   }
 }
 
-void Driver::complete(uint64_t, uint64_t) {}
+void Driver::complete(uint64_t, uint64_t id) {
+  auto iter = requestQueue.find(id);
+
+  panic_if(iter == requestQueue.end(), "Unexpected completion.");
+
+  callCompletion(id);
+
+  requestQueue.erase(iter);
+}
 
 void Driver::read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event, uint64_t) {
   panic("Calling not implemented function.");
