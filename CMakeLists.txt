@@ -135,6 +135,9 @@ set(SRC_LIB_DRAMPOWER
   lib/drampower/src/TraceParser.cc
   lib/drampower/src/libdrampower/LibDRAMPower.cc
 )
+set(SRC_SIL_NONE
+  sil/none/hil.cc
+)
 set(SRC_SIL_NVME
   sil/nvme/nvme.cc
   sil/nvme/prp.cc
@@ -157,6 +160,7 @@ SOURCE_GROUP("Source Files\\bil" FILES ${SRC_BIL})
 SOURCE_GROUP("Source Files\\igl\\request" FILES ${SRC_IGL_REQUEST})
 SOURCE_GROUP("Source Files\\igl\\trace" FILES ${SRC_IGL_TRACE})
 SOURCE_GROUP("Source Files\\lib\\drampower" FILES ${SRC_LIB_DRAMPOWER})
+SOURCE_GROUP("Source Files\\sil\\none" FILES ${SRC_SIL_NONE})
 SOURCE_GROUP("Source Files\\sil\\nvme" FILES ${SRC_SIL_NVME})
 SOURCE_GROUP("Source Files\\main" FILES ${SRC_MAIN})
 SOURCE_GROUP("Source Files\\util" FILES ${SRC_UTIL})
@@ -168,6 +172,7 @@ add_executable(simplessd-standalone
   ${SRC_IGL_TRACE}
   ${SRC_LIB_DRAMPOWER}
   ${SRC_SIL_NVME}
+  ${SRC_SIL_NONE}
   ${SRC_MAIN}
   ${SRC_UTIL}
   ${OUTPUT_VERSION_FILE}
