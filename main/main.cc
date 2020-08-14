@@ -27,6 +27,7 @@
 #include "main/engine.hh"
 #include "main/object.hh"
 #include "main/signal.hh"
+#include "sil/none/hil.hh"
 #include "sil/nvme/nvme.hh"
 #include "simplessd/sim/simplessd.hh"
 #include "util/print.hh"
@@ -194,6 +195,10 @@ int main(int argc, char *argv[]) {
   standaloneObject.log = simplessd.getObject().log;
 
   switch (type) {
+    case Config::InterfaceType::None:
+      pInterface = new SIL::None::Driver(standaloneObject, simplessd);
+
+      break;
     case Config::InterfaceType::NVMe:
       pInterface = new SIL::NVMe::Driver(standaloneObject, simplessd);
 

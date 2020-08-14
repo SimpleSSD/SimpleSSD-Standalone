@@ -66,9 +66,10 @@
       <int> Select SimpleSSD interface
 
       Possible values:
-        0: NVMe - Use Non-Volatile Memory Express
+        0: None - Directly connects SSD's internal interface
+        1: NVMe - Use Non-Volatile Memory Express
      -->
-    <config name="Interface">0</config>
+    <config name="Interface">1</config>
     <!--
       <int> Select I/O scheduler
 
