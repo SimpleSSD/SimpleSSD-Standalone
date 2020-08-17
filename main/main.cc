@@ -56,7 +56,7 @@ std::ofstream latencyFile;
 
 // Declaration
 void cleanup(int);
-void statistics(uint64_t);
+void statistics(uint64_t, bool = false);
 void threadFunc(int);
 
 void joinPath(std::string &lhs, std::string &rhs) {
@@ -326,7 +326,7 @@ void cleanup(int sig) {
   }
 
   // Print last statistics
-  statistics(tick);
+  statistics(tick, true);
 
   // Erase progress
   printf("\33[2K                                                           \r");
@@ -355,9 +355,13 @@ void cleanup(int sig) {
   exit(0);
 }
 
-void statistics(uint64_t tick) {
-  if (pLog == nullptr) {
+void statistics(uint64_t tick, bool last) {
+  if (pLog == nullptr && !last) {
     return;
+  }
+
+  if (UNLIKELY(last && pLog == nullptr)) {
+    pLog = &std::cout;
   }
 
   std::ostream &out = *pLog;
