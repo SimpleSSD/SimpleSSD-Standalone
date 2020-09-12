@@ -38,3 +38,8 @@ compile_flags.txt
 # VSCode Specific
 .vscode/
 *.code-workspace
+
+# Patch
+*.patch
+*.diff
+*.rej
