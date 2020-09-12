@@ -64,18 +64,18 @@ class TraceConfig : public SimpleSSD::BaseConfig {
  public:
   TraceConfig();
 
-  const char *getSectionName() override { return "trace"; }
+  const char *getSectionName() noexcept override { return "trace"; }
 
-  void loadFrom(pugi::xml_node &) override;
-  void storeTo(pugi::xml_node &) override;
-  void update() override;
+  void loadFrom(pugi::xml_node &) noexcept override;
+  void storeTo(pugi::xml_node &) noexcept override;
+  void update() noexcept override;
 
-  uint64_t readUint(uint32_t) override;
-  std::string readString(uint32_t) override;
-  bool readBoolean(uint32_t) override;
-  bool writeUint(uint32_t, uint64_t) override;
-  bool writeString(uint32_t, std::string &) override;
-  bool writeBoolean(uint32_t, bool) override;
+  uint64_t readUint(uint32_t) const noexcept override;
+  std::string readString(uint32_t) const noexcept override;
+  bool readBoolean(uint32_t) const noexcept override;
+  bool writeUint(uint32_t, uint64_t) noexcept override;
+  bool writeString(uint32_t, std::string &) noexcept override;
+  bool writeBoolean(uint32_t, bool) noexcept override;
 };
 
 }  // namespace Standalone::IGL

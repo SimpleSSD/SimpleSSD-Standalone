@@ -39,7 +39,7 @@ RequestConfig::RequestConfig() {
   runtime = 0;
 }
 
-void RequestConfig::loadFrom(pugi::xml_node &section) {
+void RequestConfig::loadFrom(pugi::xml_node &section) noexcept {
   for (auto node = section.first_child(); node; node = node.next_sibling()) {
     LOAD_NAME_UINT(node, NAME_IO_SIZE, io_size);
     LOAD_NAME_STRING(node, NAME_IO_TYPE, _type);
@@ -57,7 +57,7 @@ void RequestConfig::loadFrom(pugi::xml_node &section) {
   }
 }
 
-void RequestConfig::storeTo(pugi::xml_node &section) {
+void RequestConfig::storeTo(pugi::xml_node &section) noexcept {
   // Re-generate _type and _mode
   switch (type) {
     case IOType::Read:
@@ -106,7 +106,7 @@ void RequestConfig::storeTo(pugi::xml_node &section) {
   STORE_NAME_TIME(section, NAME_RUN_TIME, runtime);
 }
 
-void RequestConfig::update() {
+void RequestConfig::update() noexcept {
   // Convert type
   if (_type.compare("read") == 0) {
     type = IOType::Read;
@@ -144,7 +144,7 @@ void RequestConfig::update() {
   panic_if(rwmixread < 0 || rwmixread > 1, "Invalid rwmixread.");
 }
 
-uint64_t RequestConfig::readUint(uint32_t idx) {
+uint64_t RequestConfig::readUint(uint32_t idx) const noexcept {
   uint64_t ret = 0;
 
   switch (idx) {
@@ -186,7 +186,7 @@ uint64_t RequestConfig::readUint(uint32_t idx) {
   return ret;
 }
 
-float RequestConfig::readFloat(uint32_t idx) {
+float RequestConfig::readFloat(uint32_t idx) const noexcept {
   float ret = 0.f;
 
   switch (idx) {
@@ -198,7 +198,7 @@ float RequestConfig::readFloat(uint32_t idx) {
   return ret;
 }
 
-bool RequestConfig::readBoolean(uint32_t idx) {
+bool RequestConfig::readBoolean(uint32_t idx) const noexcept {
   bool ret = false;
 
   switch (idx) {
@@ -210,7 +210,7 @@ bool RequestConfig::readBoolean(uint32_t idx) {
   return ret;
 }
 
-bool RequestConfig::writeUint(uint32_t idx, uint64_t value) {
+bool RequestConfig::writeUint(uint32_t idx, uint64_t value) noexcept {
   bool ret = true;
 
   switch (idx) {
@@ -255,7 +255,7 @@ bool RequestConfig::writeUint(uint32_t idx, uint64_t value) {
   return ret;
 }
 
-bool RequestConfig::writeFloat(uint32_t idx, float value) {
+bool RequestConfig::writeFloat(uint32_t idx, float value) noexcept {
   bool ret = true;
 
   switch (idx) {
@@ -270,7 +270,7 @@ bool RequestConfig::writeFloat(uint32_t idx, float value) {
   return ret;
 }
 
-bool RequestConfig::writeBoolean(uint32_t idx, bool value) {
+bool RequestConfig::writeBoolean(uint32_t idx, bool value) noexcept {
   bool ret = true;
 
   switch (idx) {

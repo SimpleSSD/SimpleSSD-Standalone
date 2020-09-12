@@ -54,17 +54,17 @@ class ConfigReader {
   void save(const char *) noexcept;
   void save(std::string &) noexcept;
 
-  int64_t readInt(Section, uint32_t);
-  uint64_t readUint(Section, uint32_t);
-  float readFloat(Section, uint32_t);
-  std::string readString(Section, uint32_t);
-  bool readBoolean(Section, uint32_t);
+  int64_t readInt(Section, uint32_t) const noexcept;
+  uint64_t readUint(Section, uint32_t) const noexcept;
+  float readFloat(Section, uint32_t) const noexcept;
+  std::string readString(Section, uint32_t) const noexcept;
+  bool readBoolean(Section, uint32_t) const noexcept;
 
-  bool writeInt(Section, uint32_t, int64_t);
-  bool writeUint(Section, uint32_t, uint64_t);
-  bool writeFloat(Section, uint32_t, float);
-  bool writeString(Section, uint32_t, std::string);
-  bool writeBoolean(Section, uint32_t, bool);
+  bool writeInt(Section, uint32_t, int64_t) noexcept;
+  bool writeUint(Section, uint32_t, uint64_t) noexcept;
+  bool writeFloat(Section, uint32_t, float) noexcept;
+  bool writeString(Section, uint32_t, std::string) noexcept;
+  bool writeBoolean(Section, uint32_t, bool) noexcept;
 };
 
 }  // namespace Standalone

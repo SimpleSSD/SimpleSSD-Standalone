@@ -41,7 +41,7 @@ Config::Config() {
 //! A destructor
 Config::~Config() {}
 
-void Config::loadFrom(pugi::xml_node &section) {
+void Config::loadFrom(pugi::xml_node &section) noexcept {
   for (auto node = section.first_child(); node; node = node.next_sibling()) {
     LOAD_NAME_UINT_TYPE(node, NAME_MODE, ModeType, mode);
     LOAD_NAME_TIME(node, NAME_LOG_PERIOD, statPeriod);
@@ -57,7 +57,7 @@ void Config::loadFrom(pugi::xml_node &section) {
   }
 }
 
-void Config::storeTo(pugi::xml_node &section) {
+void Config::storeTo(pugi::xml_node &section) noexcept {
   // Assume section node is empty
   STORE_NAME_UINT(section, NAME_MODE, mode);
   STORE_NAME_TIME(section, NAME_LOG_PERIOD, statPeriod);
@@ -72,7 +72,7 @@ void Config::storeTo(pugi::xml_node &section) {
   STORE_NAME_TIME(section, NAME_COMPLETION_LATENCY, completionLatency);
 }
 
-void Config::update() {
+void Config::update() noexcept {
   panic_if((uint8_t)mode > (uint8_t)ModeType::TraceReplayer, "Invalid Mode.");
   panic_if((uint8_t)interface > (uint8_t)InterfaceType::NVMe,
            "Invalid Interface.");
@@ -80,7 +80,7 @@ void Config::update() {
            "Invalid Scheduler.");
 }
 
-uint64_t Config::readUint(uint32_t idx) {
+uint64_t Config::readUint(uint32_t idx) const noexcept {
   switch (idx) {
     case Key::Mode:
       return (uint64_t)mode;
@@ -101,7 +101,7 @@ uint64_t Config::readUint(uint32_t idx) {
   return 0;
 }
 
-std::string Config::readString(uint32_t idx) {
+std::string Config::readString(uint32_t idx) const noexcept {
   switch (idx) {
     case Key::OutputDirectory:
       return outputDirectory;
@@ -116,7 +116,7 @@ std::string Config::readString(uint32_t idx) {
   return "";
 }
 
-bool Config::writeUint(uint32_t idx, uint64_t value) {
+bool Config::writeUint(uint32_t idx, uint64_t value) noexcept {
   bool ret = true;
 
   switch (idx) {
@@ -149,7 +149,7 @@ bool Config::writeUint(uint32_t idx, uint64_t value) {
   return ret;
 }
 
-bool Config::writeString(uint32_t idx, std::string &value) {
+bool Config::writeString(uint32_t idx, std::string &value) noexcept {
   bool ret = true;
 
   switch (idx) {

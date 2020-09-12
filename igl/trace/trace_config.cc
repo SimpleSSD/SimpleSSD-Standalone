@@ -45,7 +45,7 @@ TraceConfig::TraceConfig() {
   useHexadecimal = false;
 }
 
-void TraceConfig::loadFrom(pugi::xml_node &section) {
+void TraceConfig::loadFrom(pugi::xml_node &section) noexcept {
   for (auto node = section.first_child(); node; node = node.next_sibling()) {
     LOAD_NAME_STRING(node, NAME_FILE, file);
     LOAD_NAME_UINT_TYPE(node, NAME_TIMING_MODE, TimingModeType, mode);
@@ -69,7 +69,7 @@ void TraceConfig::loadFrom(pugi::xml_node &section) {
   }
 }
 
-void TraceConfig::storeTo(pugi::xml_node &section) {
+void TraceConfig::storeTo(pugi::xml_node &section) noexcept {
   STORE_NAME_STRING(section, NAME_FILE, file);
   STORE_NAME_UINT(section, NAME_TIMING_MODE, mode);
   STORE_NAME_UINT(section, NAME_IO_DEPTH, queueDepth);
@@ -89,7 +89,7 @@ void TraceConfig::storeTo(pugi::xml_node &section) {
   STORE_NAME_BOOLEAN(section, NAME_USE_HEX, useHexadecimal);
 }
 
-void TraceConfig::update() {
+void TraceConfig::update() noexcept {
   uint64_t idx = 0;
 
   // Remove leading spaces
@@ -122,7 +122,7 @@ void TraceConfig::update() {
            "Invalid timing mode specified");
 }
 
-uint64_t TraceConfig::readUint(uint32_t idx) {
+uint64_t TraceConfig::readUint(uint32_t idx) const noexcept {
   uint64_t ret = 0;
 
   switch (idx) {
@@ -173,7 +173,7 @@ uint64_t TraceConfig::readUint(uint32_t idx) {
   return ret;
 }
 
-std::string TraceConfig::readString(uint32_t idx) {
+std::string TraceConfig::readString(uint32_t idx) const noexcept {
   std::string ret = "";
 
   switch (idx) {
@@ -188,7 +188,7 @@ std::string TraceConfig::readString(uint32_t idx) {
   return ret;
 }
 
-bool TraceConfig::readBoolean(uint32_t idx) {
+bool TraceConfig::readBoolean(uint32_t idx) const noexcept {
   bool ret = false;
 
   switch (idx) {
@@ -200,7 +200,7 @@ bool TraceConfig::readBoolean(uint32_t idx) {
   return ret;
 }
 
-bool TraceConfig::writeUint(uint32_t idx, uint64_t value) {
+bool TraceConfig::writeUint(uint32_t idx, uint64_t value) noexcept {
   bool ret = true;
 
   switch (idx) {
@@ -254,7 +254,7 @@ bool TraceConfig::writeUint(uint32_t idx, uint64_t value) {
   return ret;
 }
 
-bool TraceConfig::writeString(uint32_t idx, std::string &value) {
+bool TraceConfig::writeString(uint32_t idx, std::string &value) noexcept {
   bool ret = true;
 
   switch (idx) {
@@ -272,7 +272,7 @@ bool TraceConfig::writeString(uint32_t idx, std::string &value) {
   return ret;
 }
 
-bool TraceConfig::writeBoolean(uint32_t idx, bool value) {
+bool TraceConfig::writeBoolean(uint32_t idx, bool value) noexcept {
   bool ret = true;
 
   switch (idx) {
