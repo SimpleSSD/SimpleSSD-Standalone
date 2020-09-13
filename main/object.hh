@@ -85,28 +85,17 @@ class Object {
   }
 
   /* Helper APIs for Log */
-  inline void info_log(const char * /* format */, ...) noexcept {
-    /*
-    va_list args;
-
-    va_start(args, format);
-    object.log->print(SimpleSSD::Log::LogID::Info, format, args);
-    va_end(args);
-    */
+  template <class... T>
+  inline void info_log(const char *format, T... args) const noexcept {
+    object.log->print(SimpleSSD::Log::LogID::Info, format, args...);
   }
-  inline void warn_log(const char *format, ...) noexcept {
-    va_list args;
-
-    va_start(args, format);
-    object.log->print(SimpleSSD::Log::LogID::Warn, format, args);
-    va_end(args);
+  template <class... T>
+  inline void warn_log(const char *format, T... args) const noexcept {
+    object.log->print(SimpleSSD::Log::LogID::Warn, format, args...);
   }
-  inline void panic_log(const char *format, ...) noexcept {
-    va_list args;
-
-    va_start(args, format);
-    object.log->print(SimpleSSD::Log::LogID::Panic, format, args);
-    va_end(args);
+  template <class... T>
+  inline void panic_log(const char *format, T... args) const noexcept {
+    object.log->print(SimpleSSD::Log::LogID::Panic, format, args...);
   }
 
  public:
