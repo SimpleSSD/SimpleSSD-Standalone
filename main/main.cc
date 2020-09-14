@@ -201,6 +201,14 @@ int main(int argc, char *argv[]) {
     ssdConfig.save(full);
   }
 
+  if (restoreFromCkpt) {
+    // Don't fill the FTL
+    ssdConfig.writeFloat(SimpleSSD::Section::FlashTranslation,
+                         SimpleSSD::FTL::Config::FillRatio, 0.f);
+    ssdConfig.writeFloat(SimpleSSD::Section::FlashTranslation,
+                         SimpleSSD::FTL::Config::InvalidFillRatio, 0.f);
+  }
+
   // Initialize SimpleSSD
   simplessd.init(&engine, &ssdConfig);
 
