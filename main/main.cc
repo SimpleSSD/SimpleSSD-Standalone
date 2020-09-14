@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
-  if (argc < 4) {
+  if (argc < 4 || argc > 6) {
     std::cerr << " Invalid number of argument!" << std::endl;
     std::cerr << "  Usage: simplessd-standalone <Simulation configuration "
                  "file> <SimpleSSD configuration file> <Output directory>"
@@ -89,14 +89,16 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   else if (argc == 5) {
-    ckptAndTerminate = true;
+    if (strcmp(argv[4], "out") == 0) {
+      ckptAndTerminate = true;
 
-    std::cout << " Create checkpoint file to output directory." << std::endl;
-  }
-  else {
-    restoreFromCkpt = true;
+      std::cout << " Create checkpoint file to output directory." << std::endl;
+    }
+    else if (strcmp(argv[4], "in") == 0) {
+      restoreFromCkpt = true;
 
-    std::cout << " Try to restore from checkpoint." << std::endl;
+      std::cout << " Try to restore from checkpoint." << std::endl;
+    }
   }
 
   // Install signal handler
