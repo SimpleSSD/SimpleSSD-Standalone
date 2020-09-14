@@ -74,16 +74,29 @@ void joinPath(std::string &lhs, std::string &rhs) {
 }
 
 int main(int argc, char *argv[]) {
+  bool ckptAndTerminate = false;
+  bool restoreFromCkpt = false;
+
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
-  if (argc != 4) {
+  if (argc < 4) {
     std::cerr << " Invalid number of argument!" << std::endl;
     std::cerr << "  Usage: simplessd-standalone <Simulation configuration "
                  "file> <SimpleSSD configuration file> <Output directory>"
               << std::endl;
 
     return 1;
+  }
+  else if (argc == 5) {
+    ckptAndTerminate = true;
+
+    std::cout << " Create checkpoint file to output directory." << std::endl;
+  }
+  else {
+    restoreFromCkpt = true;
+
+    std::cout << " Try to restore from checkpoint." << std::endl;
   }
 
   // Install signal handler
@@ -188,6 +201,19 @@ int main(int argc, char *argv[]) {
 
   // Initialize SimpleSSD
   simplessd.init(&engine, &ssdConfig);
+
+  if (ckptAndTerminate) {
+    simplessd.createCheckpoint(argv[3]);
+
+    std::cout << " Checkpoint stored to " << argv[3] << std::endl;
+
+    return;
+  }
+  else if (restoreFromCkpt) {
+    simplessd.restoreCheckpoint(argv[3]);
+
+    std::cout << " Restored from checkpoint" << std::endl;
+  }
 
   // Create Driver
   standaloneObject.engine = &engine;
