@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << " Checkpoint stored to " << argv[3] << std::endl;
 
-    return;
+    return 0;
   }
   else if (restoreFromCkpt) {
     simplessd.restoreCheckpoint(argv[3]);
