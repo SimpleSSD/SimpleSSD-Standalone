@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   switch (argc) {
     case 3:
       prefix = argv[2];
-      /* fallthrough */
+      [[fallthrough]];
     case 2:
       input = argv[1];
       break;
