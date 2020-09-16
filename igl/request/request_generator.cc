@@ -328,7 +328,7 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
     // Check I/O depth
     if (io_depth < iodepth && !isScheduled(submitEvent)) {
       scheduleAbs(submitEvent, 0ull,
-                  now + submissionLatency + completionLatency);
+                  now + submissionLatency + completionLatency + thinktime);
     }
   }
 }
