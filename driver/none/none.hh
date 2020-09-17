@@ -31,10 +31,11 @@ class NoneInterface : public AbstractInterface, SimpleSSD::Interface {
   NoneInterface(ObjectData &, SimpleSSD::SimpleSSD &);
   ~NoneInterface();
 
-  // BIL::Interface
+  // AbstractInterface
   void init(Event) override;
   void getInfo(uint64_t &, uint32_t &) override;
-  void submitIO(BIL::BIO &) override;
+
+  void submit(Request &) override;
 
   // SimpleSSD::Interface
   void read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,

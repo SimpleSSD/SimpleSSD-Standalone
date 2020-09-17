@@ -338,39 +338,39 @@ void NVMeInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
   minbs = LBAsize;
 }
 
-void NVMeInterface::submitIO(BIL::BIO &bio) {
+void NVMeInterface::submit(Request &req) {
   uint32_t cmd[16];
   PRP *prp = nullptr;
 
   memset(cmd, 0, 64);
 
-  uint64_t slba = bio.offset / LBAsize;
-  uint32_t nlb = (uint32_t)DIVCEIL(bio.length, LBAsize);
+  uint64_t slba = req.offset / LBAsize;
+  uint32_t nlb = (uint32_t)DIVCEIL(req.length, LBAsize);
 
   cmd[1] = namespaceID;  // NSID
 
-  if (bio.type == BIL::BIOType::Read) {
+  if (req.type == RequestType::Read) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Read;
     cmd[10] = (uint32_t)slba;
     cmd[11] = slba >> 32;
     cmd[12] = nlb - 1;  // LR, FUA, PRINFO, NLB
 
-    prp = new PRP(bio.length);
+    prp = new PRP(req.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
-  else if (bio.type == BIL::BIOType::Write) {
+  else if (req.type == RequestType::Write) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Write;
     cmd[10] = (uint32_t)slba;
     cmd[11] = slba >> 32;
     cmd[12] = nlb - 1;  // LR, FUA, PRINFO, DTYPE, NLB
 
-    prp = new PRP(bio.length);
+    prp = new PRP(req.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
-  else if (bio.type == BIL::BIOType::Flush) {
+  else if (req.type == RequestType::Flush) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Flush;
   }
-  else if (bio.type == BIL::BIOType::Trim) {
+  else if (req.type == RequestType::Trim) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::DatasetManagement;
     cmd[10] = 0;     // NR
     cmd[11] = 0x04;  // AD
@@ -388,12 +388,12 @@ void NVMeInterface::submitIO(BIL::BIO &bio) {
     prp->writeData(0, 16, data);
   }
 
-  IOWrapper wrap(bio.id, prp);
-  pendingIOList.emplace(std::make_pair(bio.id, wrap));
+  IOWrapper wrap(req.id, prp);
+  pendingIOList.emplace(std::make_pair(req.id, wrap));
 
   submitCommand(
       1, (uint8_t *)cmd,
-      [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, bio.id);
+      [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, req.id);
 }
 
 void NVMeInterface::callback(uint16_t status, uint64_t data) {

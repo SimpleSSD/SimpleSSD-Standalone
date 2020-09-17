@@ -39,31 +39,31 @@ void NoneInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
   bytesize = pHIL->getTotalPages() * minbs;
 }
 
-void NoneInterface::submitIO(BIL::BIO &bio) {
+void NoneInterface::submit(Request &req) {
   auto ret = requestQueue.emplace(
-      bio.id, SimpleSSD::HIL::Request(completionEvent, bio.id));
+      req.id, SimpleSSD::HIL::Request(completionEvent, req.id));
 
   panic_if(!ret.second, "BIO ID conflict!");
 
   auto &request = ret.first->second;
 
-  request.setAddress(bio.offset >> 9, bio.length >> 9, 512);
-  request.setHostTag(bio.id);
+  request.setAddress(req.offset >> 9, req.length >> 9, 512);
+  request.setHostTag(req.id);
 
-  switch (bio.type) {
-    case BIL::BIOType::Read:
+  switch (req.type) {
+    case RequestType::Read:
       pHIL->read(&request);
 
       break;
-    case BIL::BIOType::Write:
+    case RequestType::Write:
       pHIL->write(&request);
 
       break;
-    case BIL::BIOType::Flush:
+    case RequestType::Flush:
       pHIL->flush(&request);
 
       break;
-    case BIL::BIOType::Trim:
+    case RequestType::Trim:
       pHIL->format(&request, SimpleSSD::HIL::FormatOption::None);
 
       break;
