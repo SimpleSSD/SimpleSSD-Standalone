@@ -5,14 +5,14 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sil/nvme/queue.hh"
+#include "driver/nvme/queue.hh"
 
 #include <cstdlib>
 #include <cstring>
 
-#include "sil/nvme/prp.hh"
+#include "driver/nvme/prp.hh"
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
 Queue::Queue(uint16_t e, uint16_t s)
     : memory(nullptr), stride(s), entries(e), head(0), tail(0) {
@@ -79,4 +79,4 @@ void Queue::incrTail() {
   }
 }
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe

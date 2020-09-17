@@ -5,14 +5,14 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sil/nvme/prp.hh"
+#include "driver/nvme/prp.hh"
 
 #include <cstdlib>
 #include <cstring>
 
 #include "simplessd/util/algorithm.hh"
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
 PRP::PRP(uint64_t size) : memory(nullptr), capacity(0), ptr1(0), ptr2(0) {
   uint8_t mode = 0;
@@ -143,4 +143,4 @@ void PRP::writeData(uint64_t offset, uint64_t size, uint8_t *buffer) {
   }
 }
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __SIM_OBJECT_HH__
-#define __SIM_OBJECT_HH__
+#ifndef __MAIN_OBJECT_HH__
+#define __MAIN_OBJECT_HH__
 
 #include <vector>
 

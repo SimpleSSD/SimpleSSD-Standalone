@@ -5,16 +5,16 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sil/nvme/nvme.hh"
+#include "driver/nvme/nvme.hh"
 
 #include "simplessd/hil/nvme/def.hh"
 #include "simplessd/sim/object.hh"
 #include "simplessd/util/algorithm.hh"
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
-Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
-    : BIL::DriverInterface(o, s),
+NVMeInterface::NVMeInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
+    : AbstractInterface(o, s),
       scheduler(
           s.getObject(), "SIL::NVMe::Driver::scheduler",
           [this](DMAEntry *d) -> uint64_t { return preSubmitRead(d); },
@@ -50,14 +50,14 @@ Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
   controller = (SimpleSSD::HIL::NVMe::Controller *)simplessd.getController(id);
 }
 
-Driver::~Driver() {
+NVMeInterface::~NVMeInterface() {
   delete adminSQ;
   delete adminCQ;
   delete ioSQ;
   delete ioCQ;
 }
 
-void Driver::init(Event eid) {
+void NVMeInterface::init(Event eid) {
   beginEvent = eid;
 
   // NVMe Initialization process (Register)
@@ -130,7 +130,7 @@ void Driver::init(Event eid) {
                 [this](uint16_t, uint32_t, uint64_t) { _init0(); });
 }
 
-void Driver::_init0() {
+void NVMeInterface::_init0() {
   // Step 7-2. Send Identify Active Namespace List
   // Reuse PRP here
   uint32_t cmd[16];
@@ -145,7 +145,7 @@ void Driver::_init0() {
                 [this](uint16_t, uint32_t, uint64_t) { _init1(); });
 }
 
-void Driver::_init1() {
+void NVMeInterface::_init1() {
   // Step 7-3. Check active Namespace
   // We will perform I/O on first Namespace
   uint32_t count = 0;
@@ -185,7 +185,7 @@ void Driver::_init1() {
                 [this](uint16_t, uint32_t, uint64_t) { _init2(); });
 }
 
-void Driver::_init2() {
+void NVMeInterface::_init2() {
   union {
     uint64_t value;
     uint8_t buffer[8];
@@ -225,7 +225,7 @@ void Driver::_init2() {
                 [this](uint16_t s, uint32_t dw, uint64_t) { _init3(s, dw); });
 }
 
-void Driver::_init3(uint16_t, uint32_t dw0) {
+void NVMeInterface::_init3(uint16_t, uint32_t dw0) {
   // Step 8-2. Check response
   if (dw0 != 0x00000000) {
     warn("NVMe SSD responsed too many I/O queue");
@@ -252,7 +252,7 @@ void Driver::_init3(uint16_t, uint32_t dw0) {
                 [this](uint16_t s, uint32_t, uint64_t) { _init4(s); });
 }
 
-void Driver::_init4(uint16_t status) {
+void NVMeInterface::_init4(uint16_t status) {
   // Step 9-2. Check result
   if (status != 0) {
     panic("Failed to create I/O Completion Queue");
@@ -279,7 +279,7 @@ void Driver::_init4(uint16_t status) {
                 [this](uint16_t s, uint32_t, uint64_t) { _init5(s); });
 }
 
-void Driver::_init5(uint16_t status) {
+void NVMeInterface::_init5(uint16_t status) {
   // Step 10-2. Check result
   if (status != 0) {
     panic("Failed to create I/O Submission Queue");
@@ -291,8 +291,8 @@ void Driver::_init5(uint16_t status) {
   scheduleNow(beginEvent);
 }
 
-void Driver::submitCommand(uint16_t iv, uint8_t *cmd, InterruptHandler &&func,
-                           uint64_t data) {
+void NVMeInterface::submitCommand(uint16_t iv, uint8_t *cmd,
+                                  InterruptHandler &&func, uint64_t data) {
   uint16_t cid = 0;
   uint16_t opcode = cmd[0];
   uint32_t tail = 0;
@@ -329,16 +329,16 @@ void Driver::submitCommand(uint16_t iv, uint8_t *cmd, InterruptHandler &&func,
   queue->incrHead();
 }
 
-void Driver::increaseCommandID(uint16_t &id) {
+void NVMeInterface::increaseCommandID(uint16_t &id) {
   id++;
 }
 
-void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+void NVMeInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
   bytesize = capacity;
   minbs = LBAsize;
 }
 
-void Driver::submitIO(BIL::BIO &bio) {
+void NVMeInterface::submitIO(BIL::BIO &bio) {
   uint32_t cmd[16];
   PRP *prp = nullptr;
 
@@ -396,7 +396,7 @@ void Driver::submitIO(BIL::BIO &bio) {
       [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, bio.id);
 }
 
-void Driver::callback(uint16_t status, uint64_t data) {
+void NVMeInterface::callback(uint16_t status, uint64_t data) {
   auto iter = pendingIOList.find(data);
 
   panic_if(iter == pendingIOList.end(), "Unexpected I/O tag");
@@ -416,8 +416,8 @@ void Driver::callback(uint16_t status, uint64_t data) {
   pendingIOList.erase(iter);
 }
 
-void Driver::read(uint64_t addr, uint32_t size, uint8_t *buffer,
-                  SimpleSSD::Event eid, uint64_t data) {
+void NVMeInterface::read(uint64_t addr, uint32_t size, uint8_t *buffer,
+                         SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");
 
@@ -435,8 +435,8 @@ void Driver::read(uint64_t addr, uint32_t size, uint8_t *buffer,
   scheduler.read(entry);
 }
 
-void Driver::write(uint64_t addr, uint32_t size, uint8_t *buffer,
-                   SimpleSSD::Event eid, uint64_t data) {
+void NVMeInterface::write(uint64_t addr, uint32_t size, uint8_t *buffer,
+                          SimpleSSD::Event eid, uint64_t data) {
   if (size == 0) {
     warn("Zero-size DMA write request. Ignore.");
 
@@ -454,13 +454,13 @@ void Driver::write(uint64_t addr, uint32_t size, uint8_t *buffer,
   scheduler.write(entry);
 }
 
-void Driver::postDone(DMAEntry *entry) {
+void NVMeInterface::postDone(DMAEntry *entry) {
   object.engine->getInterruptFunction()(entry->eid, getTick(), entry->data);
 
   delete entry;
 }
 
-uint64_t Driver::preSubmitRead(DMAEntry *entry) {
+uint64_t NVMeInterface::preSubmitRead(DMAEntry *entry) {
   if (entry->buffer) {
     memcpy(entry->buffer, (uint8_t *)entry->addr, entry->size);
   }
@@ -468,7 +468,7 @@ uint64_t Driver::preSubmitRead(DMAEntry *entry) {
   return delayFunction(entry->size);
 }
 
-uint64_t Driver::preSubmitWrite(DMAEntry *entry) {
+uint64_t NVMeInterface::preSubmitWrite(DMAEntry *entry) {
   if (entry->buffer) {
     memcpy((uint8_t *)entry->addr, entry->buffer, entry->size);
   }
@@ -476,7 +476,7 @@ uint64_t Driver::preSubmitWrite(DMAEntry *entry) {
   return delayFunction(entry->size);
 }
 
-void Driver::postInterrupt(uint16_t iv, bool post) {
+void NVMeInterface::postInterrupt(uint16_t iv, bool post) {
   uint32_t cqdata[4];
 
   if (post) {
@@ -542,18 +542,18 @@ void Driver::postInterrupt(uint16_t iv, bool post) {
   }
 }
 
-void Driver::getPCIID(uint16_t &vid, uint16_t &ssvid) {
+void NVMeInterface::getPCIID(uint16_t &vid, uint16_t &ssvid) {
   // Copied from SimpleSSD-FullSystem
   vid = 0x144D;
   ssvid = 0x8086;
 }
 
-void Driver::initStats(std::vector<SimpleSSD::Stat> &list) {
+void NVMeInterface::initStats(std::vector<SimpleSSD::Stat> &list) {
   simplessd.getStatList(list, "");
 }
 
-void Driver::getStats(std::vector<double> &values) {
+void NVMeInterface::getStats(std::vector<double> &values) {
   simplessd.getStatValues(values);
 }
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe

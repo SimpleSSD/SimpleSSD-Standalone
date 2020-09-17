@@ -7,24 +7,24 @@
 
 #pragma once
 
-#ifndef __IGL_IO_GEN__
-#define __IGL_IO_GEN__
+#ifndef __IGL_IO_GENERATOR_HH__
+#define __IGL_IO_GENERATOR_HH__
 
 #include "bil/entry.hh"
 #include "main/object.hh"
 
 namespace Standalone::IGL {
 
-class IOGenerator : public Object {
+class AbstractIOGenerator : public Object {
  protected:
   BIL::BlockIOEntry &bioEntry;
 
   Event endCallback;
 
  public:
-  IOGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+  AbstractIOGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
       : Object(o), bioEntry(b), endCallback(e) {}
-  virtual ~IOGenerator() {}
+  virtual ~AbstractIOGenerator() {}
 
   virtual void init(uint64_t, uint32_t) = 0;
   virtual void begin() = 0;

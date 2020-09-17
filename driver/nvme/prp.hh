@@ -7,15 +7,15 @@
 
 #pragma once
 
-#ifndef __DRIVERS_NVME_PRP__
-#define __DRIVERS_NVME_PRP__
+#ifndef __DRIVER_NVME_PRP_HH__
+#define __DRIVER_NVME_PRP_HH__
 
 #include <cinttypes>
 #include <vector>
 
 #define PAGE_SIZE 4096
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
 class PRP {
  private:
@@ -36,6 +36,6 @@ class PRP {
   void writeData(uint64_t, uint64_t, uint8_t *);
 };
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe
 
 #endif

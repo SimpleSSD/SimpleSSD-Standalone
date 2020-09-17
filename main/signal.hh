@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __SIM_SIGNAL__
-#define __SIM_SIGNAL__
+#ifndef __MAIN_SIGNAL_HH__
+#define __MAIN_SIGNAL_HH__
 
 void installSignalHandler(void (*)(int));
 void blockSIGINT();

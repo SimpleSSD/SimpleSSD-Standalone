@@ -7,15 +7,15 @@
 
 #pragma once
 
-#ifndef __DRIVERS_NVME__
-#define __DRIVERS_NVME__
+#ifndef __DRIVER_NVME_HH__
+#define __DRIVER_NVME_HH__
 
 #include <list>
 #include <unordered_map>
 
-#include "bil/interface.hh"
-#include "sil/nvme/prp.hh"
-#include "sil/nvme/queue.hh"
+#include "driver/abstract_interface.hh"
+#include "driver/nvme/prp.hh"
+#include "driver/nvme/queue.hh"
 #include "simplessd/hil/nvme/controller.hh"
 #include "simplessd/sim/simplessd.hh"
 #include "simplessd/util/scheduler.hh"
@@ -23,7 +23,7 @@
 #define QUEUE_ENTRY_ADMIN 256
 #define QUEUE_ENTRY_IO 1024
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
 using InterruptHandler = std::function<void(uint16_t, uint32_t, uint64_t)>;
 
@@ -63,7 +63,7 @@ struct IOWrapper {
   IOWrapper(uint64_t i, PRP *p) : id(i), prp(p) {}
 };
 
-class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
+class NVMeInterface : public AbstractInterface, SimpleSSD::Interface {
  private:
   SimpleSSD::HIL::NVMe::Controller *controller;
 
@@ -110,10 +110,10 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void submitCommand(uint16_t, uint8_t *, InterruptHandler &&, uint64_t = 0);
 
  public:
-  Driver(ObjectData &, SimpleSSD::SimpleSSD &);
-  ~Driver();
+  NVMeInterface(ObjectData &, SimpleSSD::SimpleSSD &);
+  ~NVMeInterface();
 
-  // BIL::DriverInterface
+  // BIL::Interface
   void init(Event) override;
   void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
@@ -131,6 +131,6 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void getStats(std::vector<double> &) override;
 };
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe
 
 #endif

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __IGL_TRACE_CONFIG__
-#define __IGL_TRACE_CONFIG__
+#ifndef __IGL_TRACE_CONFIG_HH__
+#define __IGL_TRACE_CONFIG_HH__
 
 #include "simplessd/sim/base_config.hh"
 

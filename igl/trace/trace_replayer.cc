@@ -13,7 +13,7 @@
 namespace Standalone::IGL {
 
 TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
-    : IOGenerator(o, b, e),
+    : AbstractIOGenerator(o, b, e),
       useLBAOffset(false),
       useLBALength(false),
       nextIOIsSync(false),

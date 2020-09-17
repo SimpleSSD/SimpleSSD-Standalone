@@ -5,14 +5,14 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
-#include "sil/none/hil.hh"
+#include "driver/none/none.hh"
 
 #include "simplessd/hil/none/controller.hh"
 
-namespace Standalone::SIL::None {
+namespace Standalone::Driver::None {
 
-Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
-    : BIL::DriverInterface(o, s), pHIL(nullptr) {
+NoneInterface::NoneInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
+    : AbstractInterface(o, s), pHIL(nullptr) {
   auto id = simplessd.createController(this);
   auto controller = dynamic_cast<SimpleSSD::HIL::None::Controller *>(
       simplessd.getController(id));
@@ -26,20 +26,20 @@ Driver::Driver(ObjectData &o, SimpleSSD::SimpleSSD &s)
       "Standalone::SIL::None::completionEvent");
 }
 
-Driver::~Driver() {}
+NoneInterface::~NoneInterface() {}
 
-void Driver::init(Event eid) {
+void NoneInterface::init(Event eid) {
   info("Initialization finished");
 
   scheduleNow(eid);
 }
 
-void Driver::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+void NoneInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
   minbs = pHIL->getLPNSize();
   bytesize = pHIL->getTotalPages() * minbs;
 }
 
-void Driver::submitIO(BIL::BIO &bio) {
+void NoneInterface::submitIO(BIL::BIO &bio) {
   auto ret = requestQueue.emplace(
       bio.id, SimpleSSD::HIL::Request(completionEvent, bio.id));
 
@@ -74,7 +74,7 @@ void Driver::submitIO(BIL::BIO &bio) {
   }
 }
 
-void Driver::complete(uint64_t, uint64_t id) {
+void NoneInterface::complete(uint64_t, uint64_t id) {
   auto iter = requestQueue.find(id);
 
   panic_if(iter == requestQueue.end(), "Unexpected completion.");
@@ -84,28 +84,30 @@ void Driver::complete(uint64_t, uint64_t id) {
   requestQueue.erase(iter);
 }
 
-void Driver::read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event, uint64_t) {
+void NoneInterface::read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,
+                         uint64_t) {
   panic("Calling not implemented function.");
 }
 
-void Driver::write(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event, uint64_t) {
+void NoneInterface::write(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,
+                          uint64_t) {
   panic("Calling not implemented function.");
 }
 
-void Driver::postInterrupt(uint16_t, bool) {
+void NoneInterface::postInterrupt(uint16_t, bool) {
   panic("Calling not implemented function.");
 }
 
-void Driver::getPCIID(uint16_t &, uint16_t &) {
+void NoneInterface::getPCIID(uint16_t &, uint16_t &) {
   panic("Calling not implemented function.");
 }
 
-void Driver::initStats(std::vector<SimpleSSD::Stat> &list) {
+void NoneInterface::initStats(std::vector<SimpleSSD::Stat> &list) {
   simplessd.getStatList(list, "");
 }
 
-void Driver::getStats(std::vector<double> &values) {
+void NoneInterface::getStats(std::vector<double> &values) {
   simplessd.getStatValues(values);
 }
 
-}  // namespace Standalone::SIL::None
+}  // namespace Standalone::Driver::None

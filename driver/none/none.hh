@@ -7,17 +7,17 @@
 
 #pragma once
 
-#ifndef __DRIVERS_HIL__
-#define __DRIVERS_HIL__
+#ifndef __DRIVER_NONE_HH__
+#define __DRIVER_NONE_HH__
 
 #include <unordered_map>
 
-#include "bil/interface.hh"
+#include "driver/abstract_interface.hh"
 #include "simplessd/hil/hil.hh"
 
-namespace Standalone::SIL::None {
+namespace Standalone::Driver::None {
 
-class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
+class NoneInterface : public AbstractInterface, SimpleSSD::Interface {
  private:
   SimpleSSD::HIL::HIL *pHIL;
 
@@ -28,10 +28,10 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void complete(uint64_t, uint64_t);
 
  public:
-  Driver(ObjectData &, SimpleSSD::SimpleSSD &);
-  ~Driver();
+  NoneInterface(ObjectData &, SimpleSSD::SimpleSSD &);
+  ~NoneInterface();
 
-  // BIL::DriverInterface
+  // BIL::Interface
   void init(Event) override;
   void getInfo(uint64_t &, uint32_t &) override;
   void submitIO(BIL::BIO &) override;
@@ -49,6 +49,6 @@ class Driver : public BIL::DriverInterface, SimpleSSD::Interface {
   void getStats(std::vector<double> &) override;
 };
 
-}  // namespace Standalone::SIL::None
+}  // namespace Standalone::Driver::None
 
 #endif

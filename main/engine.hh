@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __SIM_ENGINE__
-#define __SIM_ENGINE__
+#ifndef __MAIN_ENGINE_HH__
+#define __MAIN_ENGINE_HH__
 
 #include <iostream>
 #include <list>
@@ -105,9 +105,7 @@ class EventEngine : public SimpleSSD::Engine {
   void deschedule(Event);
   bool isScheduled(Event);
   uint64_t when(Event);
-  inline void invoke(Event e, uint64_t d) {
-    e->func(getTick(), d);
-  }
+  inline void invoke(Event e, uint64_t d) { e->func(getTick(), d); }
 
   SimpleSSD::InterruptFunction &getInterruptFunction();
 

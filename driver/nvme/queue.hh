@@ -7,12 +7,12 @@
 
 #pragma once
 
-#ifndef __DRIVERS_NVME_QUEUE__
-#define __DRIVERS_NVME_QUEUE__
+#ifndef __DRIVERS_NVME_QUEUE_HH__
+#define __DRIVERS_NVME_QUEUE_HH__
 
 #include <cinttypes>
 
-namespace Standalone::SIL::NVMe {
+namespace Standalone::Driver::NVMe {
 
 class Queue {
  private:
@@ -38,6 +38,6 @@ class Queue {
   void peekData(uint8_t *, uint16_t);  // Get data without increasing head
 };
 
-}  // namespace Standalone::SIL::NVMe
+}  // namespace Standalone::Driver::NVMe
 
 #endif

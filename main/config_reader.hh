@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __SIM_CONFIG_READER_HH__
-#define __SIM_CONFIG_READER_HH__
+#ifndef __MAIN_CONFIG_READER_HH__
+#define __MAIN_CONFIG_READER_HH__
 
 #include <string>
 

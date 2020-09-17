@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __IGL_REQUEST_GENERATOR__
-#define __IGL_REQUEST_GENERATOR__
+#ifndef __IGL_REQUEST_GENERATOR_HH__
+#define __IGL_REQUEST_GENERATOR_HH__
 
 #include <list>
 #include <mutex>
@@ -16,11 +16,11 @@
 #include <thread>
 
 #include "bil/entry.hh"
-#include "igl/io_gen.hh"
+#include "igl/abstract_io_generator.hh"
 
 namespace Standalone::IGL {
 
-class RequestGenerator : public IOGenerator {
+class RequestGenerator : public AbstractIOGenerator {
  private:
   std::mutex m;
 

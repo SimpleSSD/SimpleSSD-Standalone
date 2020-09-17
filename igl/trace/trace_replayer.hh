@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __IGL_TRACE_REPLAYER__
-#define __IGL_TRACE_REPLAYER__
+#ifndef __IGL_TRACE_REPLAYER_HH__
+#define __IGL_TRACE_REPLAYER_HH__
 
 #include <fstream>
 #include <list>
@@ -17,11 +17,11 @@
 #include <thread>
 
 #include "bil/entry.hh"
-#include "igl/io_gen.hh"
+#include "igl/abstract_io_generator.hh"
 
 namespace Standalone::IGL {
 
-class TraceReplayer : public IOGenerator {
+class TraceReplayer : public AbstractIOGenerator {
  private:
   enum {
     ID_OPERATION,

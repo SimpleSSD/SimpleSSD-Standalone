@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __SIM_CONFIG_HH__
-#define __SIM_CONFIG_HH__
+#ifndef __MAIN_CONFIG_HH__
+#define __MAIN_CONFIG_HH__
 
 #include "simplessd/sim/base_config.hh"
 

@@ -15,7 +15,7 @@
 namespace Standalone::IGL {
 
 RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
-    : IOGenerator(o, b, e),
+    : AbstractIOGenerator(o, b, e),
       io_submitted(0),
       io_count(0),
       read_count(0),

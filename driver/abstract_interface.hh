@@ -7,8 +7,8 @@
 
 #pragma once
 
-#ifndef __BIL_DRIVER_INTERFACE__
-#define __BIL_DRIVER_INTERFACE__
+#ifndef __DRIVER_ABSTRACT_INTERFACE_HH__
+#define __DRIVER_ABSTRACT_INTERFACE_HH__
 
 #include <functional>
 
@@ -16,9 +16,9 @@
 #include "main/object.hh"
 #include "simplessd/sim/simplessd.hh"
 
-namespace Standalone::BIL {
+namespace Standalone::Driver {
 
-class DriverInterface : public Object {
+class AbstractInterface : public Object {
  protected:
   SimpleSSD::SimpleSSD &simplessd;
 
@@ -29,9 +29,9 @@ class DriverInterface : public Object {
   }
 
  public:
-  DriverInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
+  AbstractInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
       : Object(o), simplessd(s), completionEvent(InvalidEventID) {}
-  virtual ~DriverInterface() {}
+  virtual ~AbstractInterface() {}
 
   void setCompletionEvent(Event e) { completionEvent = e; }
 
@@ -43,6 +43,6 @@ class DriverInterface : public Object {
   virtual void getStats(std::vector<double> &) = 0;
 };
 
-}  // namespace Standalone::BIL
+}  // namespace Standalone::Driver
 
 #endif

@@ -40,7 +40,7 @@ EventEngine engine;
 ConfigReader simConfig;
 SimpleSSD::SimpleSSD simplessd;
 SimpleSSD::ConfigReader ssdConfig;
-BIL::DriverInterface *pInterface = nullptr;
+BIL::Interface *pInterface = nullptr;
 BIL::BlockIOEntry *pBIOEntry = nullptr;
 IGL::IOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
