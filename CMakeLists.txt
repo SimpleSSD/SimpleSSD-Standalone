@@ -19,8 +19,14 @@
 cmake_minimum_required(VERSION 3.10)
 project(simplessd-standalone)
 
+# Validate build type
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Select CMake build type.")
+endif ()
+
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+
 # Add options for debug build
-option(DEBUG_BUILD "Build SimpleSSD-Standalone in debug mode." OFF)
 option(DRAMPOWER_VERBOSE "Show warnings from DRAMPower library." OFF)
 
 # Set DRAMPower path
@@ -63,47 +69,10 @@ include(${PROJECT_SOURCE_DIR}/simplessd/util/scripts/simplessd_version.cmake)
 # Linker flags
 set(LD_FLAGS "")
 
-# DRAMPower warning
-if (NOT DRAMPOWER_VERBOSE)
-  add_definitions(-DDRAMPOWER_DISABLE_WARNING)
-endif ()
-
-# Platform specific settings
-if (MSVC)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_compile_options(/wd4819)  # Surpress unicode warning
-  add_compile_options(-DSIMPLESSD_STANDALONE_DEBUG /DEBUG)
-else ()
-  # Check libunwind/libelf
-  include(CheckIncludeFiles)
-  check_include_files("libunwind.h" HAVE_UNWIND_H)
-  check_include_files("elfutils/libdwfl.h" HAVE_LIBDWFL_H)
-
-  if (NOT HAVE_UNWIND_H)
-    message(FATAL_ERROR "Please install libunwind-dev or libunwind-devel.")
-  endif ()
-  if (NOT HAVE_LIBDWFL_H)
-    message(FATAL_ERROR "Please install libdw-dev or elfutils-devel.")
-  endif ()
-
-  add_compile_options(-g)
-  add_compile_options(-Wall)
-  add_compile_options(-Wextra)
-  add_compile_options(-Werror)
-
-  set(LD_FLAGS "-ldw -lunwind -lstdc++fs")
-  set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
-
-  if (DEBUG_BUILD)
-    add_definitions(-DSIMPLESSD_STANDALONE_DEBUG)
-    add_compile_options(-O0)
-  else ()
-    add_compile_options(-O2)
-  endif ()
-endif ()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Specify source files
 set(SRC_BIL
@@ -177,6 +146,42 @@ add_executable(simplessd-standalone
   ${SRC_UTIL}
   ${OUTPUT_VERSION_FILE}
 )
+
+# DRAMPower warning
+if (NOT DRAMPOWER_VERBOSE)
+  target_compile_definitions(simplessd-standalone PRIVATE -DDRAMPOWER_DISABLE_WARNING)
+endif ()
+
+# Platform specific settings
+if (MSVC)
+  target_compile_definitions(simplessd-standalone PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+  target_compile_options(simplessd-standalone PRIVATE /wd4819)  # Surpress unicode warning
+else ()
+  # Check libunwind/libelf
+  include(CheckIncludeFiles)
+
+  check_include_files("libunwind.h" HAVE_UNWIND_H)
+  check_include_files("elfutils/libdwfl.h" HAVE_LIBDWFL_H)
+
+  if (NOT HAVE_UNWIND_H)
+    message(FATAL_ERROR "Please install libunwind-dev or libunwind-devel.")
+  endif ()
+  if (NOT HAVE_LIBDWFL_H)
+    message(FATAL_ERROR "Please install libdw-dev or elfutils-devel.")
+  endif ()
+
+  target_compile_options(simplessd-standalone PRIVATE -g -Wall -Wextra -Werror)
+
+  set(LD_FLAGS "-ldw -lunwind -lstdc++fs")
+  set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
+
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(simplessd-standalone PRIVATE -DSIMPLESSD_STANDALONE_DEBUG)
+    target_compile_options(simplessd-standalone PRIVATE -O0)
+  else ()
+    target_compile_options(simplessd-standalone PRIVATE -O2)
+  endif ()
+endif ()
 
 # Force version checking in every build
 add_dependencies(simplessd-standalone ${VERSION_TARGET})
