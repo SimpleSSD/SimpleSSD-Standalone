@@ -52,19 +52,19 @@ class Object {
   inline uint64_t when(Event e) noexcept { return object.engine->when(e); }
 
   /* Helper APIs for Config */
-  inline int64_t readConfigInt(Section s, uint32_t k) noexcept {
+  inline int64_t readConfigInt(Section s, uint32_t k) const noexcept {
     return object.config->readInt(s, k);
   }
-  inline uint64_t readConfigUint(Section s, uint32_t k) noexcept {
+  inline uint64_t readConfigUint(Section s, uint32_t k) const noexcept {
     return object.config->readUint(s, k);
   }
-  inline float readConfigFloat(Section s, uint32_t k) noexcept {
+  inline float readConfigFloat(Section s, uint32_t k) const noexcept {
     return object.config->readFloat(s, k);
   }
-  inline std::string readConfigString(Section s, uint32_t k) noexcept {
+  inline std::string readConfigString(Section s, uint32_t k) const noexcept {
     return object.config->readString(s, k);
   }
-  inline bool readConfigBoolean(Section s, uint32_t k) noexcept {
+  inline bool readConfigBoolean(Section s, uint32_t k) const noexcept {
     return object.config->readBoolean(s, k);
   }
   inline bool writeConfigInt(Section s, uint32_t k, int64_t v) noexcept {
