@@ -10,19 +10,20 @@
 #ifndef __IGL_IO_GENERATOR_HH__
 #define __IGL_IO_GENERATOR_HH__
 
+#include "igl/block_io.hh"
 #include "main/object.hh"
 
 namespace Standalone::IGL {
 
 class AbstractIOGenerator : public Object {
  protected:
-  BIL::BlockIOEntry &bioEntry;
+  BlockIOLayer &bioEntry;
 
   // Call this event to terminate simulation
   Event endCallback;
 
  public:
-  AbstractIOGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+  AbstractIOGenerator(ObjectData &o, BlockIOLayer &b, Event e)
       : Object(o), bioEntry(b), endCallback(e) {}
   virtual ~AbstractIOGenerator() {}
 
