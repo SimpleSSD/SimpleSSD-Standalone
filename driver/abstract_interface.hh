@@ -12,11 +12,33 @@
 
 #include <functional>
 
-#include "bil/entry.hh"
 #include "main/object.hh"
 #include "simplessd/sim/simplessd.hh"
 
 namespace Standalone::Driver {
+
+enum class RequestType : uint8_t {
+  None,
+  Read,
+  Write,
+  Flush,
+  Trim,
+};
+
+struct Request {
+  uint64_t id;
+
+  // I/O definition
+  uint64_t offset;
+  uint32_t length;
+  RequestType type;
+
+  // Statistics
+  uint64_t submittedAt;
+
+  Request()
+      : id(0), offset(0), length(0), type(RequestType::None), submittedAt(0) {}
+};
 
 class AbstractInterface : public Object {
  protected:
@@ -37,7 +59,8 @@ class AbstractInterface : public Object {
 
   virtual void init(Event) = 0;
   virtual void getInfo(uint64_t &, uint32_t &) = 0;
-  virtual void submitIO(BIO &) = 0;
+
+  virtual void submit(Request &) = 0;
 
   virtual void initStats(std::vector<SimpleSSD::Stat> &) = 0;
   virtual void getStats(std::vector<double> &) = 0;
