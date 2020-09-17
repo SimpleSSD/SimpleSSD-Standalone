@@ -10,7 +10,6 @@
 #ifndef __IGL_IO_GENERATOR_HH__
 #define __IGL_IO_GENERATOR_HH__
 
-#include "bil/entry.hh"
 #include "main/object.hh"
 
 namespace Standalone::IGL {
@@ -19,6 +18,7 @@ class AbstractIOGenerator : public Object {
  protected:
   BIL::BlockIOEntry &bioEntry;
 
+  // Call this event to terminate simulation
   Event endCallback;
 
  public:
