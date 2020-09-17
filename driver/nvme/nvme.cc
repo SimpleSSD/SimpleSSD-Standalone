@@ -388,12 +388,12 @@ void NVMeInterface::submit(Request &req) {
     prp->writeData(0, 16, data);
   }
 
-  IOWrapper wrap(req.id, prp);
-  pendingIOList.emplace(std::make_pair(req.id, wrap));
+  IOWrapper wrap(req.tag, prp);
+  pendingIOList.emplace(std::make_pair(req.tag, wrap));
 
   submitCommand(
       1, (uint8_t *)cmd,
-      [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, req.id);
+      [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, req.tag);
 }
 
 void NVMeInterface::callback(uint16_t status, uint64_t data) {
@@ -548,11 +548,11 @@ void NVMeInterface::getPCIID(uint16_t &vid, uint16_t &ssvid) {
   ssvid = 0x8086;
 }
 
-void NVMeInterface::initStats(std::vector<SimpleSSD::Stat> &list) {
+void NVMeInterface::getStatList(std::vector<SimpleSSD::Stat> &list) {
   simplessd.getStatList(list, "");
 }
 
-void NVMeInterface::getStats(std::vector<double> &values) {
+void NVMeInterface::getStatValues(std::vector<double> &values) {
   simplessd.getStatValues(values);
 }
 

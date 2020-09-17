@@ -46,8 +46,8 @@ class NoneInterface : public AbstractInterface, SimpleSSD::Interface {
   void postInterrupt(uint16_t, bool) override;
   void getPCIID(uint16_t &, uint16_t &) override;
 
-  void initStats(std::vector<SimpleSSD::Stat> &) override;
-  void getStats(std::vector<double> &) override;
+  void getStatList(std::vector<SimpleSSD::Stat> &) override;
+  void getStatValues(std::vector<double> &) override;
 };
 
 }  // namespace Standalone::Driver::None

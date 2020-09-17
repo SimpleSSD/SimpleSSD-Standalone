@@ -41,14 +41,14 @@ void NoneInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
 
 void NoneInterface::submit(Request &req) {
   auto ret = requestQueue.emplace(
-      req.id, SimpleSSD::HIL::Request(completionEvent, req.id));
+      req.tag, SimpleSSD::HIL::Request(completionEvent, req.tag));
 
   panic_if(!ret.second, "BIO ID conflict!");
 
   auto &request = ret.first->second;
 
   request.setAddress(req.offset >> 9, req.length >> 9, 512);
-  request.setHostTag(req.id);
+  request.setHostTag(req.tag);
 
   switch (req.type) {
     case RequestType::Read:
@@ -102,11 +102,11 @@ void NoneInterface::getPCIID(uint16_t &, uint16_t &) {
   panic("Calling not implemented function.");
 }
 
-void NoneInterface::initStats(std::vector<SimpleSSD::Stat> &list) {
+void NoneInterface::getStatList(std::vector<SimpleSSD::Stat> &list) {
   simplessd.getStatList(list, "");
 }
 
-void NoneInterface::getStats(std::vector<double> &values) {
+void NoneInterface::getStatValues(std::vector<double> &values) {
   simplessd.getStatValues(values);
 }
 

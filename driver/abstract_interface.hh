@@ -26,18 +26,20 @@ enum class RequestType : uint8_t {
 };
 
 struct Request {
-  uint64_t id;
+  uint64_t tag;
 
-  // I/O definition
   uint64_t offset;
   uint32_t length;
   RequestType type;
 
-  // Statistics
-  uint64_t submittedAt;
+  void *driverData;
 
   Request()
-      : id(0), offset(0), length(0), type(RequestType::None), submittedAt(0) {}
+      : tag(0),
+        offset(0),
+        length(0),
+        type(RequestType::None),
+        driverData(nullptr) {}
 };
 
 class AbstractInterface : public Object {
@@ -62,8 +64,8 @@ class AbstractInterface : public Object {
 
   virtual void submit(Request &) = 0;
 
-  virtual void initStats(std::vector<SimpleSSD::Stat> &) = 0;
-  virtual void getStats(std::vector<double> &) = 0;
+  virtual void getStatList(std::vector<SimpleSSD::Stat> &) = 0;
+  virtual void getStatValues(std::vector<double> &) = 0;
 };
 
 }  // namespace Standalone::Driver
