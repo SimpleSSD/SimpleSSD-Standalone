@@ -25,21 +25,29 @@ enum class RequestType : uint8_t {
   Trim,
 };
 
-struct Request {
-  uint64_t tag;
+class Request {
+ public:
+  const uint64_t tag;
 
-  uint64_t offset;
-  uint32_t length;
-  RequestType type;
+  const uint64_t offset;
+  const uint32_t length;
+  const RequestType type;
 
+ private:
   void *driverData;
 
+ public:
   Request()
       : tag(0),
         offset(0),
         length(0),
         type(RequestType::None),
         driverData(nullptr) {}
+  Request(uint64_t t, uint64_t slba, uint32_t nlb, RequestType op)
+      : tag(t), offset(slba), length(nlb), type(op), driverData(nullptr) {}
+
+  inline void setDriverData(void *p) noexcept { driverData = p; }
+  inline void *getDriverData() noexcept { return driverData; }
 };
 
 class AbstractInterface : public Object {
