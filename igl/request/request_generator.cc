@@ -14,7 +14,7 @@
 
 namespace Standalone::IGL {
 
-RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+RequestGenerator::RequestGenerator(ObjectData &o, BlockIOLayer &b, Event e)
     : AbstractIOGenerator(o, b, e),
       io_submitted(0),
       io_count(0),
@@ -56,9 +56,9 @@ RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
     mode = RequestConfig::IOMode::Asynchronous;
   }
 
-  submissionLatency =
+  auto submissionLatency =
       readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
-  completionLatency =
+  auto completionLatency =
       readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
 
   // Set random engine
@@ -70,12 +70,13 @@ RequestGenerator::RequestGenerator(ObjectData &o, BIL::BlockIOEntry &b, Event e)
       createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
                   "IGL::RequestGenerator::completionEvent");
 
-  bioEntry.registerCallback(completionEvent);
+  bioEntry.initialize(iodepth, submissionLatency, completionLatency,
+                      completionEvent);
 }
 
 RequestGenerator::~RequestGenerator() {}
 
-void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
+void RequestGenerator::initialize(uint64_t bytesize, uint32_t bs) {
   if (offset > bytesize) {
     panic("offset is larger than SSD size");
   }
@@ -117,7 +118,7 @@ void RequestGenerator::init(uint64_t bytesize, uint32_t bs) {
 void RequestGenerator::begin() {
   initTime = getTick();
 
-  scheduleAbs(submitEvent, 0ull, initTime + submissionLatency);
+  scheduleAbs(submitEvent, 0ull, initTime);
 }
 
 void RequestGenerator::printStats(std::ostream &out) {
@@ -264,29 +265,30 @@ bool RequestGenerator::nextIOIsRead() {
 }
 
 void RequestGenerator::submitIO(uint64_t now) {
-  BIL::BIO bio;
+  uint64_t offset, length;
+  Driver::RequestType type;
 
   // This function uses io_count (=0 at very beginning)
-  generateAddress(bio.offset, bio.length);
-
-  bio.id = io_count++;
+  generateAddress(offset, length);
 
   // This function also uses io_count (=1 at very beginning)
   if (nextIOIsRead()) {
-    bio.type = BIL::BIOType::Read;
+    type = Driver::RequestType::Read;
     read_count++;
   }
   else {
-    bio.type = BIL::BIOType::Write;
+    type = Driver::RequestType::Write;
   }
 
-  io_submitted += bio.length;
+  io_submitted += length;
 
   // push to queue
   io_depth++;
 
   // Submit to Block I/O entry
-  bioEntry.submitIO(bio);
+  auto ret = bioEntry.submitRequest(type, offset, length);
+
+  panic_if(!ret, "BUG!");
 
   // Check on-the-fly I/O depth
   if (io_depth < iodepth && !reserveTermination) {
@@ -296,7 +298,7 @@ void RequestGenerator::submitIO(uint64_t now) {
       return;
     }
 
-    scheduleAbs(submitEvent, 0ull, now + submissionLatency);
+    scheduleAbs(submitEvent, 0ull, now);
   }
 }
 
@@ -313,7 +315,7 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
   else {
     // Check completion
     if ((!time_based && io_submitted >= io_size) ||
-        (time_based && runtime <= (now + submissionLatency - initTime))) {
+        (time_based && runtime <= (now - initTime))) {
       reserveTermination = true;
 
       // We need to double-check this for following case:
@@ -327,8 +329,7 @@ void RequestGenerator::iocallback(uint64_t now, uint64_t) {
 
     // Check I/O depth
     if (io_depth < iodepth && !isScheduled(submitEvent)) {
-      scheduleAbs(submitEvent, 0ull,
-                  now + submissionLatency + completionLatency + thinktime);
+      scheduleAbs(submitEvent, 0ull, now + thinktime);
     }
   }
 }

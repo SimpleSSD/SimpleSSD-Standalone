@@ -15,7 +15,6 @@
 #include <random>
 #include <thread>
 
-#include "bil/entry.hh"
 #include "igl/abstract_io_generator.hh"
 
 namespace Standalone::IGL {
@@ -28,13 +27,17 @@ class RequestGenerator : public AbstractIOGenerator {
   uint64_t io_submitted;
 
   RequestConfig::IOType type;
-
   RequestConfig::IOMode mode;
-  uint64_t iodepth;
+  bool time_based;
+  bool reserveTermination;
+
+  float rwmixread;
+
+  uint64_t iodepth;   //!< I/O depth from configuration
+  uint64_t io_depth;  //!< Current I/O depth
 
   uint64_t io_count;
   uint64_t read_count;
-  float rwmixread;
 
   uint64_t offset;
   uint64_t size;
@@ -48,16 +51,8 @@ class RequestGenerator : public AbstractIOGenerator {
   std::mt19937_64 randengine;
   std::uniform_int_distribution<uint64_t> randgen;
 
-  bool time_based;
-  uint64_t runtime;
-
-  uint64_t submissionLatency;
-  uint64_t completionLatency;
-
-  uint64_t io_depth;
-
-  uint64_t initTime;
-  bool reserveTermination;
+  uint64_t runtime;   //!< Only used when time_based == true
+  uint64_t initTime;  //!< I/O generation begin at
 
   void generateAddress(uint64_t &, uint64_t &);
   bool nextIOIsRead();
@@ -69,11 +64,13 @@ class RequestGenerator : public AbstractIOGenerator {
   void iocallback(uint64_t, uint64_t);
 
  public:
-  RequestGenerator(ObjectData &, BIL::BlockIOEntry &, Event);
+  RequestGenerator(ObjectData &, BlockIOLayer &, Event);
   ~RequestGenerator();
 
-  void init(uint64_t, uint32_t) override;
+  void initialize(uint64_t, uint32_t) override;
+
   void begin() override;
+
   void printStats(std::ostream &) override;
   void getProgress(float &) override;
 };
