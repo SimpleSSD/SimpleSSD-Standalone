@@ -51,17 +51,17 @@ class TraceReplayer : public AbstractIOGenerator {
   bool useLBALength;
 
   uint32_t lbaSize;
-  uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
+  uint32_t maxQueueDepth;  // Only used in Strict and Async
   uint32_t groupID[ID_NUM];
 
   uint64_t ssdSize;
   uint32_t blocksize;
 
   bool reserveTermination;
-  bool forceSubmit;  // Only used in MODE_ASYNC
+  bool forceSubmit;  // Only used in Async
 
-  uint64_t initTime;   // Only used in MODE_STRICT
-  uint64_t firstTick;  // Only used in MODE_STRICT
+  uint64_t initTime;   // Only used in Strict
+  uint64_t firstTick;  // Only used in Strict
 
   uint64_t max_io;
   uint64_t io_submitted;  // Submitted I/O in bytes

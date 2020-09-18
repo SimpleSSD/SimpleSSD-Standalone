@@ -364,8 +364,10 @@ void TraceReplayer::submitIO() {
   }
 }
 
-void TraceReplayer::iocallback(uint64_t now, uint64_t) {
+void TraceReplayer::iocallback(uint64_t now, uint64_t tag) {
   io_depth--;
+
+  bioEntry.finishRequest((uint16_t)tag);
 
   if (reserveTermination) {
     // Everything is done

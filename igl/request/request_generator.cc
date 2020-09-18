@@ -307,8 +307,10 @@ void RequestGenerator::submitIO(uint64_t now) {
   }
 }
 
-void RequestGenerator::iocallback(uint64_t now, uint64_t) {
+void RequestGenerator::iocallback(uint64_t now, uint64_t tag) {
   io_depth--;
+
+  bioEntry.finishRequest((uint16_t)tag);
 
   if (reserveTermination) {
     // No I/O will be generated anymore
