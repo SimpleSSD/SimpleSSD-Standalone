@@ -96,6 +96,8 @@ class TraceReplayer : public AbstractIOGenerator {
   TraceReplayer(ObjectData &, BlockIOLayer &, Event);
   ~TraceReplayer();
 
+  void initialize() override;
+
   void begin() override;
 
   void printStats(std::ostream &) override;

@@ -72,8 +72,6 @@ RequestGenerator::RequestGenerator(ObjectData &o, BlockIOLayer &b, Event e)
 
   bioEntry.initialize(iodepth, submissionLatency, completionLatency,
                       completionEvent);
-
-  initialize();
 }
 
 RequestGenerator::~RequestGenerator() {}

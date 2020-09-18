@@ -279,7 +279,11 @@ int main(int argc, char *argv[]) {
   }
 
   Event beginCallback = engine.createEvent(
-      [](uint64_t, uint64_t) { pIOGen->begin(); }, "beginCallback");
+      [](uint64_t, uint64_t) {
+        pIOGen->initialize();
+        pIOGen->begin();
+      },
+      "beginCallback");
 
   // Insert stat event
   pInterface->getStatList(statList);

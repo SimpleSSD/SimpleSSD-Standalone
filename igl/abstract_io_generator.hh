@@ -27,6 +27,8 @@ class AbstractIOGenerator : public Object {
       : Object(o), bioEntry(b), endCallback(e) {}
   virtual ~AbstractIOGenerator() {}
 
+  virtual void initialize() = 0;
+
   virtual void begin() = 0;
 
   virtual void printStats(std::ostream &) = 0;
