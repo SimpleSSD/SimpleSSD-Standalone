@@ -75,9 +75,16 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Specify source files
-set(SRC_BIL
-  bil/entry.cc
-  bil/noop_scheduler.cc
+set(SRC_DRIVER_NONE
+  driver/none/none.cc
+)
+set(SRC_DRIVER_NVME
+  driver/nvme/nvme.cc
+  driver/nvme/prp.cc
+  driver/nvme/queue.cc
+)
+set(SRC_IGL
+  igl/block_io.cc
 )
 set(SRC_IGL_REQUEST
   igl/request/request_config.cc
@@ -104,14 +111,6 @@ set(SRC_LIB_DRAMPOWER
   lib/drampower/src/TraceParser.cc
   lib/drampower/src/libdrampower/LibDRAMPower.cc
 )
-set(SRC_SIL_NONE
-  sil/none/hil.cc
-)
-set(SRC_SIL_NVME
-  sil/nvme/nvme.cc
-  sil/nvme/prp.cc
-  sil/nvme/queue.cc
-)
 set(SRC_MAIN
   main/config_reader.cc
   main/config.cc
@@ -125,23 +124,23 @@ set(SRC_UTIL
 )
 
 # Source group for MSVC
-SOURCE_GROUP("Source Files\\bil" FILES ${SRC_BIL})
+SOURCE_GROUP("Source Files\\driver\\none" FILES ${SRC_DRIVER_NONE})
+SOURCE_GROUP("Source Files\\driver\\nvme" FILES ${SRC_DRIVER_NVME})
+SOURCE_GROUP("Source Files\\igl" FILES ${SRC_IGL})
 SOURCE_GROUP("Source Files\\igl\\request" FILES ${SRC_IGL_REQUEST})
 SOURCE_GROUP("Source Files\\igl\\trace" FILES ${SRC_IGL_TRACE})
 SOURCE_GROUP("Source Files\\lib\\drampower" FILES ${SRC_LIB_DRAMPOWER})
-SOURCE_GROUP("Source Files\\sil\\none" FILES ${SRC_SIL_NONE})
-SOURCE_GROUP("Source Files\\sil\\nvme" FILES ${SRC_SIL_NVME})
 SOURCE_GROUP("Source Files\\main" FILES ${SRC_MAIN})
 SOURCE_GROUP("Source Files\\util" FILES ${SRC_UTIL})
 
 # Define executable
 add_executable(simplessd-standalone
-  ${SRC_BIL}
+  ${SRC_DRIVER_NVME}
+  ${SRC_DRIVER_NONE}
+  ${SRC_IGL}
   ${SRC_IGL_REQUEST}
   ${SRC_IGL_TRACE}
   ${SRC_LIB_DRAMPOWER}
-  ${SRC_SIL_NVME}
-  ${SRC_SIL_NONE}
   ${SRC_MAIN}
   ${SRC_UTIL}
   ${OUTPUT_VERSION_FILE}
