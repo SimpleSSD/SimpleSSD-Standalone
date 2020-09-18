@@ -150,6 +150,7 @@ void BlockIOLayer::finishRequest(uint16_t tag) noexcept {
   minLatency = MIN(minLatency, lat);
   maxLatency = MAX(maxLatency, lat);
 
+  io_count++;
   sumLatency += lat;
   squareSumLatency += lat * lat;
 
