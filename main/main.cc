@@ -126,6 +126,11 @@ int main(int argc, char *argv[]) {
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
                         SimpleSSD::Config::Key::OutputFile, debugLogPath);
 
+  if (restoreFromCkpt) {
+    ssdConfig.writeBoolean(SimpleSSD::Section::Simulation,
+                           SimpleSSD::Config::Key::RestoreFromCheckpoint, true);
+  }
+
   switch (type) {
     case Config::InterfaceType::NVMe:
       ssdConfig.writeUint(SimpleSSD::Section::Simulation,
@@ -198,14 +203,6 @@ int main(int argc, char *argv[]) {
     joinPath(full, name);
 
     ssdConfig.save(full);
-  }
-
-  if (restoreFromCkpt) {
-    // Don't fill the FTL
-    ssdConfig.writeFloat(SimpleSSD::Section::FlashTranslation,
-                         SimpleSSD::FTL::Config::FillRatio, 0.f);
-    ssdConfig.writeFloat(SimpleSSD::Section::FlashTranslation,
-                         SimpleSSD::FTL::Config::InvalidFillRatio, 0.f);
   }
 
   // Initialize SimpleSSD
