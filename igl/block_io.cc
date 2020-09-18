@@ -28,14 +28,13 @@ BlockIOLayer::BlockIOLayer(ObjectData &o, Driver::AbstractInterface *i,
       iglCallback(InvalidEventID) {
   pInterface->getSSDInfo(bytesize, bs);
 
-  eventDispatch =
-      createEvent([this](uint64_t t, uint64_t d) { dispatch(t, d); },
-                  "IGL::BlockIOLayer::eventDispatch");
+  eventDispatch = createEvent([this](uint64_t, uint64_t d) { dispatch(d); },
+                              "IGL::BlockIOLayer::eventDispatch");
 }
 
 BlockIOLayer::~BlockIOLayer() {}
 
-void BlockIOLayer::dispatch(uint64_t now, uint64_t tag) {
+void BlockIOLayer::dispatch(uint64_t tag) {
   auto iter = queue.find((uint16_t)tag);
 
   panic_if(iter == queue.end(), "Unexpected request ID.");
@@ -159,7 +158,7 @@ Driver::Request *BlockIOLayer::getRequest(uint16_t tag) noexcept {
   return &iter->second;
 }
 
-void BlockIOLayer::printStats(std::ostream &out) {
+void BlockIOLayer::printStats(std::ostream &out) noexcept {
   double avgLatency = (double)sumLatency / io_count;
   double stdevLatency = sqrt((double)squareSumLatency / io_count - avgLatency);
   double digit = log10(avgLatency);
@@ -196,7 +195,7 @@ void BlockIOLayer::printStats(std::ostream &out) {
   out << "*** End of statistics ***" << std::endl;
 }
 
-void BlockIOLayer::getProgress(Progress &data) {
+void BlockIOLayer::getProgress(Progress &data) noexcept {
   uint64_t tick = getTick();
   uint64_t diff = tick - lastProgressAt;
 

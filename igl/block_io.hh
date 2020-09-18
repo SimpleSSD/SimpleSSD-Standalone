@@ -60,7 +60,7 @@ class BlockIOLayer : public Object {
   Event iglCallback;  // Callback handler to I/O generator layer
 
   Event eventDispatch;
-  void dispatch(uint64_t, uint64_t);
+  void dispatch(uint64_t);
 
  public:
   BlockIOLayer(ObjectData &, Driver::AbstractInterface *, std::ostream *);
