@@ -517,22 +517,18 @@ void NVMeInterface::postInterrupt(uint16_t iv, bool post) {
       queue->peekData(cqdata, 16);
 
       // Check phase tag
-      if (((cqdata[3] >> 16) & 0x01) == phase) {
-        bool found = false;
-
+      if ((cqdata[14] & 0x01) == phase) {
         queue->incrTail();
         count++;
 
         // Handle CQE
         callback(iv, cqdata);
 
-        if (found) {
-          queue->incrHead();
+        queue->incrHead();
 
-          if (queue->getHead() == 0) {
-            // Inverted
-            phase = !phase;
-          }
+        if (queue->getHead() == 0) {
+          // Inverted
+          phase = !phase;
         }
       }
       else {
