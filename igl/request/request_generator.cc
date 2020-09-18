@@ -276,6 +276,8 @@ void RequestGenerator::submitIO(uint64_t now) {
   // This function uses io_count (=0 at very beginning)
   generateAddress(offset, length);
 
+  io_count++;
+
   // This function also uses io_count (=1 at very beginning)
   if (nextIOIsRead()) {
     type = Driver::RequestType::Read;
