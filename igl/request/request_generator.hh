@@ -63,11 +63,11 @@ class RequestGenerator : public AbstractIOGenerator {
   void submitIO(uint64_t);
   void iocallback(uint64_t, uint64_t);
 
+  void initialize();
+
  public:
   RequestGenerator(ObjectData &, BlockIOLayer &, Event);
   ~RequestGenerator();
-
-  void initialize(uint64_t, uint32_t) override;
 
   void begin() override;
 

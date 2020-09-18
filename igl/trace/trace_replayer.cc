@@ -129,19 +129,16 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
 
   bioEntry.initialize(maxQueueDepth, submissionLatency, completionLatency,
                       completionEvent);
+
+  bioEntry.getSSDSize(ssdSize, blocksize);
+
+  if ((useLBALength || useLBAOffset) && lbaSize < blocksize) {
+    warn("LBA size of trace file is smaller than SSD's LBA size");
+  }
 }
 
 TraceReplayer::~TraceReplayer() {
   file.close();
-}
-
-void TraceReplayer::initialize(uint64_t bytesize, uint32_t bs) {
-  ssdSize = bytesize;
-  blocksize = bs;
-
-  if ((useLBALength || useLBAOffset) && lbaSize < bs) {
-    warn("LBA size of trace file is smaller than SSD's LBA size");
-  }
 }
 
 void TraceReplayer::begin() {

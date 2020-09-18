@@ -17,10 +17,10 @@ namespace Standalone::IGL {
 RequestGenerator::RequestGenerator(ObjectData &o, BlockIOLayer &b, Event e)
     : AbstractIOGenerator(o, b, e),
       io_submitted(0),
-      io_count(0),
-      read_count(0),
+      reserveTermination(false),
       io_depth(0),
-      reserveTermination(false) {
+      io_count(0),
+      read_count(0) {
   // Read config
   io_size = readConfigUint(Section::RequestGenerator, RequestConfig::Key::Size);
   type = (RequestConfig::IOType)readConfigUint(Section::RequestGenerator,
@@ -72,11 +72,18 @@ RequestGenerator::RequestGenerator(ObjectData &o, BlockIOLayer &b, Event e)
 
   bioEntry.initialize(iodepth, submissionLatency, completionLatency,
                       completionEvent);
+
+  initialize();
 }
 
 RequestGenerator::~RequestGenerator() {}
 
-void RequestGenerator::initialize(uint64_t bytesize, uint32_t bs) {
+void RequestGenerator::initialize() {
+  uint64_t bytesize;
+  uint32_t bs;
+
+  bioEntry.getSSDSize(bytesize, bs);
+
   if (offset > bytesize) {
     panic("offset is larger than SSD size");
   }
