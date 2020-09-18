@@ -25,8 +25,6 @@
 
 namespace Standalone::Driver::NVMe {
 
-using InterruptHandler = std::function<void(uint16_t, uint32_t, uint64_t)>;
-
 // Copied from SimpleSSD-FullSystem
 struct DMAEntry {
   uint64_t addr;
@@ -44,16 +42,15 @@ struct DMAEntry {
   }
 };
 
-struct CommandEntry {
-  uint16_t iv;  // Same as Queue ID
-  uint16_t opcode;
-  uint16_t cid;
-  InterruptHandler func;
-  uint64_t data;
-
-  CommandEntry(uint16_t i, uint16_t o, uint16_t c, InterruptHandler &&f,
-               uint64_t d)
-      : iv(i), opcode(o), cid(c), func(std::move(f)), data(d) {}
+enum class InitState : uint8_t {
+  None,
+  Phase0,
+  Phase1,
+  Phase2,
+  Phase3,
+  Phase4,
+  Phase5,
+  Inited,
 };
 
 struct IOWrapper {
@@ -81,32 +78,30 @@ class NVMeInterface : public AbstractInterface, SimpleSSD::Interface {
 
   // Queue
   uint32_t maxQueueEntries;
-  uint16_t adminCommandID;
-  uint16_t ioCommandID;
   bool phase;
+
+  InitState initState;
+
   Queue *adminSQ;
   Queue *adminCQ;
   Queue *ioSQ;
   Queue *ioCQ;
-  std::list<CommandEntry> pendingCommandList;
 
   uint64_t preSubmitRead(DMAEntry *);
   uint64_t preSubmitWrite(DMAEntry *);
   void postDone(DMAEntry *);
-
-  void increaseCommandID(uint16_t &);
 
   PRP *adminPRP;
 
   void _init0();
   void _init1();
   void _init2();
-  void _init3(uint16_t, uint32_t);
+  void _init3(uint32_t);
   void _init4(uint16_t);
   void _init5(uint16_t);
-  void callback(uint16_t, uint64_t);
 
-  void submitCommand(uint16_t, uint8_t *, InterruptHandler &&, uint64_t = 0);
+  void submitCommand(uint16_t, uint8_t *);
+  void callback(uint16_t, uint8_t *);
 
  public:
   NVMeInterface(ObjectData &, SimpleSSD::SimpleSSD &);

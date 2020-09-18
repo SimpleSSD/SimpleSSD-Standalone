@@ -28,9 +28,8 @@ NVMeInterface::NVMeInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
       LBAsize(0),
       namespaceID(0),
       maxQueueEntries(0),
-      adminCommandID(0),
-      ioCommandID(0),
       phase(true),
+      initState(InitState::None),
       adminSQ(nullptr),
       adminCQ(nullptr),
       ioSQ(nullptr),
@@ -129,8 +128,9 @@ void NVMeInterface::initialize(IGL::BlockIOLayer *p, Event eid) {
   adminPRP->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));
   cmd[10] = (uint8_t)SimpleSSD::HIL::NVMe::IdentifyStructure::Controller;
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t, uint32_t, uint64_t) { _init0(); });
+  initState = InitState::Phase0;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
 void NVMeInterface::_init0() {
@@ -144,8 +144,9 @@ void NVMeInterface::_init0() {
   cmd[10] =
       (uint8_t)SimpleSSD::HIL::NVMe::IdentifyStructure::ActiveNamespaceList;
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t, uint32_t, uint64_t) { _init1(); });
+  initState = InitState::Phase1;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
 void NVMeInterface::_init1() {
@@ -184,8 +185,9 @@ void NVMeInterface::_init1() {
   adminPRP->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));
   cmd[10] = (uint8_t)SimpleSSD::HIL::NVMe::IdentifyStructure::Namespace;
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t, uint32_t, uint64_t) { _init2(); });
+  initState = InitState::Phase2;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
 void NVMeInterface::_init2() {
@@ -224,11 +226,12 @@ void NVMeInterface::_init2() {
   cmd[10] = (uint8_t)SimpleSSD::HIL::NVMe::FeatureID::NumberOfQueues;
   cmd[11] = 0x00000000;  // One I/O SQ, One I/O CQ
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t s, uint32_t dw, uint64_t) { _init3(s, dw); });
+  initState = InitState::Phase3;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
-void NVMeInterface::_init3(uint16_t, uint32_t dw0) {
+void NVMeInterface::_init3(uint32_t dw0) {
   // Step 8-2. Check response
   if (dw0 != 0x00000000) {
     warn("NVMe SSD responsed too many I/O queue");
@@ -251,8 +254,9 @@ void NVMeInterface::_init3(uint16_t, uint32_t dw0) {
   cmd[10] = ((uint32_t)(entries - 1) << 16) | 0x0001;  // QSIZE, QID
   cmd[11] = 0x00010003;                                // IV, IEN, PC
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t s, uint32_t, uint64_t) { _init4(s); });
+  initState = InitState::Phase4;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
 void NVMeInterface::_init4(uint16_t status) {
@@ -278,8 +282,9 @@ void NVMeInterface::_init4(uint16_t status) {
   cmd[10] = ((uint32_t)(entries - 1) << 16) | 0x0001;  // QSIZE, QID
   cmd[11] = 0x00010001;                                // CQID, QPRIO, PC
 
-  submitCommand(0, (uint8_t *)cmd,
-                [this](uint16_t s, uint32_t, uint64_t) { _init5(s); });
+  initState = InitState::Phase5;
+
+  submitCommand(0, (uint8_t *)cmd);
 }
 
 void NVMeInterface::_init5(uint16_t status) {
@@ -290,39 +295,29 @@ void NVMeInterface::_init5(uint16_t status) {
 
   info("Initialization finished");
 
+  initState = InitState::Inited;
+
   // Now we initialized NVMe SSD
   scheduleNow(beginEvent);
 }
 
-void NVMeInterface::submitCommand(uint16_t iv, uint8_t *cmd,
-                                  InterruptHandler &&func, uint64_t data) {
-  uint16_t cid = 0;
-  uint16_t opcode = cmd[0];
+void NVMeInterface::submitCommand(uint16_t iv, uint8_t *cmd) {
   uint32_t tail = 0;
   Queue *queue = nullptr;
 
   // Push to queue
   if (iv == 0) {
-    increaseCommandID(adminCommandID);
-    cid = adminCommandID;
     queue = adminSQ;
   }
   else if (iv == 1 && ioSQ) {
-    increaseCommandID(ioCommandID);
-    cid = ioCommandID;
     queue = ioSQ;
   }
   else {
     panic("I/O Submission Queue is not initialized");
   }
 
-  memcpy(cmd + 2, &cid, 2);
   queue->setData(cmd, 64);
   tail = queue->getTail();
-
-  // Push to pending cmd list
-  pendingCommandList.push_back(
-      CommandEntry(iv, opcode, cid, std::move(func), data));
 
   // Ring doorbell
   uint64_t offset = (uint64_t)SimpleSSD::HIL::NVMe::Register::DoorbellBegin;
@@ -330,10 +325,6 @@ void NVMeInterface::submitCommand(uint16_t iv, uint8_t *cmd,
 
   controller->write(offset, 4, (uint8_t *)&tail);
   queue->incrHead();
-}
-
-void NVMeInterface::increaseCommandID(uint16_t &id) {
-  id++;
 }
 
 void NVMeInterface::getSSDInfo(uint64_t &bytesize, uint32_t &minbs) {
@@ -391,22 +382,57 @@ void NVMeInterface::submit(Request &req) {
     prp->writeData(0, 16, data);
   }
 
+  // Write Command ID
+  cmd[0] = MAKE32(req.tag, cmd[0]);
+
   req.setDriverData(new IOWrapper(req.tag, prp));
 
-  submitCommand(
-      1, (uint8_t *)cmd,
-      [this](uint16_t s, uint32_t, uint64_t d) { callback(s, d); }, req.tag);
+  submitCommand(1, (uint8_t *)cmd);
 }
 
-void NVMeInterface::callback(uint16_t status, uint64_t data) {
-  auto wrapper = (IOWrapper *)parent->postCompletion((uint16_t)data);
+void NVMeInterface::callback(uint16_t iv, uint8_t *cqentry) {
+  uint32_t *cqdata = (uint32_t *)cqentry;
+  auto status = (uint16_t)(cqdata[3] >> 17);
+  auto cid = (uint16_t)cqdata[3];
 
-  if (status != 0) {
-    warn("I/O error: %04X", status);
+  if (UNLIKELY(iv == 0)) {
+    // Admin
+    switch (initState) {
+      case InitState::Phase0:
+        _init0();
+        break;
+      case InitState::Phase1:
+        _init1();
+        break;
+      case InitState::Phase2:
+        _init2();
+        break;
+      case InitState::Phase3:
+        _init3(cqdata[0]);
+        break;
+      case InitState::Phase4:
+        _init4(status);
+        break;
+      case InitState::Phase5:
+        _init5(status);
+        break;
+      default:
+        panic("Unexpected admin command completion.");
+        break;
+    }
   }
+  else {
+    auto wrapper = (IOWrapper *)parent->postCompletion(cid);
 
-  delete wrapper->prp;
-  delete wrapper;
+    if (status != 0) {
+      warn("I/O error: %04X", status);
+    }
+
+    if (LIKELY(wrapper)) {
+      delete wrapper->prp;
+      delete wrapper;
+    }
+  }
 }
 
 void NVMeInterface::read(uint64_t addr, uint32_t size, uint8_t *buffer,
@@ -470,7 +496,7 @@ uint64_t NVMeInterface::preSubmitWrite(DMAEntry *entry) {
 }
 
 void NVMeInterface::postInterrupt(uint16_t iv, bool post) {
-  uint32_t cqdata[4];
+  uint8_t cqdata[16];
 
   if (post) {
     uint16_t count = 0;
@@ -488,7 +514,7 @@ void NVMeInterface::postInterrupt(uint16_t iv, bool post) {
 
     // Peek queue for count how many requests are finished
     while (true) {
-      queue->peekData((uint8_t *)cqdata, 16);
+      queue->peekData(cqdata, 16);
 
       // Check phase tag
       if (((cqdata[3] >> 16) & 0x01) == phase) {
@@ -497,18 +523,8 @@ void NVMeInterface::postInterrupt(uint16_t iv, bool post) {
         queue->incrTail();
         count++;
 
-        // Search pending command list
-        for (auto iter = pendingCommandList.begin();
-             iter != pendingCommandList.end(); iter++) {
-          if (iter->iv == iv && iter->cid == (cqdata[3] & 0xFFFF)) {
-            iter->func((uint16_t)(cqdata[3] >> 17), cqdata[0], iter->data);
-
-            pendingCommandList.erase(iter);
-            found = true;
-
-            break;
-          }
-        }
+        // Handle CQE
+        callback(iv, cqdata);
 
         if (found) {
           queue->incrHead();
