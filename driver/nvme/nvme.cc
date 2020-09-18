@@ -7,6 +7,7 @@
 
 #include "driver/nvme/nvme.hh"
 
+#include "igl/block_io.hh"
 #include "simplessd/hil/nvme/def.hh"
 #include "simplessd/sim/object.hh"
 #include "simplessd/util/algorithm.hh"
@@ -57,7 +58,9 @@ NVMeInterface::~NVMeInterface() {
   delete ioCQ;
 }
 
-void NVMeInterface::init(Event eid) {
+void NVMeInterface::initialize(IGL::BlockIOLayer *p, Event eid) {
+  AbstractInterface::initialize(p, eid);
+
   beginEvent = eid;
 
   // NVMe Initialization process (Register)
@@ -333,7 +336,7 @@ void NVMeInterface::increaseCommandID(uint16_t &id) {
   id++;
 }
 
-void NVMeInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
+void NVMeInterface::getSSDInfo(uint64_t &bytesize, uint32_t &minbs) {
   bytesize = capacity;
   minbs = LBAsize;
 }
@@ -388,8 +391,7 @@ void NVMeInterface::submit(Request &req) {
     prp->writeData(0, 16, data);
   }
 
-  IOWrapper wrap(req.tag, prp);
-  pendingIOList.emplace(std::make_pair(req.tag, wrap));
+  req.setDriverData(new IOWrapper(req.tag, prp));
 
   submitCommand(
       1, (uint8_t *)cmd,
@@ -397,23 +399,14 @@ void NVMeInterface::submit(Request &req) {
 }
 
 void NVMeInterface::callback(uint16_t status, uint64_t data) {
-  auto iter = pendingIOList.find(data);
-
-  panic_if(iter == pendingIOList.end(), "Unexpected I/O tag");
-
-  auto &wrapper = iter->second;
-  PRP *prp = wrapper.prp;
+  auto wrapper = (IOWrapper *)parent->postCompletion((uint16_t)data);
 
   if (status != 0) {
     warn("I/O error: %04X", status);
   }
 
-  // TODO: Fix me!
-  callCompletion(wrapper.id);
-
-  delete prp;
-
-  pendingIOList.erase(iter);
+  delete wrapper->prp;
+  delete wrapper;
 }
 
 void NVMeInterface::read(uint64_t addr, uint32_t size, uint8_t *buffer,

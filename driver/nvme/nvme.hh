@@ -89,7 +89,6 @@ class NVMeInterface : public AbstractInterface, SimpleSSD::Interface {
   Queue *ioSQ;
   Queue *ioCQ;
   std::list<CommandEntry> pendingCommandList;
-  std::unordered_map<uint64_t, IOWrapper> pendingIOList;
 
   uint64_t preSubmitRead(DMAEntry *);
   uint64_t preSubmitWrite(DMAEntry *);
@@ -114,8 +113,8 @@ class NVMeInterface : public AbstractInterface, SimpleSSD::Interface {
   ~NVMeInterface();
 
   // AbstractInterface
-  void init(Event) override;
-  void getInfo(uint64_t &, uint32_t &) override;
+  void initialize(IGL::BlockIOLayer *, Event) override;
+  void getSSDInfo(uint64_t &, uint32_t &) override;
   void submit(Request &) override;
 
   // SimpleSSD::Interface

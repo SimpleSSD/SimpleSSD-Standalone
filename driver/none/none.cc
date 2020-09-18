@@ -47,6 +47,8 @@ void NoneInterface::getSSDInfo(uint64_t &bytesize, uint32_t &minbs) {
 void NoneInterface::submit(Request &req) {
   auto request = new SimpleSSD::HIL::Request(completionEvent, req.tag);
 
+  req.setDriverData(request);
+
   request->setAddress(req.offset, req.length, lpnSize);
   request->setHostTag(req.tag);
 
