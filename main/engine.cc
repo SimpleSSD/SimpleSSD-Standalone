@@ -72,15 +72,6 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
     return;
   }
 
-  if (UNLIKELY(eid->isScheduled())) {
-    fprintf(stderr,
-            "Tried to schedule event %" PRIx64 "h already scheduled at %" PRIu64
-            ".\n",
-            (uint64_t)eid, eid->scheduledAt);
-
-    abort();
-  }
-
   uint64_t tickCopy;
 
   {
@@ -100,37 +91,32 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
   auto insert = jobQueue.end();
 
   for (auto entry = jobQueue.begin(); entry != jobQueue.end(); ++entry) {
-    if (entry->eid->scheduledAt > tick) {
+    if (entry->tick > tick) {
       insert = entry;
 
       break;
     }
   }
 
-  eid->scheduledAt = tick;
+  eid->schedule();
 
-  jobQueue.emplace(insert, Job(eid, data));
+  jobQueue.emplace(insert, Job(eid, data, tick));
 }
 
 void EventEngine::deschedule(Event eid) {
   eid->deschedule();
 
-  for (auto iter = jobQueue.begin(); iter != jobQueue.end();) {
+  for (auto iter = jobQueue.begin(); iter != jobQueue.end(); ++iter) {
     if (iter->eid == eid) {
-      iter = jobQueue.erase(iter);
-    }
-    else {
-      ++iter;
+      jobQueue.erase(iter);
+
+      break;
     }
   }
 }
 
 bool EventEngine::isScheduled(Event eid) {
   return eid->isScheduled();
-}
-
-uint64_t EventEngine::when(Event eid) {
-  return eid->scheduledAt;
 }
 
 SimpleSSD::InterruptFunction &EventEngine::getInterruptFunction() {
@@ -151,7 +137,7 @@ bool EventEngine::doNextEvent() {
     {
       std::lock_guard<std::mutex> guard(mTick);
 
-      simTick = job.eid->scheduledAt;
+      simTick = job.tick;
       tickCopy = simTick;
     }
 

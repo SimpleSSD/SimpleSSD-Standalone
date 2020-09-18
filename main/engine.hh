@@ -31,26 +31,19 @@ class EventData {
   std::string name;
 #endif
 
-  uint64_t scheduledAt;
+  uint64_t scheduled;
 
-  inline bool isScheduled() {
-    return scheduledAt != std::numeric_limits<uint64_t>::max();
-  }
-
-  inline void deschedule() {
-    scheduledAt = std::numeric_limits<uint64_t>::max();
-  }
+  inline bool isScheduled() { return scheduled > 0; }
+  inline void deschedule() { scheduled--; }
+  inline void schedule() { scheduled++; }
 
  public:
-  EventData() : scheduledAt(std::numeric_limits<uint64_t>::max()) {}
+  EventData() : scheduled(0) {}
 #ifdef SIMPLESSD_STANDALONE_DEBUG
   EventData(SimpleSSD::EventFunction &&f, std::string &&s)
-      : func(std::move(f)),
-        name(std::move(s)),
-        scheduledAt(std::numeric_limits<uint64_t>::max()) {}
+      : func(std::move(f)), name(std::move(s)), scheduled(0) {}
 #else
-  EventData(SimpleSSD::EventFunction &&f)
-      : func(std::move(f)), scheduledAt(std::numeric_limits<uint64_t>::max()) {}
+  EventData(SimpleSSD::EventFunction &&f) : func(std::move(f)), scheduled(0) {}
 #endif
   EventData(const EventData &) = delete;
   EventData(EventData &&) noexcept = delete;
@@ -68,8 +61,9 @@ class EventEngine : public SimpleSSD::Engine {
    public:
     Event eid;
     uint64_t data;
+    uint64_t tick;
 
-    Job(Event e, uint64_t d) : eid(e), data(d) {}
+    Job(Event e, uint64_t d, uint64_t t) : eid(e), data(d), tick(t) {}
   };
 
   std::mutex mTick;
@@ -104,7 +98,6 @@ class EventEngine : public SimpleSSD::Engine {
   void schedule(Event, uint64_t, uint64_t);
   void deschedule(Event);
   bool isScheduled(Event);
-  uint64_t when(Event);
   inline void invoke(Event e, uint64_t d) { e->func(getTick(), d); }
 
   SimpleSSD::InterruptFunction &getInterruptFunction();
