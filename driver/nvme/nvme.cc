@@ -338,25 +338,22 @@ void NVMeInterface::submit(Request &req) {
 
   memset(cmd, 0, 64);
 
-  uint64_t slba = req.offset / LBAsize;
-  uint32_t nlb = (uint32_t)DIVCEIL(req.length, LBAsize);
-
   cmd[1] = namespaceID;  // NSID
 
   if (req.type == RequestType::Read) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Read;
-    cmd[10] = (uint32_t)slba;
-    cmd[11] = slba >> 32;
-    cmd[12] = nlb - 1;  // LR, FUA, PRINFO, NLB
+    cmd[10] = (uint32_t)req.offset;
+    cmd[11] = req.offset >> 32;
+    cmd[12] = req.length - 1;  // LR, FUA, PRINFO, NLB
 
     prp = new PRP(req.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Write) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Write;
-    cmd[10] = (uint32_t)slba;
-    cmd[11] = slba >> 32;
-    cmd[12] = nlb - 1;  // LR, FUA, PRINFO, DTYPE, NLB
+    cmd[10] = (uint32_t)req.offset;
+    cmd[11] = req.offset >> 32;
+    cmd[12] = req.length - 1;  // LR, FUA, PRINFO, DTYPE, NLB
 
     prp = new PRP(req.length);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
@@ -376,8 +373,8 @@ void NVMeInterface::submit(Request &req) {
     uint8_t data[16];
 
     memset(data, 0, 16);
-    memcpy(data + 4, &nlb, 4);
-    memcpy(data + 8, &slba, 8);
+    memcpy(data + 4, &req.length, 4);
+    memcpy(data + 8, &req.offset, 8);
 
     prp->writeData(0, 16, data);
   }
