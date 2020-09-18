@@ -21,14 +21,13 @@
 #include <iostream>
 #include <thread>
 
-#include "bil/entry.hh"
+#include "driver/none/none.hh"
+#include "driver/nvme/nvme.hh"
 #include "igl/request/request_generator.hh"
 #include "igl/trace/trace_replayer.hh"
 #include "main/engine.hh"
 #include "main/object.hh"
 #include "main/signal.hh"
-#include "sil/none/hil.hh"
-#include "sil/nvme/nvme.hh"
 #include "simplessd/sim/simplessd.hh"
 #include "util/print.hh"
 
@@ -40,9 +39,9 @@ EventEngine engine;
 ConfigReader simConfig;
 SimpleSSD::SimpleSSD simplessd;
 SimpleSSD::ConfigReader ssdConfig;
-BIL::Interface *pInterface = nullptr;
-BIL::BlockIOEntry *pBIOEntry = nullptr;
-IGL::IOGenerator *pIOGen = nullptr;
+Driver::AbstractInterface *pInterface = nullptr;
+IGL::BlockIOLayer *pBIOEntry = nullptr;
+IGL::AbstractIOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
 std::ostream *pDebugLog = nullptr;
 std::ostream *pLatencyFile = nullptr;
@@ -232,11 +231,11 @@ int main(int argc, char *argv[]) {
 
   switch (type) {
     case Config::InterfaceType::None:
-      pInterface = new SIL::None::Driver(standaloneObject, simplessd);
+      pInterface = new Driver::None::NoneInterface(standaloneObject, simplessd);
 
       break;
     case Config::InterfaceType::NVMe:
-      pInterface = new SIL::NVMe::Driver(standaloneObject, simplessd);
+      pInterface = new Driver::NVMe::NVMeInterface(standaloneObject, simplessd);
 
       break;
     default:
@@ -246,7 +245,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Create Block I/O Layer
-  pBIOEntry = new BIL::BlockIOEntry(standaloneObject, pInterface, pLatencyFile);
+  pBIOEntry = new IGL::BlockIOLayer(standaloneObject, pInterface, pLatencyFile);
 
   Event endCallback = engine.createEvent(
       [](uint64_t, uint64_t) {
@@ -283,18 +282,10 @@ int main(int argc, char *argv[]) {
   }
 
   Event beginCallback = engine.createEvent(
-      [](uint64_t, uint64_t) {
-        uint64_t bytesize;
-        uint32_t bs;
-
-        pInterface->getInfo(bytesize, bs);
-        pIOGen->init(bytesize, bs);
-        pIOGen->begin();
-      },
-      "beginCallback");
+      [](uint64_t, uint64_t) { pIOGen->begin(); }, "beginCallback");
 
   // Insert stat event
-  pInterface->initStats(statList);
+  pInterface->getStatList(statList);
 
   if (simConfig.readUint(Section::Simulation, Config::Key::StatPeriod) > 0) {
     uint64_t period =
@@ -314,7 +305,7 @@ int main(int argc, char *argv[]) {
   // Do Simulation
   std::cout << "********** Begin of simulation **********" << std::endl;
 
-  pInterface->init(beginCallback);
+  pInterface->initialize(pBIOEntry, beginCallback);
 
   if (noLogPrintOnScreen) {
     int period = (int)simConfig.readUint(Section::Simulation,
@@ -404,7 +395,7 @@ void statistics(uint64_t tick, bool last) {
   std::vector<double> stat;
   uint64_t count = 0;
 
-  pInterface->getStats(stat);
+  pInterface->getStatValues(stat);
 
   count = statList.size();
 
@@ -431,7 +422,7 @@ void threadFunc(int tick) {
   uint64_t old = 0;
   float progress = 0.f;
   auto duration = std::chrono::seconds(tick);
-  BIL::Progress data;
+  IGL::Progress data;
 
   // Block SIGINT
   blockSIGINT();
