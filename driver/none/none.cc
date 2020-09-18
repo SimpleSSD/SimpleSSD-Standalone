@@ -7,6 +7,7 @@
 
 #include "driver/none/none.hh"
 
+#include "igl/block_io.hh"
 #include "simplessd/hil/none/controller.hh"
 
 namespace Standalone::Driver::None {
@@ -21,6 +22,8 @@ NoneInterface::NoneInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
 
   pHIL = controller->getHIL();
 
+  lpnSize = pHIL->getLPNSize();
+
   completionEvent = simplessd.getObject().cpu->createEvent(
       [this](uint64_t t, uint64_t d) { complete(t, d); },
       "Standalone::SIL::None::completionEvent");
@@ -28,43 +31,40 @@ NoneInterface::NoneInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
 
 NoneInterface::~NoneInterface() {}
 
-void NoneInterface::init(Event eid) {
+void NoneInterface::initialize(IGL::BlockIOLayer *p, Event eid) {
+  AbstractInterface::initialize(p, eid);
+
   info("Initialization finished");
 
   scheduleNow(eid);
 }
 
-void NoneInterface::getInfo(uint64_t &bytesize, uint32_t &minbs) {
-  minbs = pHIL->getLPNSize();
-  bytesize = pHIL->getTotalPages() * minbs;
+void NoneInterface::getSSDInfo(uint64_t &bytesize, uint32_t &minbs) {
+  minbs = lpnSize;
+  bytesize = pHIL->getTotalPages() * lpnSize;
 }
 
 void NoneInterface::submit(Request &req) {
-  auto ret = requestQueue.emplace(
-      req.tag, SimpleSSD::HIL::Request(completionEvent, req.tag));
+  auto request = new SimpleSSD::HIL::Request(completionEvent, req.tag);
 
-  panic_if(!ret.second, "BIO ID conflict!");
-
-  auto &request = ret.first->second;
-
-  request.setAddress(req.offset >> 9, req.length >> 9, 512);
-  request.setHostTag(req.tag);
+  request->setAddress(req.offset, req.length, lpnSize);
+  request->setHostTag(req.tag);
 
   switch (req.type) {
     case RequestType::Read:
-      pHIL->read(&request);
+      pHIL->read(request);
 
       break;
     case RequestType::Write:
-      pHIL->write(&request);
+      pHIL->write(request);
 
       break;
     case RequestType::Flush:
-      pHIL->flush(&request);
+      pHIL->flush(request);
 
       break;
     case RequestType::Trim:
-      pHIL->format(&request, SimpleSSD::HIL::FormatOption::None);
+      pHIL->format(request, SimpleSSD::HIL::FormatOption::None);
 
       break;
     default:
@@ -75,13 +75,9 @@ void NoneInterface::submit(Request &req) {
 }
 
 void NoneInterface::complete(uint64_t, uint64_t id) {
-  auto iter = requestQueue.find(id);
+  auto request = (SimpleSSD::HIL::Request *)parent->postCompletion(id);
 
-  panic_if(iter == requestQueue.end(), "Unexpected completion.");
-
-  callCompletion(id);
-
-  requestQueue.erase(iter);
+  delete request;
 }
 
 void NoneInterface::read(uint64_t, uint32_t, uint8_t *, SimpleSSD::Event,

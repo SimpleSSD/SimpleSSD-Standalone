@@ -21,9 +21,9 @@ class NoneInterface : public AbstractInterface, SimpleSSD::Interface {
  private:
   SimpleSSD::HIL::HIL *pHIL;
 
-  std::unordered_map<uint64_t, SimpleSSD::HIL::Request> requestQueue;
-
   SimpleSSD::Event completionEvent;
+
+  uint32_t lpnSize;
 
   void complete(uint64_t, uint64_t);
 
@@ -32,8 +32,8 @@ class NoneInterface : public AbstractInterface, SimpleSSD::Interface {
   ~NoneInterface();
 
   // AbstractInterface
-  void init(Event) override;
-  void getInfo(uint64_t &, uint32_t &) override;
+  void initialize(IGL::BlockIOLayer *p, Event) override;
+  void getSSDInfo(uint64_t &, uint32_t &) override;
 
   void submit(Request &) override;
 

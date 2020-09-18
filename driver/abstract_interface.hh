@@ -15,7 +15,15 @@
 #include "main/object.hh"
 #include "simplessd/sim/simplessd.hh"
 
-namespace Standalone::Driver {
+namespace Standalone {
+
+namespace IGL {
+
+class BlockIOLayer;
+
+}
+
+namespace Driver {
 
 enum class RequestType : uint8_t {
   None,
@@ -61,19 +69,24 @@ class Request {
 
 class AbstractInterface : public Object {
  protected:
+  IGL::BlockIOLayer *parent;
   SimpleSSD::SimpleSSD &simplessd;
 
  public:
   AbstractInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
-      : Object(o), simplessd(s), completionEvent(InvalidEventID) {}
+      : Object(o), simplessd(s) {}
   virtual ~AbstractInterface() {}
 
   /**
    * \brief Initialize driver and underlying SSD
    *
+   * \param[in] p   Pointer to IGL::BlockIOLayer
    * \param[in] cb  Callback which will be called when initialization completed.
    */
-  virtual void initialize(Event cb) = 0;
+  virtual void initialize(IGL::BlockIOLayer *p, Event cb) {
+    (void)cb;
+    parent = p;
+  }
 
   /**
    * \brief Get SSD size information
@@ -96,6 +109,8 @@ class AbstractInterface : public Object {
   virtual void getStatValues(std::vector<double> &) = 0;
 };
 
-}  // namespace Standalone::Driver
+}  // namespace Driver
+
+}  // namespace Standalone
 
 #endif
