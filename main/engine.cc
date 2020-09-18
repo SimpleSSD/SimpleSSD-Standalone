@@ -72,6 +72,15 @@ void EventEngine::schedule(Event eid, uint64_t data, uint64_t tick) {
     return;
   }
 
+  if (UNLIKELY(eid->isScheduled())) {
+    fprintf(stderr,
+            "Tried to schedule event %" PRIx64 "h already scheduled at %" PRIu64
+            ".\n",
+            (uint64_t)eid, eid->scheduledAt);
+
+    abort();
+  }
+
   uint64_t tickCopy;
 
   {
