@@ -26,8 +26,6 @@ BlockIOLayer::BlockIOLayer(ObjectData &o, Driver::AbstractInterface *i,
       lastProgressAt(0),
       io_progress(0),
       iglCallback(InvalidEventID) {
-  pInterface->getSSDInfo(bytesize, bs);
-
   eventDispatch = createEvent([this](uint64_t, uint64_t d) { dispatch(d); },
                               "IGL::BlockIOLayer::eventDispatch");
 }
@@ -101,6 +99,12 @@ bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
 }
 
 void BlockIOLayer::getSSDSize(uint64_t &size, uint32_t &blocksize) noexcept {
+  if (LIKELY(bytesize == 0 || bs == 0)) {
+    pInterface->getSSDInfo(bytesize, bs);
+  }
+
+  panic_if(bytesize == 0 || bs == 0, "Unexpected access to SSD size.");
+
   size = bytesize;
   blocksize = bs;
 }
