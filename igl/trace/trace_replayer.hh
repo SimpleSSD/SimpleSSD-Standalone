@@ -16,7 +16,6 @@
 #include <regex>
 #include <thread>
 
-#include "bil/entry.hh"
 #include "igl/abstract_io_generator.hh"
 
 namespace Standalone::IGL {
@@ -45,25 +44,24 @@ class TraceReplayer : public AbstractIOGenerator {
   uint64_t fileSize;
 
   TraceConfig::TimingModeType mode;
-  uint64_t submissionLatency;
-  uint64_t completionLatency;
-  uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
 
-  bool useLBAOffset;
-  bool useLBALength;
-  uint32_t lbaSize;
-  uint32_t groupID[ID_NUM];
   bool timeValids[5];
   bool useHex;
+  bool useLBAOffset;
+  bool useLBALength;
+
+  uint32_t lbaSize;
+  uint32_t maxQueueDepth;  // Only used in MODE_ASYNC
+  uint32_t groupID[ID_NUM];
 
   uint64_t ssdSize;
   uint32_t blocksize;
 
+  bool reserveTermination;
+  bool forceSubmit;  // Only used in MODE_ASYNC
+
   uint64_t initTime;   // Only used in MODE_STRICT
   uint64_t firstTick;  // Only used in MODE_STRICT
-  bool nextIOIsSync;   // Only used in MODE_ASYNC
-
-  bool reserveTermination;
 
   uint64_t max_io;
   uint64_t io_submitted;  // Submitted I/O in bytes
@@ -74,9 +72,19 @@ class TraceReplayer : public AbstractIOGenerator {
   uint64_t io_depth;
 
   uint64_t mergeTime(std::smatch &);
-  BIL::BIOType getType(std::string);
-  void handleNextLine();
-  void rescheduleSubmit(uint64_t);
+  Driver::RequestType getType(std::string);
+  void parseLine();
+  void rescheduleSubmit();
+
+  struct TraceLine {
+    uint64_t tick;
+    uint64_t offset;
+    uint64_t length;
+    Driver::RequestType type;
+
+    TraceLine()
+        : tick(0), offset(0), length(0), type(Driver::RequestType::None) {}
+  } linedata;
 
   Event submitEvent;
   Event completionEvent;
@@ -85,11 +93,13 @@ class TraceReplayer : public AbstractIOGenerator {
   void iocallback(uint64_t, uint64_t);
 
  public:
-  TraceReplayer(ObjectData &, BIL::BlockIOEntry &, Event);
+  TraceReplayer(ObjectData &, BlockIOLayer &, Event);
   ~TraceReplayer();
 
-  void init(uint64_t, uint32_t) override;
+  void initialize(uint64_t, uint32_t) override;
+
   void begin() override;
+
   void printStats(std::ostream &) override;
   void getProgress(float &) override;
 };

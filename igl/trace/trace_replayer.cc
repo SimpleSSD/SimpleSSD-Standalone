@@ -12,12 +12,12 @@
 
 namespace Standalone::IGL {
 
-TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
+TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
     : AbstractIOGenerator(o, b, e),
       useLBAOffset(false),
       useLBALength(false),
-      nextIOIsSync(false),
       reserveTermination(false),
+      forceSubmit(false),
       io_submitted(0),
       io_count(0),
       read_count(0),
@@ -48,10 +48,6 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
   // Fill flags
   mode = (TraceConfig::TimingModeType)readConfigUint(
       Section::TraceReplayer, TraceConfig::Key::TimingMode);
-  submissionLatency =
-      readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
-  completionLatency =
-      readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
   maxQueueDepth =
       (uint32_t)readConfigUint(Section::TraceReplayer, TraceConfig::Key::Depth);
   max_io = readConfigUint(Section::TraceReplayer, TraceConfig::Key::Limit);
@@ -126,14 +122,20 @@ TraceReplayer::TraceReplayer(ObjectData &o, BIL::BlockIOEntry &b, Event e)
       createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
                   "IGL::TraceReplayer::completionEvent");
 
-  bioEntry.registerCallback(completionEvent);
+  auto submissionLatency =
+      readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
+  auto completionLatency =
+      readConfigUint(Section::Simulation, Config::Key::CompletionLatency);
+
+  bioEntry.initialize(maxQueueDepth, submissionLatency, completionLatency,
+                      completionEvent);
 }
 
 TraceReplayer::~TraceReplayer() {
   file.close();
 }
 
-void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
+void TraceReplayer::initialize(uint64_t bytesize, uint32_t bs) {
   ssdSize = bytesize;
   blocksize = bs;
 
@@ -144,6 +146,15 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 
 void TraceReplayer::begin() {
   initTime = getTick();
+
+  parseLine();
+
+  if (mode == TraceConfig::TimingModeType::Strict) {
+    firstTick = linedata.tick;
+  }
+  else {
+    firstTick = initTime;
+  }
 
   submitIO();
 }
@@ -239,7 +250,7 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
   return tick;
 }
 
-BIL::BIOType TraceReplayer::getType(std::string type) {
+Driver::RequestType TraceReplayer::getType(std::string type) {
   io_count++;
 
   switch (type[0]) {
@@ -247,33 +258,28 @@ BIL::BIOType TraceReplayer::getType(std::string type) {
     case 'R':
       read_count++;
 
-      return BIL::BIOType::Read;
+      return Driver::RequestType::Read;
     case 'w':
     case 'W':
       write_count++;
 
-      return BIL::BIOType::Write;
+      return Driver::RequestType::Write;
     case 'f':
     case 'F':
-      return BIL::BIOType::Flush;
+      return Driver::RequestType::Flush;
     case 't':
     case 'T':
     case 'd':
     case 'D':
-      return BIL::BIOType::Trim;
+      return Driver::RequestType::Trim;
   }
 
-  return BIL::BIOType::None;
+  return Driver::RequestType::None;
 }
 
-void TraceReplayer::handleNextLine() {
+void TraceReplayer::parseLine() {
   std::string line;
   std::smatch match;
-
-  if (reserveTermination) {
-    // Nothing to do
-    return;
-  }
 
   // Read line
   while (true) {
@@ -301,79 +307,61 @@ void TraceReplayer::handleNextLine() {
     }
   }
 
-  // Get time
-  uint64_t tick = mergeTime(match);
+  linedata.tick = mergeTime(match);
 
-  if (UNLIKELY(firstTick == std::numeric_limits<uint64_t>::max())) {
-    if (mode == TraceConfig::TimingModeType::Strict) {
-      firstTick = tick;  // Only used by MODE_STRICT
-    }
-    else {
-      firstTick = initTime;
-    }
-  }
-
-  BIL::BIO bio;
-
-  // Fill BIO
   if (useLBAOffset) {
-    bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
+    linedata.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(),
+                              nullptr, useHex ? 16 : 10) *
+                      lbaSize;
   }
   else {
-    bio.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10);
+    linedata.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(),
+                              nullptr, useHex ? 16 : 10);
   }
 
   if (useLBALength) {
-    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
+    linedata.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(),
+                              nullptr, useHex ? 16 : 10) *
+                      lbaSize;
   }
   else {
-    bio.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(), nullptr,
-                         useHex ? 16 : 10);
+    linedata.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(),
+                              nullptr, useHex ? 16 : 10);
   }
 
   // This function increases I/O count
-  bio.type = getType(match[groupID[ID_OPERATION]].str());
-  bio.id = io_count;
+  linedata.type = getType(match[groupID[ID_OPERATION]].str());
 
   // Limit check
   if (max_io != 0 && io_submitted >= max_io) {
     reserveTermination = true;
     // DO NOT RETURN HERE
   }
-
-  // Range check
-  if (bio.offset + bio.length > ssdSize) {
-    warn("I/O %" PRIu64 ": I/O out of range", bio.id);
-
-    while (bio.offset >= ssdSize) {
-      bio.offset -= ssdSize;
-    }
-
-    if (bio.offset + bio.length > ssdSize) {
-      bio.length = ssdSize - bio.offset;
-    }
-  }
-
-  io_submitted += bio.length;
-  io_depth++;
-
-  if (mode == TraceConfig::TimingModeType::Strict) {
-    scheduleAbs(submitEvent, 0ull, tick - firstTick + initTime);
-  }
-
-  bioEntry.submitIO(bio);
 }
 
 void TraceReplayer::submitIO() {
-  handleNextLine();
+  io_submitted += linedata.length;
+  io_depth++;
 
-  if (mode == TraceConfig::TimingModeType::Asynchronous) {
-    rescheduleSubmit(submissionLatency);
+  auto ret =
+      bioEntry.submitRequest(linedata.type, linedata.offset, linedata.length);
+
+  panic_if(!ret, "BUG!");
+
+  // Get next line
+  parseLine();
+
+  if (LIKELY(!reserveTermination)) {
+    switch (mode) {
+      case TraceConfig::TimingModeType::Strict:
+        scheduleAbs(submitEvent, 0ull, linedata.tick - firstTick + initTime);
+        break;
+      case TraceConfig::TimingModeType::Asynchronous:
+        rescheduleSubmit();
+        break;
+      default:
+        break;
+    }
   }
 }
 
@@ -387,19 +375,19 @@ void TraceReplayer::iocallback(uint64_t now, uint64_t) {
     }
   }
 
-  if (mode == TraceConfig::TimingModeType::Synchronous || nextIOIsSync) {
+  if (mode == TraceConfig::TimingModeType::Synchronous || forceSubmit) {
     // MODE_ASYNC submission blocked by I/O depth limitation
     // Let's submit here
-    nextIOIsSync = false;
+    forceSubmit = false;
 
-    rescheduleSubmit(submissionLatency + completionLatency);
+    rescheduleSubmit();
   }
 }
 
-void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
+void TraceReplayer::rescheduleSubmit() {
   if (mode == TraceConfig::TimingModeType::Asynchronous) {
     if (io_depth >= maxQueueDepth) {
-      nextIOIsSync = true;
+      forceSubmit = true;
 
       return;
     }
@@ -408,7 +396,7 @@ void TraceReplayer::rescheduleSubmit(uint64_t breakTime) {
     return;
   }
 
-  scheduleAbs(submitEvent, 0ull, getTick() + breakTime);
+  scheduleNow(submitEvent);
 }
 
 }  // namespace Standalone::IGL
