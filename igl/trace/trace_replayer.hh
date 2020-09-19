@@ -63,7 +63,8 @@ class TraceReplayer : public AbstractIOGenerator {
   uint64_t initTime;   // Only used in Strict
   uint64_t firstTick;  // Only used in Strict
 
-  uint64_t max_io;
+  uint64_t max_io_count;
+  uint64_t max_io_size;
   uint64_t io_submitted;  // Submitted I/O in bytes
   uint64_t io_count;      // I/O count created and submitted
   uint64_t read_count;

@@ -50,7 +50,10 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
       Section::TraceReplayer, TraceConfig::Key::TimingMode);
   maxQueueDepth =
       (uint32_t)readConfigUint(Section::TraceReplayer, TraceConfig::Key::Depth);
-  max_io = readConfigUint(Section::TraceReplayer, TraceConfig::Key::Limit);
+  max_io_count =
+      readConfigUint(Section::TraceReplayer, TraceConfig::Key::CountLimit);
+  max_io_size =
+      readConfigUint(Section::TraceReplayer, TraceConfig::Key::SizeLimit);
   groupID[ID_OPERATION] = (uint32_t)readConfigUint(
       Section::TraceReplayer, TraceConfig::Key::GroupOperation);
   groupID[ID_BYTE_OFFSET] = (uint32_t)readConfigUint(
@@ -185,7 +188,7 @@ void TraceReplayer::printStats(std::ostream &out) {
 }
 
 void TraceReplayer::getProgress(float &val) {
-  if (max_io == 0) {
+  if (max_io_count == 0 && max_io_size == 0) {
     // If I/O count is unlimited, use file pointer for fast progress calculation
     uint64_t ptr;
 
@@ -196,13 +199,18 @@ void TraceReplayer::getProgress(float &val) {
 
     val = (float)ptr / fileSize;
   }
-  else {
+  else if (max_io_size > 0) {
     std::lock_guard<std::mutex> guard(m);
 
     // Use submitted I/O count in progress calculation
     // If trace file contains I/O requests smaller than max_io, progress value
     // cannot reach 1.0 (100%)
-    val = (float)io_submitted / max_io;
+    val = (float)io_submitted / max_io_size;
+  }
+  else {
+    std::lock_guard<std::mutex> guard(m);
+
+    val = (float)io_count / max_io_count;
   }
 }
 
@@ -257,18 +265,12 @@ uint64_t TraceReplayer::mergeTime(std::smatch &match) {
 }
 
 Driver::RequestType TraceReplayer::getType(std::string type) {
-  io_count++;
-
   switch (type[0]) {
     case 'r':
     case 'R':
-      read_count++;
-
       return Driver::RequestType::Read;
     case 'w':
     case 'W':
-      write_count++;
-
       return Driver::RequestType::Write;
     case 'f':
     case 'F':
@@ -340,6 +342,9 @@ void TraceReplayer::parseLine() {
 }
 
 void TraceReplayer::submitIO() {
+  panic_if(linedata.type == Driver::RequestType::None,
+           "Unexpected request type.");
+
   auto ret =
       bioEntry.submitRequest(linedata.type, linedata.offset, linedata.length);
 
@@ -352,30 +357,39 @@ void TraceReplayer::submitIO() {
 
   panic_if(!ret, "BUG!");
 
-  // Limit check
-  if (max_io != 0 && io_submitted >= max_io) {
-    reserveTermination = true;
-    // DO NOT RETURN HERE
-  }
-
+  // Stat
   io_submitted += linedata.length;
   io_depth++;
+  io_count++;
+
+  if (linedata.type == Driver::RequestType::Read) {
+    read_count++;
+  }
+  else if (linedata.type == Driver::RequestType::Write) {
+    write_count++;
+  }
+
+  // Limit check
+  if (UNLIKELY((max_io_size != 0 && io_submitted >= max_io_size) ||
+               (max_io_count != 0 && io_count >= max_io_count))) {
+    reserveTermination = true;
+
+    return;
+  }
 
   // Get next line
   parseLine();
 
   // Reschedule submission
-  if (LIKELY(!reserveTermination)) {
-    switch (mode) {
-      case TraceConfig::TimingModeType::Strict:
-        scheduleAbs(submitEvent, 0ull, linedata.tick - firstTick + initTime);
-        break;
-      case TraceConfig::TimingModeType::Asynchronous:
-        rescheduleSubmit();
-        break;
-      default:
-        break;
-    }
+  switch (mode) {
+    case TraceConfig::TimingModeType::Strict:
+      scheduleAbs(submitEvent, 0ull, linedata.tick - firstTick + initTime);
+      break;
+    case TraceConfig::TimingModeType::Asynchronous:
+      rescheduleSubmit();
+      break;
+    default:
+      break;
   }
 }
 
