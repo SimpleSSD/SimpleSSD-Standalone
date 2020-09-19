@@ -330,26 +330,34 @@ void TraceReplayer::parseLine() {
 
   // This function increases I/O count
   linedata.type = getType(match[groupID[ID_OPERATION]].str());
+}
+
+void TraceReplayer::submitIO() {
+  auto ret =
+      bioEntry.submitRequest(linedata.type, linedata.offset, linedata.length);
+
+  if (mode == TraceConfig::TimingModeType::Strict && !ret) {
+    // Delay request submission
+    forceSubmit = true;
+
+    return;
+  }
+
+  panic_if(!ret, "BUG!");
 
   // Limit check
   if (max_io != 0 && io_submitted >= max_io) {
     reserveTermination = true;
     // DO NOT RETURN HERE
   }
-}
 
-void TraceReplayer::submitIO() {
   io_submitted += linedata.length;
   io_depth++;
-
-  auto ret =
-      bioEntry.submitRequest(linedata.type, linedata.offset, linedata.length);
-
-  panic_if(!ret, "BUG!");
 
   // Get next line
   parseLine();
 
+  // Reschedule submission
   if (LIKELY(!reserveTermination)) {
     switch (mode) {
       case TraceConfig::TimingModeType::Strict:
@@ -377,11 +385,11 @@ void TraceReplayer::iocallback(uint64_t now, uint64_t tag) {
   }
 
   if (mode == TraceConfig::TimingModeType::Synchronous || forceSubmit) {
-    // MODE_ASYNC submission blocked by I/O depth limitation
+    rescheduleSubmit();
+
+    // Async / Strict submission blocked by I/O depth limitation
     // Let's submit here
     forceSubmit = false;
-
-    rescheduleSubmit();
   }
 }
 
@@ -393,7 +401,7 @@ void TraceReplayer::rescheduleSubmit() {
       return;
     }
   }
-  else if (mode == TraceConfig::TimingModeType::Strict) {
+  else if (mode == TraceConfig::TimingModeType::Strict && !forceSubmit) {
     return;
   }
 
