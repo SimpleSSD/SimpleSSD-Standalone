@@ -26,6 +26,11 @@ endif ()
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
+# Validate build path
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR AND NOT MSVC)
+  message (FATAL_ERROR "In-source builds are not allowed.")
+endif ()
+
 # Add options for debug build
 option(DRAMPOWER_VERBOSE "Show warnings from DRAMPower library." OFF)
 
