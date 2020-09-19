@@ -155,7 +155,14 @@ void TraceReplayer::begin() {
     firstTick = initTime;
   }
 
-  submitIO();
+  if (UNLIKELY(reserveTermination)) {
+    warn("No I/O submitted. Check regular expression.");
+
+    scheduleAbs(endCallback, 0, initTime);
+  }
+  else {
+    submitIO();
+  }
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
