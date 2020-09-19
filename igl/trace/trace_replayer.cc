@@ -122,9 +122,8 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
 
   submitEvent = createEvent([this](uint64_t, uint64_t) { submitIO(); },
                             "IGL::TraceReplayer::submitEvent");
-  completionEvent =
-      createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
-                  "IGL::TraceReplayer::completionEvent");
+  completionEvent = createEvent([this](uint64_t t, uint64_t) { iocallback(t); },
+                                "IGL::TraceReplayer::completionEvent");
 
   auto submissionLatency =
       readConfigUint(Section::Simulation, Config::Key::SubmissionLatency);
@@ -425,10 +424,8 @@ void TraceReplayer::submitIO() {
   }
 }
 
-void TraceReplayer::iocallback(uint64_t now, uint64_t tag) {
+void TraceReplayer::iocallback(uint64_t now) {
   io_depth--;
-
-  bioEntry.finishRequest((uint16_t)tag);
 
   if (reserveTermination) {
     // Everything is done

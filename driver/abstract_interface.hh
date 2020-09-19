@@ -43,6 +43,7 @@ class Request {
   const uint64_t offset;  // LBA offset
 
   uint64_t submittedAt;
+  uint64_t completedAt;
 
  private:
   void *driverData;
@@ -54,6 +55,7 @@ class Request {
         length(0),
         offset(0),
         submittedAt(0),
+        completedAt(0),
         driverData(nullptr) {}
   Request(uint64_t t, uint64_t slba, uint32_t nlb, RequestType op)
       : type(op),
@@ -61,6 +63,7 @@ class Request {
         length(nlb),
         offset(slba),
         submittedAt(0),
+        completedAt(0),
         driverData(nullptr) {}
 
   inline void setDriverData(void *p) noexcept { driverData = p; }

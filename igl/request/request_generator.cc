@@ -66,9 +66,8 @@ RequestGenerator::RequestGenerator(ObjectData &o, BlockIOLayer &b, Event e)
 
   submitEvent = createEvent([this](uint64_t t, uint64_t) { submitIO(t); },
                             "IGL::RequestGenerator::submitEvent");
-  completionEvent =
-      createEvent([this](uint64_t t, uint64_t d) { iocallback(t, d); },
-                  "IGL::RequestGenerator::completionEvent");
+  completionEvent = createEvent([this](uint64_t t, uint64_t) { iocallback(t); },
+                                "IGL::RequestGenerator::completionEvent");
 
   bioEntry.initialize(iodepth, submissionLatency, completionLatency,
                       completionEvent);
@@ -309,10 +308,8 @@ void RequestGenerator::submitIO(uint64_t now) {
   }
 }
 
-void RequestGenerator::iocallback(uint64_t now, uint64_t tag) {
+void RequestGenerator::iocallback(uint64_t now) {
   io_depth--;
-
-  bioEntry.finishRequest((uint16_t)tag);
 
   if (reserveTermination) {
     // No I/O will be generated anymore

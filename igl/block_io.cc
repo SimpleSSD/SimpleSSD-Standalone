@@ -28,18 +28,72 @@ BlockIOLayer::BlockIOLayer(ObjectData &o, Driver::AbstractInterface *i,
       lastProgressAt(0),
       io_progress(0),
       iglCallback(InvalidEventID) {
-  eventDispatch = createEvent([this](uint64_t, uint64_t d) { dispatch(d); },
+  eventDispatch = createEvent([this](uint64_t t, uint64_t) { dispatch(t); },
                               "IGL::BlockIOLayer::eventDispatch");
+  eventCompletion = createEvent([this](uint64_t t, uint64_t) { completion(t); },
+                                "IGL::BlockIOLayer::eventCompletion");
 }
 
 BlockIOLayer::~BlockIOLayer() {}
 
-void BlockIOLayer::dispatch(uint64_t tag) {
-  auto iter = queue.find((uint16_t)tag);
+void BlockIOLayer::dispatch(uint64_t now) {
+  auto &iter = submissionQueue.front();
+  auto ret = dispatchedQueue.emplace(iter.tag, std::move(iter));
 
-  panic_if(iter == queue.end(), "Unexpected request ID.");
+  submissionQueue.pop_front();
 
-  pInterface->submit(iter->second);
+  panic_if(!ret.second, "Request ID conflict.");
+
+  if (submissionQueue.size() > 0) {
+    scheduleAbs(eventDispatch, 0, now + submissionLatency);
+  }
+
+  pInterface->submit(ret.first->second);
+}
+
+void BlockIOLayer::completion(uint64_t now) {
+  auto &iter = completionQueue.front();
+
+  calculateStat(now);
+
+  object.engine->invoke(iglCallback, iter.tag);
+
+  completionQueue.pop_front();
+
+  if (completionQueue.size() > 0) {
+    scheduleAbs(eventCompletion, 0,
+                completionQueue.front().completedAt + completionLatency);
+  }
+}
+
+void BlockIOLayer::calculateStat(uint64_t now) {
+  auto &iter = completionQueue.front();
+
+  auto lat = now - iter.submittedAt;
+
+  {
+    std::lock_guard<std::mutex> guard(m);
+
+    io_progress++;
+
+    progress.latency += lat;
+    progress.iops++;
+    progress.bandwidth += iter.length * bs;
+  }
+
+  if (pLatencyLogFile) {
+    *pLatencyLogFile << std::to_string(now) << ", "
+                     << std::to_string(iter.offset * bs) << ", "
+                     << std::to_string(iter.length * bs) << ", "
+                     << std::to_string(lat) << std::endl;
+  }
+
+  minLatency = MIN(minLatency, lat);
+  maxLatency = MAX(maxLatency, lat);
+
+  io_count++;
+  sumLatency += lat;
+  squareSumLatency += lat * lat;
 }
 
 void BlockIOLayer::initialize(uint16_t md, uint64_t sl, uint64_t cl,
@@ -57,7 +111,9 @@ bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
                                  uint64_t length) noexcept {
   uint64_t now = getTick();
 
-  if (UNLIKELY(queue.size() >= maxIODepth)) {
+  if (UNLIKELY(submissionQueue.size() + dispatchedQueue.size() +
+                   completionQueue.size() >=
+               maxIODepth)) {
     return false;
   }
 
@@ -88,14 +144,14 @@ bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
   }
 
   auto tag = requestCounter++;
-  auto ret =
-      queue.emplace(tag, Driver::Request(tag, offset, (uint32_t)length, type));
+  auto &ret = submissionQueue.emplace_back(
+      Driver::Request(tag, offset, (uint32_t)length, type));
 
-  panic_if(!ret.second, "Request ID conflict.");
+  ret.submittedAt = now;
 
-  ret.first->second.submittedAt = now;
-
-  scheduleAbs(eventDispatch, tag, now + submissionLatency);
+  if (submissionQueue.size() == 1) {
+    scheduleAbs(eventDispatch, 0, now + submissionLatency);
+  }
 
   return true;
 }
@@ -113,56 +169,24 @@ void BlockIOLayer::getSSDSize(uint64_t &size, uint32_t &blocksize) noexcept {
 
 void *BlockIOLayer::postCompletion(uint16_t tag) noexcept {
   uint64_t now = getTick();
-  auto iter = queue.find(tag);
+  auto iter = dispatchedQueue.find(tag);
 
-  panic_if(iter == queue.end(), "Unexpected request ID.");
+  panic_if(iter == dispatchedQueue.end(), "Unexpected request ID.");
 
-  scheduleAbs(iglCallback, tag, now + completionLatency);
+  iter->second.completedAt = now;
 
-  return iter->second.getDriverData();
-}
+  auto ptr = iter->second.getDriverData();
 
-void BlockIOLayer::finishRequest(uint16_t tag) noexcept {
-  uint64_t now = getTick();
-  auto iter = queue.find(tag);
+  // Move to completionQueue
+  completionQueue.emplace_back(std::move(iter->second));
 
-  panic_if(iter == queue.end(), "Unexpected request ID.");
+  dispatchedQueue.erase(iter);
 
-  auto lat = now - iter->second.submittedAt;
-
-  {
-    std::lock_guard<std::mutex> guard(m);
-
-    io_progress++;
-
-    progress.latency += lat;
-    progress.iops++;
-    progress.bandwidth += iter->second.length * bs;
+  if (completionQueue.size() == 1) {
+    scheduleAbs(eventCompletion, 0, now + completionLatency);
   }
 
-  if (pLatencyLogFile) {
-    *pLatencyLogFile << std::to_string(now) << ", "
-                     << std::to_string(iter->second.offset * bs) << ", "
-                     << std::to_string(iter->second.length * bs) << ", "
-                     << std::to_string(lat) << std::endl;
-  }
-
-  minLatency = MIN(minLatency, lat);
-  maxLatency = MAX(maxLatency, lat);
-
-  io_count++;
-  sumLatency += lat;
-  squareSumLatency += lat * lat;
-
-  queue.erase(iter);
-}
-
-Driver::Request *BlockIOLayer::getRequest(uint16_t tag) noexcept {
-  auto iter = queue.find(tag);
-
-  panic_if(iter == queue.end(), "Unexpected request ID.");
-
-  return &iter->second;
+  return ptr;
 }
 
 void BlockIOLayer::printStats(std::ostream &out) noexcept {

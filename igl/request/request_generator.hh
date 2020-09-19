@@ -61,7 +61,7 @@ class RequestGenerator : public AbstractIOGenerator {
   Event completionEvent;
 
   void submitIO(uint64_t);
-  void iocallback(uint64_t, uint64_t);
+  void iocallback(uint64_t);
 
  public:
   RequestGenerator(ObjectData &, BlockIOLayer &, Event);

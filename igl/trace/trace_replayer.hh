@@ -92,7 +92,7 @@ class TraceReplayer : public AbstractIOGenerator {
   Event completionEvent;
 
   void submitIO();
-  void iocallback(uint64_t, uint64_t);
+  void iocallback(uint64_t);
 
  public:
   TraceReplayer(ObjectData &, BlockIOLayer &, Event);

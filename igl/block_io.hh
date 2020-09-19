@@ -30,8 +30,10 @@ class BlockIOLayer : public Object {
   // Latency file
   std::ostream *pLatencyLogFile;
 
-  // Request queue
-  std::unordered_map<uint16_t, Driver::Request> queue;
+  // Request queues
+  std::deque<Driver::Request> submissionQueue;
+  std::unordered_map<uint16_t, Driver::Request> dispatchedQueue;
+  std::deque<Driver::Request> completionQueue;
 
   // SSD size
   uint64_t bytesize;
@@ -61,6 +63,10 @@ class BlockIOLayer : public Object {
 
   Event eventDispatch;
   void dispatch(uint64_t);
+
+  Event eventCompletion;
+  void completion(uint64_t);
+  inline void calculateStat(uint64_t);
 
  public:
   BlockIOLayer(ObjectData &, Driver::AbstractInterface *, std::ostream *);
@@ -108,20 +114,6 @@ class BlockIOLayer : public Object {
    * \return  Driver data stored in request
    */
   void *postCompletion(uint16_t) noexcept;
-
-  /**
-   * \brief Complete Request (For I/O generator)
-   *
-   * \param[in] tag Request Tag ID
-   */
-  void finishRequest(uint16_t) noexcept;
-
-  /**
-   * \brief Get Request
-   *
-   * \param[in] tag Request Tag ID
-   */
-  Driver::Request *getRequest(uint16_t) noexcept;
 
   void printStats(std::ostream &) noexcept;
   void getProgress(Progress &) noexcept;
