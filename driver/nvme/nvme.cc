@@ -346,7 +346,7 @@ void NVMeInterface::submit(Request &req) {
     cmd[11] = req.offset >> 32;
     cmd[12] = req.length - 1;  // LR, FUA, PRINFO, NLB
 
-    prp = new PRP(req.length);
+    prp = new PRP(req.length * LBAsize);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Write) {
@@ -355,7 +355,7 @@ void NVMeInterface::submit(Request &req) {
     cmd[11] = req.offset >> 32;
     cmd[12] = req.length - 1;  // LR, FUA, PRINFO, DTYPE, NLB
 
-    prp = new PRP(req.length);
+    prp = new PRP(req.length * LBAsize);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Flush) {
