@@ -210,7 +210,7 @@
     <!--
       <int> I/O depth
 
-      Maximum asynchronous I/O depth when using TimingMode = 1
+      Maximum asynchronous I/O depth. Only applied when TimingMode is 1 or 2.
      -->
     <config name="IODepth">32</config>
     <!--
