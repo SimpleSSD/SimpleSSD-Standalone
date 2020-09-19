@@ -173,7 +173,37 @@ void TraceReplayer::printStats(std::ostream &out) {
   uint64_t tick = getTick();
 
   out << "*** Statistics of Trace Replayer ***" << std::endl;
-  out << "Tick: " << tick << std::endl;
+  out << "Replay mode: ";
+
+  switch (mode) {
+    case TraceConfig::TimingModeType::Synchronous:
+      out << "Sync";
+      break;
+    case TraceConfig::TimingModeType::Asynchronous:
+      out << "Async (depth: " << maxQueueDepth << ")";
+      break;
+    case TraceConfig::TimingModeType::Strict:
+      out << "Strict (depth: " << maxQueueDepth << ")";
+      break;
+  }
+
+  out << std::endl << "Termination mode: ";
+
+  if (max_io_count == 0 && max_io_size == 0) {
+    out << "None - Replay until end of trace.";
+  }
+  else if (max_io_count > 0 && max_io_size > 0) {
+    out << "Until " << max_io_size << " bytes or " << max_io_count
+        << " requests issued.";
+  }
+  else if (max_io_count > 0) {
+    out << "Until " << max_io_count << " requests issued.";
+  }
+  else {
+    out << "Until " << max_io_size << " bytes issued.";
+  }
+
+  out << std::endl << "Tick: " << tick << std::endl;
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
       << tick + firstTick - initTime << ")" << std::endl;
   out << "I/O (bytes): " << io_submitted << " (";
