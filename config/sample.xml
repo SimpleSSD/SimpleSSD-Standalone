@@ -218,7 +218,13 @@
 
       Set zero or leave empty to issue all I/O in the trace file
      -->
-    <config name="IOLimit">0</config>
+    <config name="IOCountLimit">0</config>
+    <!--
+      <int> Total size of I/O to issue
+
+      Set zero or leave empty to issue all I/O in the trace file
+     -->
+    <config name="IOSizeLimit">0</config>
     <!--
       <str> Regular expression
 

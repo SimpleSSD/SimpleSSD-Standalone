@@ -12,7 +12,8 @@ namespace Standalone::IGL {
 const char NAME_FILE[] = "File";
 const char NAME_TIMING_MODE[] = "TimingMode";
 const char NAME_IO_DEPTH[] = "IODepth";
-const char NAME_IO_LIMIT[] = "IOLimit";
+const char NAME_IO_COUNT_LIMIT[] = "IOCountLimit";
+const char NAME_IO_SIZE_LIMIT[] = "IOSizeLimit";
 const char NAME_LINE_REGEX[] = "Regex";
 const char NAME_GROUP_OPERATION[] = "Operation";
 const char NAME_GROUP_BYTE_OFFSET[] = "ByteOffset";
@@ -30,7 +31,8 @@ const char NAME_USE_HEX[] = "UseHexadecimal";
 TraceConfig::TraceConfig() {
   mode = TimingModeType::Synchronous;
   queueDepth = 1;
-  iolimit = 0;
+  iocountlimit = 0;
+  iosizelimit = 0;
   groupOperation = 0;
   groupByteOffset = 0;
   groupByteLength = 0;
@@ -50,7 +52,8 @@ void TraceConfig::loadFrom(pugi::xml_node &section) noexcept {
     LOAD_NAME_STRING(node, NAME_FILE, file);
     LOAD_NAME_UINT_TYPE(node, NAME_TIMING_MODE, TimingModeType, mode);
     LOAD_NAME_UINT_TYPE(node, NAME_IO_DEPTH, uint32_t, queueDepth);
-    LOAD_NAME_UINT(node, NAME_IO_LIMIT, iolimit);
+    LOAD_NAME_UINT(node, NAME_IO_SIZE_LIMIT, iosizelimit);
+    LOAD_NAME_UINT(node, NAME_IO_COUNT_LIMIT, iocountlimit);
     LOAD_NAME_STRING(node, NAME_LINE_REGEX, regex);
     LOAD_NAME_UINT_TYPE(node, NAME_GROUP_OPERATION, uint32_t, groupOperation);
     LOAD_NAME_UINT_TYPE(node, NAME_GROUP_BYTE_OFFSET, uint32_t,
@@ -73,7 +76,8 @@ void TraceConfig::storeTo(pugi::xml_node &section) noexcept {
   STORE_NAME_STRING(section, NAME_FILE, file);
   STORE_NAME_UINT(section, NAME_TIMING_MODE, mode);
   STORE_NAME_UINT(section, NAME_IO_DEPTH, queueDepth);
-  STORE_NAME_UINT(section, NAME_IO_LIMIT, iolimit);
+  STORE_NAME_UINT(section, NAME_IO_SIZE_LIMIT, iosizelimit);
+  STORE_NAME_UINT(section, NAME_IO_COUNT_LIMIT, iocountlimit);
   STORE_NAME_STRING(section, NAME_LINE_REGEX, regex);
   STORE_NAME_UINT(section, NAME_GROUP_OPERATION, groupOperation);
   STORE_NAME_UINT(section, NAME_GROUP_BYTE_OFFSET, groupByteOffset);
@@ -132,8 +136,11 @@ uint64_t TraceConfig::readUint(uint32_t idx) const noexcept {
     case Key::Depth:
       ret = queueDepth;
       break;
-    case Key::Limit:
-      ret = iolimit;
+    case Key::CountLimit:
+      ret = iocountlimit;
+      break;
+    case Key::SizeLimit:
+      ret = iosizelimit;
       break;
     case Key::GroupOperation:
       ret = groupOperation;
@@ -210,8 +217,11 @@ bool TraceConfig::writeUint(uint32_t idx, uint64_t value) noexcept {
     case Key::Depth:
       queueDepth = (uint32_t)value;
       break;
-    case Key::Limit:
-      iolimit = value;
+    case Key::CountLimit:
+      iocountlimit = value;
+      break;
+    case Key::SizeLimit:
+      iosizelimit = value;
       break;
     case Key::GroupOperation:
       groupOperation = (uint32_t)value;

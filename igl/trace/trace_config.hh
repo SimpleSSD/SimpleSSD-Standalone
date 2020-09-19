@@ -20,7 +20,8 @@ class TraceConfig : public SimpleSSD::BaseConfig {
     File,
     TimingMode,
     Depth,
-    Limit,
+    CountLimit,
+    SizeLimit,
     Regex,
     GroupOperation,
     GroupByteOffset,
@@ -46,7 +47,8 @@ class TraceConfig : public SimpleSSD::BaseConfig {
   std::string file;
   TimingModeType mode;
   uint32_t queueDepth;
-  uint64_t iolimit;
+  uint64_t iocountlimit;
+  uint64_t iosizelimit;
   std::string regex;
   uint32_t groupOperation;
   uint32_t groupByteOffset;
