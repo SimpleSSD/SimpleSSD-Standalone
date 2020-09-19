@@ -432,6 +432,8 @@ void TraceReplayer::iocallback(uint64_t now) {
     if (io_depth == 0) {
       scheduleAbs(endCallback, 0ull, now);
     }
+
+    return;
   }
 
   if (mode == TraceConfig::TimingModeType::Synchronous || forceSubmit) {
