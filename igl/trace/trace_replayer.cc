@@ -18,6 +18,7 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
       useLBALength(false),
       reserveTermination(false),
       forceSubmit(false),
+      delayed(0),
       io_submitted(0),
       io_count(0),
       read_count(0),
@@ -383,7 +384,8 @@ void TraceReplayer::submitIO() {
   // Reschedule submission
   switch (mode) {
     case TraceConfig::TimingModeType::Strict:
-      scheduleAbs(submitEvent, 0ull, linedata.tick - firstTick + initTime);
+      scheduleAbs(submitEvent, 0ull,
+                  linedata.tick - firstTick + initTime + delayed);
       break;
     case TraceConfig::TimingModeType::Asynchronous:
       rescheduleSubmit();
@@ -422,8 +424,13 @@ void TraceReplayer::rescheduleSubmit() {
       return;
     }
   }
-  else if (mode == TraceConfig::TimingModeType::Strict && !forceSubmit) {
-    return;
+  else if (mode == TraceConfig::TimingModeType::Strict) {
+    if (forceSubmit) {
+      delayed = getTick() - (linedata.tick - firstTick + initTime);
+    }
+    else {
+      return;
+    }
   }
 
   scheduleNow(submitEvent);

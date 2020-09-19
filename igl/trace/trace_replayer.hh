@@ -58,10 +58,11 @@ class TraceReplayer : public AbstractIOGenerator {
   uint32_t blocksize;
 
   bool reserveTermination;
-  bool forceSubmit;  // Only used in Async
+  bool forceSubmit;  // Only used in Strict and Async
 
-  uint64_t initTime;   // Only used in Strict
+  uint64_t initTime;
   uint64_t firstTick;  // Only used in Strict
+  uint64_t delayed;    // Only used in Strict
 
   uint64_t max_io_count;
   uint64_t max_io_size;
