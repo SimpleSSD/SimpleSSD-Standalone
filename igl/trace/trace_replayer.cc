@@ -208,15 +208,15 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
       << tick + firstTick - initTime << ")" << std::endl;
   out << "Busy time (ps): " << io_busy << std::endl;
-  out << "I/O (bytes): " << io_submitted << " (";
+  out << "I/O (bytes): " << io_submitted << " (idle=";
 
   printBandwidth(out, io_submitted, tick - initTime);
 
-  out << ") (";
+  out << ") (busy=";
 
   printBandwidth(out, io_submitted, io_busy);
 
-  out << "" << std::endl;
+  out << ")" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
