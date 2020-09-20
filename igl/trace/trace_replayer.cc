@@ -23,7 +23,9 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
       io_count(0),
       read_count(0),
       write_count(0),
-      io_depth(0) {
+      io_depth(0),
+      io_busy(0),
+      io_busy_start(0) {
   // Check file
   auto filename =
       readConfigString(Section::TraceReplayer, TraceConfig::Key::File);
@@ -205,11 +207,16 @@ void TraceReplayer::printStats(std::ostream &out) {
   out << std::endl << "Tick: " << tick << std::endl;
   out << "Time (ps): " << firstTick - initTime << " - " << tick << " ("
       << tick + firstTick - initTime << ")" << std::endl;
+  out << "Busy time (ps): " << io_busy << std::endl;
   out << "I/O (bytes): " << io_submitted << " (";
 
   printBandwidth(out, io_submitted, tick - initTime);
 
-  out << ")" << std::endl;
+  out << ") (";
+
+  printBandwidth(out, io_submitted, io_busy);
+
+  out << "" << std::endl;
   out << "I/O (counts): " << io_count << " (Read: " << read_count
       << ", Write: " << write_count << ")" << std::endl;
   out << "*** End of statistics ***" << std::endl;
@@ -387,6 +394,10 @@ void TraceReplayer::submitIO() {
 
   panic_if(!ret, "BUG!");
 
+  if (io_depth == 0) {
+    io_busy_start = getTick();
+  }
+
   // Stat
   io_submitted += linedata.length;
   io_depth++;
@@ -426,6 +437,10 @@ void TraceReplayer::submitIO() {
 
 void TraceReplayer::iocallback(uint64_t now) {
   io_depth--;
+
+  if (io_depth == 0) {
+    io_busy += now - io_busy_start;
+  }
 
   if (reserveTermination) {
     // Everything is done

@@ -72,6 +72,8 @@ class TraceReplayer : public AbstractIOGenerator {
   uint64_t write_count;
 
   uint64_t io_depth;
+  uint64_t io_busy;
+  uint64_t io_busy_start;
 
   uint64_t mergeTime(std::smatch &);
   Driver::RequestType getType(std::string);
