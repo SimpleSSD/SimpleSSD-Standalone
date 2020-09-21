@@ -39,7 +39,7 @@ EventEngine engine;
 ConfigReader simConfig;
 SimpleSSD::SimpleSSD simplessd;
 SimpleSSD::ConfigReader ssdConfig;
-Driver::AbstractInterface *pInterface = nullptr;
+Standalone::Driver::AbstractInterface *pInterface = nullptr;
 IGL::BlockIOLayer *pBIOEntry = nullptr;
 IGL::AbstractIOGenerator *pIOGen = nullptr;
 std::ostream *pLog = nullptr;
@@ -228,11 +228,13 @@ int main(int argc, char *argv[]) {
 
   switch (type) {
     case Config::InterfaceType::None:
-      pInterface = new Driver::None::NoneInterface(standaloneObject, simplessd);
+      pInterface = new Standalone::Driver::None::NoneInterface(standaloneObject,
+                                                               simplessd);
 
       break;
     case Config::InterfaceType::NVMe:
-      pInterface = new Driver::NVMe::NVMeInterface(standaloneObject, simplessd);
+      pInterface = new Standalone::Driver::NVMe::NVMeInterface(standaloneObject,
+                                                               simplessd);
 
       break;
     default:
