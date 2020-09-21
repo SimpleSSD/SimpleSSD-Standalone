@@ -226,6 +226,13 @@
      -->
     <config name="IOSizeLimit">0</config>
     <!--
+      <bool> Restart from beginning when limit is not satisfied
+
+      If true, trace will be restarted from beginning when submitted I/O count
+      or I/O size is less than IOCountLimit or IOSizeLimit, respectively.
+     -->
+    <config name="WrapTrace">false</config>
+    <!--
       <str> Regular expression
 
       To support various format of trace file without conversion,

@@ -22,6 +22,7 @@ class TraceConfig : public SimpleSSD::BaseConfig {
     Depth,
     CountLimit,
     SizeLimit,
+    WrapTrace,
     Regex,
     GroupOperation,
     GroupByteOffset,
@@ -62,6 +63,7 @@ class TraceConfig : public SimpleSSD::BaseConfig {
   uint32_t groupPicoSecond;
   uint32_t lbaSize;
   bool useHexadecimal;
+  bool wrap;
 
  public:
   TraceConfig();

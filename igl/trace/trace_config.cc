@@ -14,6 +14,7 @@ const char NAME_TIMING_MODE[] = "TimingMode";
 const char NAME_IO_DEPTH[] = "IODepth";
 const char NAME_IO_COUNT_LIMIT[] = "IOCountLimit";
 const char NAME_IO_SIZE_LIMIT[] = "IOSizeLimit";
+const char NAME_WRAP_TRACE[] = "WrapTrace";
 const char NAME_LINE_REGEX[] = "Regex";
 const char NAME_GROUP_OPERATION[] = "Operation";
 const char NAME_GROUP_BYTE_OFFSET[] = "ByteOffset";
@@ -45,6 +46,7 @@ TraceConfig::TraceConfig() {
   groupPicoSecond = 0;
   lbaSize = 512;
   useHexadecimal = false;
+  wrap = false;
 }
 
 void TraceConfig::loadFrom(pugi::xml_node &section) noexcept {
@@ -54,6 +56,7 @@ void TraceConfig::loadFrom(pugi::xml_node &section) noexcept {
     LOAD_NAME_UINT_TYPE(node, NAME_IO_DEPTH, uint32_t, queueDepth);
     LOAD_NAME_UINT(node, NAME_IO_SIZE_LIMIT, iosizelimit);
     LOAD_NAME_UINT(node, NAME_IO_COUNT_LIMIT, iocountlimit);
+    LOAD_NAME_BOOLEAN(node, NAME_WRAP_TRACE, wrap);
     LOAD_NAME_STRING(node, NAME_LINE_REGEX, regex);
     LOAD_NAME_UINT_TYPE(node, NAME_GROUP_OPERATION, uint32_t, groupOperation);
     LOAD_NAME_UINT_TYPE(node, NAME_GROUP_BYTE_OFFSET, uint32_t,
@@ -78,6 +81,7 @@ void TraceConfig::storeTo(pugi::xml_node &section) noexcept {
   STORE_NAME_UINT(section, NAME_IO_DEPTH, queueDepth);
   STORE_NAME_UINT(section, NAME_IO_SIZE_LIMIT, iosizelimit);
   STORE_NAME_UINT(section, NAME_IO_COUNT_LIMIT, iocountlimit);
+  STORE_NAME_UINT(section, NAME_WRAP_TRACE, wrap);
   STORE_NAME_STRING(section, NAME_LINE_REGEX, regex);
   STORE_NAME_UINT(section, NAME_GROUP_OPERATION, groupOperation);
   STORE_NAME_UINT(section, NAME_GROUP_BYTE_OFFSET, groupByteOffset);
@@ -199,6 +203,9 @@ bool TraceConfig::readBoolean(uint32_t idx) const noexcept {
   bool ret = false;
 
   switch (idx) {
+    case Key::WrapTrace:
+      ret = wrap;
+      break;
     case Key::UseHexadecimal:
       ret = useHexadecimal;
       break;
@@ -286,6 +293,9 @@ bool TraceConfig::writeBoolean(uint32_t idx, bool value) noexcept {
   bool ret = true;
 
   switch (idx) {
+    case Key::WrapTrace:
+      wrap = value;
+      break;
     case Key::UseHexadecimal:
       useHexadecimal = value;
       break;
