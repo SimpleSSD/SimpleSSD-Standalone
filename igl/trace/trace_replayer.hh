@@ -46,7 +46,6 @@ class TraceReplayer : public AbstractIOGenerator {
   TraceConfig::TimingModeType mode;
 
   bool timeValids[5];
-  bool useHex;
   bool useLBAOffset;
   bool useLBALength;
 
@@ -57,6 +56,8 @@ class TraceReplayer : public AbstractIOGenerator {
   uint64_t ssdSize;
   uint32_t blocksize;
 
+  bool useHex;
+  bool useWrap;
   bool reserveTermination;
   bool forceSubmit;  // Only used in Strict and Async
 

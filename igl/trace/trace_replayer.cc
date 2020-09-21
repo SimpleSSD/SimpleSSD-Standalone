@@ -79,6 +79,8 @@ TraceReplayer::TraceReplayer(ObjectData &o, BlockIOLayer &b, Event e)
       Section::TraceReplayer, TraceConfig::Key::GroupPicoSecond);
   useHex = readConfigBoolean(Section::TraceReplayer,
                              TraceConfig::Key::UseHexadecimal);
+  useWrap =
+      readConfigBoolean(Section::TraceReplayer, TraceConfig::Key::WrapTrace);
 
   if (groupID[ID_OPERATION] == 0) {
     panic("Operation group ID cannot be 0");
@@ -338,6 +340,16 @@ void TraceReplayer::parseLine() {
     }
 
     if (eof) {
+      if (useWrap && (io_count < max_io_count || io_submitted < max_io_size)) {
+        // Wrap (this will clear EOF bit)
+        file.seekg(0, std::ios::beg);
+
+        // Handle timing calculation
+        delayed += linedata.tick - firstTick;
+
+        continue;
+      }
+
       reserveTermination = true;
 
       if (io_depth == 0) {
