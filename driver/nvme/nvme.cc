@@ -341,11 +341,11 @@ void NVMeInterface::submit(Request &req) {
 
   cmd[1] = namespaceID;  // NSID
 
-  if (UNLIKELY(req.length > 65536)) {
-    length = 0;
+  if (UNLIKELY(req.length > 65535)) {
+    length = 1;
 
     warn("Too large request. Truncate to 64K blocks (%u bytes).",
-         65536 * LBAsize);
+         65535 * LBAsize);
   }
 
   if (req.type == RequestType::Read) {
