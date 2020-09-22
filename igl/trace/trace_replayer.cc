@@ -341,8 +341,8 @@ void TraceReplayer::parseLine() {
 
     if (eof) {
       if (useWrap && (io_count < max_io_count || io_submitted < max_io_size)) {
-        // Wrap (this will clear EOF bit)
-        file.seekg(0, std::ios::beg);
+        file.clear();                  // Clear fail
+        file.seekg(0, std::ios::beg);  // Clear eof
 
         // Handle timing calculation
         delayed += linedata.tick - firstTick;
