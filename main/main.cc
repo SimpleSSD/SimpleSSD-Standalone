@@ -55,6 +55,7 @@ std::ofstream latencyFile;
 
 // Declaration
 void cleanup(int);
+void progress(int);
 void statistics(uint64_t, bool = false);
 void threadFunc(int);
 
@@ -101,7 +102,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Install signal handler
-  installSignalHandler(cleanup);
+  installSignalHandler(cleanup, progress);
 
   // Read simulation config file
   simConfig.load(argv[1]);
@@ -383,6 +384,23 @@ void cleanup(int sig) {
 
   // Exit program
   exit(0);
+}
+
+void progress(int) {
+  uint64_t tick;
+  IGL::Progress data;
+  float progress;
+
+  tick = engine.getTick();
+  pIOGen->getProgress(progress);
+  pBIOEntry->getProgress(data);
+
+  printf("\nSimTick: %" PRIu64 ", Progress: %.2f%%, IOPS: %" PRIu64 ", BW: ",
+         tick, progress * 100.f, data.iops);
+  printBandwidth(std::cout, data.bandwidth);
+  printf(", Lat: ");
+  printLatency(std::cout, data.latency);
+  printf("\n");
 }
 
 void statistics(uint64_t tick, bool last) {

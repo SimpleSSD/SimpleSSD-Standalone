@@ -323,13 +323,14 @@ void print_backtrace() {
   std::cerr << "--- END BACKTRACE ---" << std::endl;
 }
 
-void installSignalHandler(void (*handler)(int)) {
+void installSignalHandler(void (*handler)(int), void (*progfunc)(int)) {
 #ifdef _MSC_VER
   closeHandler = handler;
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE);
   SetUnhandledExceptionFilter(exceptionHandler);
 #else
   installHandler(SIGINT, handler);
+  installHandler(SIGUSR1, progfunc);
   installHandler(SIGABRT, abortHandler, SA_RESETHAND | SA_NODEFER);
   installHandler(SIGSEGV, segfaultHandler, SA_RESETHAND | SA_NODEFER);
   installHandler(SIGFPE, fpeHandler, SA_RESETHAND | SA_NODEFER);

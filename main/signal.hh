@@ -10,7 +10,7 @@
 #ifndef __MAIN_SIGNAL_HH__
 #define __MAIN_SIGNAL_HH__
 
-void installSignalHandler(void (*)(int));
+void installSignalHandler(void (*)(int), void (*)(int));
 void blockSIGINT();
 
 #endif
