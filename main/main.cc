@@ -131,6 +131,11 @@ int main(int argc, char *argv[]) {
     ssdConfig.writeBoolean(SimpleSSD::Section::Simulation,
                            SimpleSSD::Config::Key::RestoreFromCheckpoint, true);
   }
+  else {
+    ssdConfig.writeBoolean(SimpleSSD::Section::Simulation,
+                           SimpleSSD::Config::Key::RestoreFromCheckpoint,
+                           false);
+  }
 
   switch (type) {
     case Config::InterfaceType::NVMe:
