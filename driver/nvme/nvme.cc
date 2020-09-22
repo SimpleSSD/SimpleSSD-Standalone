@@ -334,28 +334,36 @@ void NVMeInterface::getSSDInfo(uint64_t &bytesize, uint32_t &minbs) {
 
 void NVMeInterface::submit(Request &req) {
   uint32_t cmd[16];
+  uint16_t length = (uint16_t)req.length;
   PRP *prp = nullptr;
 
   memset(cmd, 0, 64);
 
   cmd[1] = namespaceID;  // NSID
 
+  if (UNLIKELY(req.length > 65536)) {
+    length = 0;
+
+    warn("Too large request. Truncate to 64K blocks (%u bytes).",
+         65536 * LBAsize);
+  }
+
   if (req.type == RequestType::Read) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Read;
     cmd[10] = (uint32_t)req.offset;
     cmd[11] = req.offset >> 32;
-    cmd[12] = req.length - 1;  // LR, FUA, PRINFO, NLB
+    cmd[12] = length - 1;  // LR, FUA, PRINFO, NLB
 
-    prp = new PRP(req.length * LBAsize);
+    prp = new PRP(length * LBAsize);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Write) {
     cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Write;
     cmd[10] = (uint32_t)req.offset;
     cmd[11] = req.offset >> 32;
-    cmd[12] = req.length - 1;  // LR, FUA, PRINFO, DTYPE, NLB
+    cmd[12] = length - 1;  // LR, FUA, PRINFO, DTYPE, NLB
 
-    prp = new PRP(req.length * LBAsize);
+    prp = new PRP(length * LBAsize);
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Flush) {
