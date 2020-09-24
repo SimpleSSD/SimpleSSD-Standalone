@@ -17,7 +17,7 @@ namespace Standalone::Driver::NVMe {
 NVMeInterface::NVMeInterface(ObjectData &o, SimpleSSD::SimpleSSD &s)
     : AbstractInterface(o, s),
       scheduler(
-          s.getObject(), "SIL::NVMe::Driver::scheduler",
+          s.getObject(), "Driver::NVMe::NVMeInterface::scheduler",
           [this](DMAEntry *d) -> uint64_t { return preSubmitRead(d); },
           [this](DMAEntry *d) -> uint64_t { return preSubmitWrite(d); },
           [this](DMAEntry *d) { postDone(d); },
