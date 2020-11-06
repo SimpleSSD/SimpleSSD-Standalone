@@ -349,7 +349,7 @@ void NVMeInterface::submit(Request &req) {
   }
 
   if (req.type == RequestType::Read) {
-    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Read;
+    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::IOCommand::Read;
     cmd[10] = (uint32_t)req.offset;
     cmd[11] = req.offset >> 32;
     cmd[12] = length - 1;  // LR, FUA, PRINFO, NLB
@@ -358,7 +358,7 @@ void NVMeInterface::submit(Request &req) {
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Write) {
-    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Write;
+    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::IOCommand::Write;
     cmd[10] = (uint32_t)req.offset;
     cmd[11] = req.offset >> 32;
     cmd[12] = length - 1;  // LR, FUA, PRINFO, DTYPE, NLB
@@ -367,10 +367,10 @@ void NVMeInterface::submit(Request &req) {
     prp->getPointer(*(uint64_t *)(cmd + 6), *(uint64_t *)(cmd + 8));  // DPTR
   }
   else if (req.type == RequestType::Flush) {
-    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::Flush;
+    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::IOCommand::Flush;
   }
   else if (req.type == RequestType::Trim) {
-    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::NVMCommand::DatasetManagement;
+    cmd[0] = (uint8_t)SimpleSSD::HIL::NVMe::IOCommand::DatasetManagement;
     cmd[10] = 0;     // NR
     cmd[11] = 0x04;  // AD
 
