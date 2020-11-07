@@ -125,6 +125,7 @@ set(SRC_MAIN
   main/signal.cc
 )
 set(SRC_UTIL
+  util/argparse.cc
   util/print.cc
   util/stopwatch.cc
 )
