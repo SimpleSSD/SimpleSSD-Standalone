@@ -92,11 +92,21 @@ out:
   valid = false;
 }
 
-const char *ArgumentParser::getArgument(std::string key) noexcept {
+const char *ArgumentParser::getArgument(std::string key,
+                                        std::string key2) noexcept {
   auto iter = args.find(key);
 
   if (iter != args.end()) {
     return iter->second;
+  }
+
+  // Check with key 2
+  if (key.length() > 0) {
+    iter = args.find(key2);
+
+    if (iter != args.end()) {
+      return iter->second;
+    }
   }
 
   return nullptr;

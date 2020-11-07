@@ -32,7 +32,7 @@ class ArgumentParser {
   ~ArgumentParser();
 
   bool isValid() noexcept { return valid; }
-  const char *getArgument(std::string) noexcept;
+  const char *getArgument(std::string, std::string = "") noexcept;
   const char *getPositionalArgument(int) noexcept;
 };
 
