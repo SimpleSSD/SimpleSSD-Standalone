@@ -126,4 +126,22 @@ const char *ArgumentParser::getPositionalArgument(int pos) noexcept {
   return nullptr;
 }
 
+std::vector<const char *> ArgumentParser::getMultipleArguments(
+    std::string key, std::string key2) {
+  std::vector<const char *> list;
+  auto range = args.equal_range(key);
+
+  if (range.first == args.end() && key2.length() > 0) {
+    range = args.equal_range(key2);
+  }
+
+  if (range.first != args.end()) {
+    for (auto iter = range.first; iter != range.second; ++iter) {
+      list.emplace_back(iter->second);
+    }
+  }
+
+  return list;
+}
+
 }  // namespace Standalone

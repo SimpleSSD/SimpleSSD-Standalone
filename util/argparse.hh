@@ -21,7 +21,7 @@ class ArgumentParser {
  private:
   bool valid;
   int pos;
-  std::unordered_map<std::string, const char *> args;
+  std::unordered_multimap<std::string, const char *> args;
   std::vector<const char *> posargs;
 
   void parse(int, char *[]);
@@ -34,6 +34,7 @@ class ArgumentParser {
   bool isValid() noexcept { return valid; }
   const char *getArgument(std::string, std::string = "") noexcept;
   const char *getPositionalArgument(int) noexcept;
+  std::vector<const char *> getMultipleArguments(std::string, std::string = "");
 };
 
 }  // namespace Standalone
