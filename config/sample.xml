@@ -94,13 +94,6 @@
      -->
     <config name="Interface">1</config>
     <!--
-      <int> Select I/O scheduler
-
-      Possible values:
-        0: Noop scheduler - No scheduling
-     -->
-    <config name="Scheduler">0</config>
-    <!--
       <time> Storage stack latency - submission latency
 
       As we don't have operating system, this values are introduced to mimic

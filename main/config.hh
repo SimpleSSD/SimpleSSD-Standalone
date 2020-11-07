@@ -30,7 +30,6 @@ class Config : public SimpleSSD::BaseConfig {
     Latencyfile,
     ProgressPeriod,
     Interface,
-    Scheduler,
     SubmissionLatency,
     CompletionLatency,
   };
@@ -45,10 +44,6 @@ class Config : public SimpleSSD::BaseConfig {
     NVMe,
   };
 
-  enum class SchedulerType : uint8_t {
-    Noop,
-  };
-
  private:
   ModeType mode;
   uint64_t statPeriod;
@@ -58,7 +53,6 @@ class Config : public SimpleSSD::BaseConfig {
   std::string latencyFile;
   uint64_t progressPeriod;
   InterfaceType interface;
-  SchedulerType scheduler;
   uint64_t submissionLatency;
   uint64_t completionLatency;
 

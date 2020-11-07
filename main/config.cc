@@ -19,7 +19,6 @@ const char NAME_DEBUG_LOG_FILE[] = "DebugLogFile";
 const char NAME_LATENCY_LOG_FILE[] = "LatencyLogFile";
 const char NAME_PROGRESS_PERIOD[] = "ProgressPeriod";
 const char NAME_INTERFACE[] = "Interface";
-const char NAME_SCHEDULER[] = "Scheduler";
 const char NAME_SUBMISSION_LATENCY[] = "SubmissionLatency";
 const char NAME_COMPLETION_LATENCY[] = "CompletionLatency";
 
@@ -33,7 +32,6 @@ Config::Config() {
   latencyFile = "";
   progressPeriod = 0;
   interface = InterfaceType::NVMe;
-  scheduler = SchedulerType::Noop;
   submissionLatency = 0;
   completionLatency = 0;
 }
@@ -51,7 +49,6 @@ void Config::loadFrom(pugi::xml_node &section) noexcept {
     LOAD_NAME_STRING(node, NAME_LATENCY_LOG_FILE, latencyFile);
     LOAD_NAME_UINT(node, NAME_PROGRESS_PERIOD, progressPeriod);
     LOAD_NAME_UINT_TYPE(node, NAME_INTERFACE, InterfaceType, interface);
-    LOAD_NAME_UINT_TYPE(node, NAME_SCHEDULER, SchedulerType, scheduler);
     LOAD_NAME_TIME(node, NAME_SUBMISSION_LATENCY, submissionLatency);
     LOAD_NAME_TIME(node, NAME_COMPLETION_LATENCY, completionLatency);
   }
@@ -67,7 +64,6 @@ void Config::storeTo(pugi::xml_node &section) noexcept {
   STORE_NAME_STRING(section, NAME_LATENCY_LOG_FILE, latencyFile);
   STORE_NAME_UINT(section, NAME_PROGRESS_PERIOD, progressPeriod);
   STORE_NAME_UINT(section, NAME_INTERFACE, interface);
-  STORE_NAME_UINT(section, NAME_SCHEDULER, scheduler);
   STORE_NAME_TIME(section, NAME_SUBMISSION_LATENCY, submissionLatency);
   STORE_NAME_TIME(section, NAME_COMPLETION_LATENCY, completionLatency);
 }
@@ -76,8 +72,6 @@ void Config::update() noexcept {
   panic_if((uint8_t)mode > (uint8_t)ModeType::TraceReplayer, "Invalid Mode.");
   panic_if((uint8_t)interface > (uint8_t)InterfaceType::NVMe,
            "Invalid Interface.");
-  panic_if((uint8_t)scheduler > (uint8_t)SchedulerType::Noop,
-           "Invalid Scheduler.");
 }
 
 uint64_t Config::readUint(uint32_t idx) const noexcept {
@@ -90,8 +84,6 @@ uint64_t Config::readUint(uint32_t idx) const noexcept {
       return progressPeriod;
     case Key::Interface:
       return (uint64_t)interface;
-    case Key::Scheduler:
-      return (uint64_t)scheduler;
     case Key::SubmissionLatency:
       return submissionLatency;
     case Key::CompletionLatency:
@@ -131,9 +123,6 @@ bool Config::writeUint(uint32_t idx, uint64_t value) noexcept {
       break;
     case Key::Interface:
       interface = (InterfaceType)value;
-      break;
-    case Key::Scheduler:
-      scheduler = (SchedulerType)value;
       break;
     case Key::SubmissionLatency:
       submissionLatency = value;
