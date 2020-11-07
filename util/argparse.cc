@@ -24,14 +24,16 @@ ArgumentParser::ArgumentParser(int argc, char *argv[]) : valid(true) {
     if (value == false && std::regex_match(param, match, regex_arg)) {
       key = match[1].str();
 
-      if (match.length() == 3) {
-        args.emplace(key, match[2]);
+      if (match.length() > 2 && match[2].matched) {
+        args.emplace(key, match[2].first);
       }
       else {
         value = true;
       }
     }
     else if (value && key.length() > 0) {
+      value = false;
+
       args.emplace(key, param);
     }
     else {
