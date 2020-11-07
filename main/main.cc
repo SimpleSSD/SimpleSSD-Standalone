@@ -24,6 +24,8 @@
 
 using namespace Standalone;
 
+static const std::regex regex_override("((?:\\[\\w+\\])+)(\\w+)=(.+)");
+
 // Global objects
 ObjectData standaloneObject;
 EventEngine engine;
@@ -99,6 +101,97 @@ void printVersion() {
             << std::endl;
 }
 
+const char *getEndOfSectionName(const char *begin) {
+  if (*begin != '[') {
+    return nullptr;
+  }
+
+  while (*begin != ']') {
+    begin++;
+  }
+
+  return begin;
+}
+
+bool overrideConfig(pugi::xml_node &root, const char *str, bool simcfg) {
+  std::cmatch match;
+
+  if ((simcfg && strncmp(str, "[ssd]", 5) == 0) ||
+      (!simcfg && strncmp(str, "[sim]", 5) == 0)) {
+    // Skip
+    return true;
+  }
+
+  // Parse
+  if (std::regex_match(str + 5, match, regex_override)) {
+    auto &sections = match[1];
+    auto &key = match[2];
+    auto &value = match[3];
+
+    // Find config node
+    auto node = root;
+    auto begin = sections.first;
+
+    while (true) {
+      if (*begin != '[') {
+        break;
+      }
+
+      auto end = getEndOfSectionName(begin);
+
+      if (end > sections.second) {
+        break;
+      }
+
+      std::string section(begin + 1, end);
+      begin = end + 1;
+
+      node = node.find_child([&section](pugi::xml_node node) -> bool {
+        if (strcmp(node.name(), CONFIG_SECTION_NAME) == 0 &&
+            strcmp(node.attribute(CONFIG_ATTRIBUTE).value(), section.c_str()) ==
+                0) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (!node) {
+        std::cerr << "Failed to find configuration with " << str << std::endl;
+        std::cerr << " Failed to find section named " << section << std::endl;
+
+        return false;
+      }
+    }
+
+    // Check config name
+    std::string keystr(key.first, key.second);
+    node = node.find_child([&keystr](pugi::xml_node node) -> bool {
+      if (strcmp(node.name(), CONFIG_KEY_NAME) == 0 &&
+          strcmp(node.attribute(CONFIG_ATTRIBUTE).value(), keystr.c_str()) ==
+              0) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (!node) {
+      std::cerr << "Failed to find configuration with " << str << std::endl;
+      std::cerr << " Failed to find config named " << keystr << std::endl;
+
+      return false;
+    }
+
+    // Set value
+    node.text().set(value.first);
+
+    return true;
+  }
+
+  return false;
+}
+
 int main(int argc, char *argv[]) {
   ArgumentParser argparse(argc, argv, 3);  // Two positional arguments
   bool ckptAndTerminate = false;
@@ -159,10 +252,33 @@ int main(int argc, char *argv[]) {
   // Install signal handler
   installSignalHandler(cleanup, progress);
 
-  // Read simulation config file
-  simConfig.load(argparse.getPositionalArgument(0));
-  ssdConfig.load(argparse.getPositionalArgument(1));
-  pathOutputDirectory = argparse.getPositionalArgument(2);
+  // Prepare config override
+  {
+    auto configlist = argparse.getMultipleArguments("--config-override", "-o");
+    auto sim_cb = [&configlist](pugi::xml_node &root) -> bool {
+      for (auto &iter : configlist) {
+        if (!overrideConfig(root, iter, true)) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+    auto ssd_cb = [&configlist](pugi::xml_node &root) -> bool {
+      for (auto &iter : configlist) {
+        if (!overrideConfig(root, iter, false)) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    // Read simulation config file
+    simConfig.load(argparse.getPositionalArgument(0), sim_cb);
+    ssdConfig.load(argparse.getPositionalArgument(1), ssd_cb);
+    pathOutputDirectory = argparse.getPositionalArgument(2);
+  }
 
   // Log setting
   bool noLogPrintOnScreen = true;
