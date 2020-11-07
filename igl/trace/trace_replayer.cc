@@ -433,6 +433,11 @@ void TraceReplayer::submitIO() {
   // Get next line
   parseLine();
 
+  // Are we done?
+  if (UNLIKELY(reserveTermination)) {
+    return;
+  }
+
   // Reschedule submission
   switch (mode) {
     case TraceConfig::TimingModeType::Strict:
