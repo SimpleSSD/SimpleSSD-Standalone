@@ -69,11 +69,22 @@ void printHelp() {
                "<SimpleSSD config> <Output directory>"
             << std::endl;
   std::cout << std::endl;
+  std::cout << "Checkpoint feature:" << std::endl;
   std::cout << "  -c, --create-checkpoint=<dir>         "
             << "Create checkpoint to the directory right after initialization."
             << std::endl;
   std::cout << "  -r, --restore-checkpoint=<dir>        "
             << "Restore from checkpoint stored in directory." << std::endl;
+  std::cout << std::endl;
+  std::cout << "Configuration override:" << std::endl;
+  std::cout << "  -o, --config-override=<option>        "
+            << "Override configuration." << std::endl;
+  std::cout << "    <option> should be formatted as:" << std::endl;
+  std::cout << "       [sim/ssd][section]...config=value" << std::endl;
+  std::cout << "    Example: [ssd][memory][system]BusClock=100m" << std::endl;
+  std::cout << "             [sim][sim]Mode=1" << std::endl;
+  std::cout << std::endl;
+  std::cout << "Miscellaneous:" << std::endl;
   std::cout << "  -v, --version                         Print version."
             << std::endl;
   std::cout << "  -h, --help                            Print this help."
