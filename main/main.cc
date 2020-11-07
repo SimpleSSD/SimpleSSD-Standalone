@@ -217,53 +217,55 @@ int main(int argc, char *argv[]) {
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
-  if (!argparse.isValid()) {
-    std::cerr << " Failed to parse argument!" << std::endl;
+  {
+    if (!argparse.isValid()) {
+      std::cerr << " Failed to parse argument!" << std::endl;
 
-    printHelp();
+      printHelp();
 
-    return 1;
-  }
+      return 1;
+    }
 
-  // Validate
-  if (argparse.getArgument("--help", "-h")) {
-    printHelp();
+    // Validate
+    if (argparse.getArgument("--help", "-h")) {
+      printHelp();
 
-    return 0;
-  }
-  if (argparse.getArgument("--version", "-v")) {
-    printVersion();
+      return 0;
+    }
+    if (argparse.getArgument("--version", "-v")) {
+      printVersion();
 
-    return 0;
-  }
+      return 0;
+    }
 
-  if (argparse.getPositionalArgument(2) == nullptr) {
-    std::cerr << " Unexpected number of positional argument." << std::endl;
+    if (argparse.getPositionalArgument(2) == nullptr) {
+      std::cerr << " Unexpected number of positional argument." << std::endl;
 
-    printHelp();
+      printHelp();
 
-    return 1;
-  }
+      return 1;
+    }
 
-  if (argparse.getArgument("--create-checkpoint", "-c") &&
-      argparse.getArgument("--restore-checkpoint", "r")) {
-    std::cerr << " You cannot specify both create and restore checkpoint."
-              << std::endl;
+    if (argparse.getArgument("--create-checkpoint", "-c") &&
+        argparse.getArgument("--restore-checkpoint", "r")) {
+      std::cerr << " You cannot specify both create and restore checkpoint."
+                << std::endl;
 
-    return 1;
-  }
+      return 1;
+    }
 
-  if ((pathCheckpoint = argparse.getArgument("--create-checkpoint", "-c"))) {
-    ckptAndTerminate = true;
+    if ((pathCheckpoint = argparse.getArgument("--create-checkpoint", "-c"))) {
+      ckptAndTerminate = true;
 
-    std::cout << " Checkpoint will be stored to " << pathCheckpoint
-              << std::endl;
-  }
-  if ((pathCheckpoint = argparse.getArgument("--restore-checkpoint", "r"))) {
-    restoreFromCkpt = true;
+      std::cout << " Checkpoint will be stored to " << pathCheckpoint
+                << std::endl;
+    }
+    if ((pathCheckpoint = argparse.getArgument("--restore-checkpoint", "r"))) {
+      restoreFromCkpt = true;
 
-    std::cout << " Try to restore from checkpoint at " << pathCheckpoint
-              << std::endl;
+      std::cout << " Try to restore from checkpoint at " << pathCheckpoint
+                << std::endl;
+    }
   }
 
   // Install signal handler
@@ -322,6 +324,7 @@ int main(int argc, char *argv[]) {
                            SimpleSSD::Config::Key::RestoreFromCheckpoint, true);
   }
 
+  // Set interface type
   switch (type) {
     case Config::InterfaceType::NVMe:
       ssdConfig.writeUint(SimpleSSD::Section::Simulation,
@@ -335,34 +338,38 @@ int main(int argc, char *argv[]) {
       break;
   }
 
-  if (logPath.compare("STDOUT") == 0) {
-    noLogPrintOnScreen = false;
-    pLog = &std::cout;
-  }
-  else if (logPath.compare("STDERR") == 0) {
-    noLogPrintOnScreen = false;
-    pLog = &std::cerr;
-  }
-  else if (logPath.length() != 0) {
-    std::string full(pathOutputDirectory);
+  // Handle log printout
+  {
+    if (logPath.compare("STDOUT") == 0) {
+      noLogPrintOnScreen = false;
+      pLog = &std::cout;
+    }
+    else if (logPath.compare("STDERR") == 0) {
+      noLogPrintOnScreen = false;
+      pLog = &std::cerr;
+    }
+    else if (logPath.length() != 0) {
+      std::string full(pathOutputDirectory);
 
-    joinPath(full, logPath);
-    logOut.open(full);
+      joinPath(full, logPath);
+      logOut.open(full);
 
-    if (!logOut.is_open()) {
-      std::cerr << " Failed to open log file: " << full << std::endl;
+      if (!logOut.is_open()) {
+        std::cerr << " Failed to open log file: " << full << std::endl;
 
-      return 3;
+        return 3;
+      }
+
+      pLog = &logOut;
     }
 
-    pLog = &logOut;
+    if (debugLogPath.compare("STDOUT") == 0 ||
+        debugLogPath.compare("STDERR") == 0) {
+      noLogPrintOnScreen = false;
+    }
   }
 
-  if (debugLogPath.compare("STDOUT") == 0 ||
-      debugLogPath.compare("STDERR") == 0) {
-    noLogPrintOnScreen = false;
-  }
-
+  // Open latency log if specified
   if (latencyLogPath.length() != 0) {
     std::string full(pathOutputDirectory);
 
@@ -378,7 +385,7 @@ int main(int argc, char *argv[]) {
     pLatencyFile = &latencyFile;
   }
 
-  // Store config file
+  // Store config files to output directory
   {
     std::string full(pathOutputDirectory);
     std::string name("standalone.xml");
@@ -399,6 +406,7 @@ int main(int argc, char *argv[]) {
   // Initialize SimpleSSD
   simplessd.init(&engine, &ssdConfig);
 
+  // Handle checkpoint
   if (ckptAndTerminate) {
     simplessd.createCheckpoint(pathCheckpoint);
 
@@ -510,6 +518,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Simulation loop
   while (engine.doNextEvent())
     ;
 
