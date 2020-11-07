@@ -21,7 +21,8 @@ ArgumentParser::ArgumentParser(int argc, char *argv[]) : valid(true) {
   for (int i = 1; i < argc; i++) {
     char *param = argv[i];
 
-    if (value == false && std::regex_match(param, match, regex_arg)) {
+    if (std::regex_match(param, match, regex_arg)) {
+      value = false;
       key = match[1].str();
 
       if (match.length() > 2 && match[2].matched) {
