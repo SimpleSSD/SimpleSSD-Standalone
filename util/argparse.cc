@@ -53,6 +53,8 @@ void ArgumentParser::parse(int argc, char *argv[]) {
     }
     else {
       if (strcmp(param, "--") == 0) {
+        value = false;
+
         // Assume positional arguments after this
         for (int j = i + 1; j < argc; j++) {
           if (pos > 0) {
@@ -87,6 +89,10 @@ void ArgumentParser::parse(int argc, char *argv[]) {
     }
   }
 
+  if (value && key.length() > 0) {
+    args.emplace(key, str_true);
+  }
+
   return;
 out:
   valid = false;
@@ -113,7 +119,7 @@ const char *ArgumentParser::getArgument(std::string key,
 }
 
 const char *ArgumentParser::getPositionalArgument(int pos) noexcept {
-  if (pos < posargs.size()) {
+  if (pos < (int)posargs.size()) {
     return posargs.at(pos);
   }
 
