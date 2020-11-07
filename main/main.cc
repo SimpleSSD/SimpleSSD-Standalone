@@ -16,7 +16,10 @@
 #include "main/engine.hh"
 #include "main/object.hh"
 #include "main/signal.hh"
+#include "main/version.hh"
 #include "simplessd/sim/simplessd.hh"
+#include "simplessd/sim/version.hh"
+#include "util/argparse.hh"
 #include "util/print.hh"
 
 using namespace Standalone;
@@ -61,40 +64,94 @@ void joinPath(std::string &lhs, std::string &rhs) {
   }
 }
 
+void printHelp() {
+  std::cout << " Usage: simplessd-standalone [options] <Simulation config> "
+               "<SimpleSSD config> <Output directory>"
+            << std::endl;
+  std::cout << std::endl;
+  std::cout << "  -c, --create-checkpoint=<dir>         "
+            << "Create checkpoint to the directory right after initialization."
+            << std::endl;
+  std::cout << "  -r, --restore-checkpoint=<dir>        "
+            << "Restore from checkpoint stored in directory." << std::endl;
+  std::cout << "  -v, --version                         Print version."
+            << std::endl;
+  std::cout << "  -h, --help                            Print this help."
+            << std::endl;
+  std::cout << std::endl;
+}
+
+void printVersion() {
+  std::cout << " SimpleSSD-Standalone version: " << SIMPLESSD_STANDALONE_VERSION
+            << std::endl;
+  std::cout << " SimpleSSD version: " << SimpleSSD::SIMPLESSD_VERSION
+            << std::endl;
+}
+
 int main(int argc, char *argv[]) {
+  ArgumentParser argparse(argc, argv, 3);  // Two positional arguments
   bool ckptAndTerminate = false;
   bool restoreFromCkpt = false;
+  const char *pathCheckpoint = nullptr;
+  const char *pathOutputDirectory = nullptr;
 
   std::cout << "SimpleSSD Standalone v2.1" << std::endl;
 
   // Check argument
-  if (argc < 4 || argc > 6) {
-    std::cerr << " Invalid number of argument!" << std::endl;
-    std::cerr << "  Usage: simplessd-standalone <Simulation configuration "
-                 "file> <SimpleSSD configuration file> <Output directory>"
+  if (!argparse.isValid()) {
+    std::cerr << " Failed to parse argument!" << std::endl;
+
+    printHelp();
+
+    return 1;
+  }
+
+  // Validate
+  if (argparse.getArgument("--help", "-h")) {
+    printHelp();
+
+    return 0;
+  }
+  if (argparse.getArgument("--version", "-v")) {
+    printVersion();
+
+    return 0;
+  }
+
+  if (argparse.getPositionalArgument(2) == nullptr) {
+    std::cerr << " Unexpected number of positional argument." << std::endl;
+
+    return 1;
+  }
+
+  if (argparse.getArgument("--create-checkpoint", "-c") &&
+      argparse.getArgument("--restore-checkpoint", "r")) {
+    std::cerr << " You cannot specify both create and restore checkpoint."
               << std::endl;
 
     return 1;
   }
-  else if (argc == 5) {
-    if (strcmp(argv[4], "out") == 0) {
-      ckptAndTerminate = true;
 
-      std::cout << " Create checkpoint file to output directory." << std::endl;
-    }
-    else if (strcmp(argv[4], "in") == 0) {
-      restoreFromCkpt = true;
+  if ((pathCheckpoint = argparse.getArgument("--create-checkpoint", "-c"))) {
+    ckptAndTerminate = true;
 
-      std::cout << " Try to restore from checkpoint." << std::endl;
-    }
+    std::cout << " Checkpoint will be stored to " << pathCheckpoint
+              << std::endl;
+  }
+  if ((pathCheckpoint = argparse.getArgument("--restore-checkpoint", "r"))) {
+    restoreFromCkpt = true;
+
+    std::cout << " Try to restore from checkpoint at " << pathCheckpoint
+              << std::endl;
   }
 
   // Install signal handler
   installSignalHandler(cleanup, progress);
 
   // Read simulation config file
-  simConfig.load(argv[1]);
-  ssdConfig.load(argv[2]);
+  simConfig.load(argparse.getPositionalArgument(0));
+  ssdConfig.load(argparse.getPositionalArgument(1));
+  pathOutputDirectory = argparse.getPositionalArgument(2);
 
   // Log setting
   bool noLogPrintOnScreen = true;
@@ -109,7 +166,8 @@ int main(int argc, char *argv[]) {
                                                         Config::Key::Interface);
 
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
-                        SimpleSSD::Config::Key::OutputDirectory, argv[3]);
+                        SimpleSSD::Config::Key::OutputDirectory,
+                        pathOutputDirectory);
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
                         SimpleSSD::Config::Key::DebugFile, debugLogPath);
   ssdConfig.writeString(SimpleSSD::Section::Simulation,
@@ -142,7 +200,7 @@ int main(int argc, char *argv[]) {
     pLog = &std::cerr;
   }
   else if (logPath.length() != 0) {
-    std::string full(argv[3]);
+    std::string full(pathOutputDirectory);
 
     joinPath(full, logPath);
     logOut.open(full);
@@ -162,7 +220,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (latencyLogPath.length() != 0) {
-    std::string full(argv[3]);
+    std::string full(pathOutputDirectory);
 
     joinPath(full, latencyLogPath);
     latencyFile.open(full);
@@ -178,7 +236,7 @@ int main(int argc, char *argv[]) {
 
   // Store config file
   {
-    std::string full(argv[3]);
+    std::string full(pathOutputDirectory);
     std::string name("standalone.xml");
 
     joinPath(full, name);
@@ -186,7 +244,7 @@ int main(int argc, char *argv[]) {
     simConfig.save(full);
   }
   {
-    std::string full(argv[3]);
+    std::string full(pathOutputDirectory);
     std::string name("simplessd.xml");
 
     joinPath(full, name);
@@ -198,14 +256,14 @@ int main(int argc, char *argv[]) {
   simplessd.init(&engine, &ssdConfig);
 
   if (ckptAndTerminate) {
-    simplessd.createCheckpoint(argv[3]);
+    simplessd.createCheckpoint(pathCheckpoint);
 
-    std::cout << " Checkpoint stored to " << argv[3] << std::endl;
+    std::cout << " Checkpoint stored to " << pathCheckpoint << std::endl;
 
     return 0;
   }
   else if (restoreFromCkpt) {
-    simplessd.restoreCheckpoint(argv[3]);
+    simplessd.restoreCheckpoint(pathCheckpoint);
 
     std::cout << " Restored from checkpoint" << std::endl;
   }
