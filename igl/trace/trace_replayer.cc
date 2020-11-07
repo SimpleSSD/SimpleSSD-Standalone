@@ -145,7 +145,23 @@ void TraceReplayer::init(uint64_t bytesize, uint32_t bs) {
 void TraceReplayer::begin() {
   initTime = engine.getCurrentTick();
 
-  submitIO();
+  parseLine();
+
+  if (mode == MODE_STRICT) {
+    firstTick = linedata.tick;
+  }
+  else {
+    firstTick = initTime;
+  }
+
+  if (reserveTermination) {
+    SimpleSSD::warn("No I/O submitted. Check regular expression.");
+
+    endCallback();
+  }
+  else {
+    submitIO();
+  }
 }
 
 void TraceReplayer::printStats(std::ostream &out) {
@@ -262,14 +278,9 @@ BIL::BIO_TYPE TraceReplayer::getType(std::string type) {
   return BIL::BIO_NUM;
 }
 
-void TraceReplayer::handleNextLine() {
+void TraceReplayer::parseLine() {
   std::string line;
   std::smatch match;
-
-  if (reserveTermination) {
-    // Nothing to do
-    return;
-  }
 
   // Read line
   while (true) {
@@ -298,79 +309,71 @@ void TraceReplayer::handleNextLine() {
   }
 
   // Get time
-  uint64_t tick = mergeTime(match);
-
-  if (firstTick == std::numeric_limits<uint64_t>::max()) {
-    if (mode == MODE_STRICT) {
-      firstTick = tick;  // Only used by MODE_STRICT
-    }
-    else {
-      firstTick = initTime;
-    }
-  }
-
-  BIL::BIO bio;
+  linedata.tick = mergeTime(match);
 
   // Fill BIO
   if (useLBAOffset) {
-    bio.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
+    linedata.offset = strtoul(match[groupID[ID_LBA_OFFSET]].str().c_str(),
+                              nullptr, useHex ? 16 : 10) *
+                      lbaSize;
   }
   else {
-    bio.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(), nullptr,
-                         useHex ? 16 : 10);
+    linedata.offset = strtoul(match[groupID[ID_BYTE_OFFSET]].str().c_str(),
+                              nullptr, useHex ? 16 : 10);
   }
 
   if (useLBALength) {
-    bio.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(), nullptr,
-                         useHex ? 16 : 10) *
-                 lbaSize;
+    linedata.length = strtoul(match[groupID[ID_LBA_LENGTH]].str().c_str(),
+                              nullptr, useHex ? 16 : 10) *
+                      lbaSize;
   }
   else {
-    bio.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(), nullptr,
-                         useHex ? 16 : 10);
+    linedata.length = strtoul(match[groupID[ID_BYTE_LENGTH]].str().c_str(),
+                              nullptr, useHex ? 16 : 10);
   }
 
   // This function increases I/O count
-  bio.type = getType(match[groupID[ID_OPERATION]].str());
-  bio.callback = completionEvent;
-  bio.id = io_count;
-
-  // Limit check
-  if (io_count == max_io) {
-    reserveTermination = true;
-    // DO NOT RETURN HERE
-  }
-
-  // Range check
-  if (bio.offset + bio.length > ssdSize) {
-    SimpleSSD::warn("I/O %" PRIu64 ": I/O out of range", bio.id);
-
-    while (bio.offset >= ssdSize) {
-      bio.offset -= ssdSize;
-    }
-
-    if (bio.offset + bio.length > ssdSize) {
-      bio.length = ssdSize - bio.offset;
-    }
-  }
-
-  io_submitted += bio.length;
-  io_depth++;
-
-  if (mode == MODE_STRICT) {
-    engine.scheduleEvent(submitEvent, tick - firstTick + initTime);
-  }
-
-  bioEntry.submitIO(bio);
+  linedata.type = getType(match[groupID[ID_OPERATION]].str());
 }
 
 void TraceReplayer::submitIO() {
-  handleNextLine();
+  BIL::BIO bio;
 
-  if (mode == MODE_ASYNC) {
-    rescheduleSubmit(submissionLatency);
+  if (linedata.type == BIL::BIO_NUM) {
+    SimpleSSD::panic("Unexpected request type.");
+  }
+
+  bio.callback = completionEvent;
+  bio.id = io_count;
+  bio.type = linedata.type;
+  bio.offset = linedata.offset;
+  bio.length = linedata.length;
+
+  bioEntry.submitIO(bio);
+
+  io_depth++;
+
+  if ((max_io != 0 && io_count >= max_io)) {
+    reserveTermination = true;
+
+    return;
+  }
+
+  parseLine();
+
+  if (reserveTermination) {
+    return;
+  }
+
+  switch (mode) {
+    case MODE_STRICT:
+      engine.scheduleEvent(submitEvent, linedata.tick - firstTick + initTime);
+      break;
+    case MODE_ASYNC:
+      rescheduleSubmit(submissionLatency);
+      break;
+    default:
+      break;
   }
 }
 

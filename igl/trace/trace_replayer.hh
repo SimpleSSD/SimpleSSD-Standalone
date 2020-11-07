@@ -89,8 +89,17 @@ class TraceReplayer : public IOGenerator {
 
   uint64_t mergeTime(std::smatch &);
   BIL::BIO_TYPE getType(std::string);
-  void handleNextLine();
+  void parseLine();
   void rescheduleSubmit(uint64_t);
+
+  struct TraceLine {
+    uint64_t tick;
+    uint64_t offset;
+    uint64_t length;
+    BIL::BIO_TYPE type;
+
+    TraceLine() : tick(0), offset(0), length(0), type(BIL::BIO_NUM) {}
+  } linedata;
 
   SimpleSSD::Event submitEvent;
   SimpleSSD::EventFunction completionEvent;
