@@ -10,6 +10,7 @@
 #ifndef __MAIN_CONFIG_READER_HH__
 #define __MAIN_CONFIG_READER_HH__
 
+#include <functional>
 #include <string>
 
 #include "igl/request/request_config.hh"
@@ -48,8 +49,8 @@ class ConfigReader {
   ConfigReader &operator=(const ConfigReader &) = delete;
   ConfigReader &operator=(ConfigReader &&) noexcept = default;
 
-  void load(const char *) noexcept;
-  void load(std::string &) noexcept;
+  void load(const char *, std::function<bool(pugi::xml_node &)>) noexcept;
+  void load(std::string &, std::function<bool(pugi::xml_node &)>) noexcept;
 
   void save(const char *) noexcept;
   void save(std::string &) noexcept;
