@@ -225,6 +225,8 @@ int main(int argc, char *argv[]) {
   if (argparse.getPositionalArgument(2) == nullptr) {
     std::cerr << " Unexpected number of positional argument." << std::endl;
 
+    printHelp();
+
     return 1;
   }
 
