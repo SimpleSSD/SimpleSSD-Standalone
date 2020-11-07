@@ -84,7 +84,13 @@ void printHelp() {
   std::cout << "    <option> should be formatted as:" << std::endl;
   std::cout << "       [sim/ssd][section]...config=value" << std::endl;
   std::cout << "    Example: [ssd][memory][system]BusClock=100m" << std::endl;
+  std::cout << "                 to change system bus clock speed to 100MHz."
+            << std::endl;
   std::cout << "             [sim][sim]Mode=1" << std::endl;
+  std::cout << "                 to change simulation mode to TraceReplayer."
+            << std::endl;
+  std::cout << "    Wrap with \"\" if option contains any whitespaces."
+            << std::endl;
   std::cout << std::endl;
   std::cout << "Miscellaneous:" << std::endl;
   std::cout << "  -v, --version                         Print version."
@@ -120,6 +126,13 @@ bool overrideConfig(pugi::xml_node &root, const char *str, bool simcfg) {
       (!simcfg && strncmp(str, "[sim]", 5) == 0)) {
     // Skip
     return true;
+  }
+
+  if ((simcfg && strncmp(str, "[sim]", 5) != 0) ||
+      (!simcfg && strncmp(str, "[ssd]", 5) != 0)) {
+    std::cerr << "Unexpected prefix. Option must start with [sim] or [ssd].";
+
+    return false;
   }
 
   // Parse
@@ -158,7 +171,8 @@ bool overrideConfig(pugi::xml_node &root, const char *str, bool simcfg) {
 
       if (!node) {
         std::cerr << "Failed to find configuration with " << str << std::endl;
-        std::cerr << " Failed to find section named " << section << std::endl;
+        std::cerr << " Failed to find <section name=\"" << section << "\">"
+                  << std::endl;
 
         return false;
       }
@@ -178,7 +192,8 @@ bool overrideConfig(pugi::xml_node &root, const char *str, bool simcfg) {
 
     if (!node) {
       std::cerr << "Failed to find configuration with " << str << std::endl;
-      std::cerr << " Failed to find config named " << keystr << std::endl;
+      std::cerr << " Failed to find <config name=\"" << keystr << "\">"
+                << std::endl;
 
       return false;
     }
