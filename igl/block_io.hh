@@ -92,12 +92,13 @@ class BlockIOLayer : public Object {
    *
    * Submit request.
    *
-   * \param[in] type    Request Type
-   * \param[in] offset  Byte offset
-   * \param[in] length  Byte length
+   * \param[in]  type   Request Type
+   * \param[in]  offset Byte offset
+   * \param[in]  length Byte length
+   * \param[out] id     Unique request ID
    */
-  bool submitRequest(Driver::RequestType type, uint64_t offset,
-                     uint64_t length) noexcept;
+  bool submitRequest(Driver::RequestType type, uint64_t offset, uint64_t length,
+                     uint16_t &id) noexcept;
 
   /**
    * \brief Get SSD size information

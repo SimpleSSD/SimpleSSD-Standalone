@@ -108,7 +108,7 @@ void BlockIOLayer::initialize(uint16_t md, uint64_t sl, uint64_t cl,
 }
 
 bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
-                                 uint64_t length) noexcept {
+                                 uint64_t length, uint16_t &tag) noexcept {
   uint64_t now = getTick();
 
   if (UNLIKELY(submissionQueue.size() + dispatchedQueue.size() +
@@ -143,7 +143,7 @@ bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
     length = std::numeric_limits<uint32_t>::max();
   }
 
-  auto tag = requestCounter++;
+  tag = requestCounter++;
   auto &ret = submissionQueue.emplace_back(
       Driver::Request(tag, offset, (uint32_t)length, type));
 
