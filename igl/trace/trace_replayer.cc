@@ -391,11 +391,13 @@ void TraceReplayer::parseLine() {
 }
 
 void TraceReplayer::submitIO() {
+  uint16_t tag;
+
   panic_if(linedata.type == Driver::RequestType::None,
            "Unexpected request type.");
 
-  auto ret =
-      bioEntry.submitRequest(linedata.type, linedata.offset, linedata.length);
+  auto ret = bioEntry.submitRequest(linedata.type, linedata.offset,
+                                    linedata.length, tag);
 
   if (mode == TraceConfig::TimingModeType::Strict && !ret) {
     // Delay request submission

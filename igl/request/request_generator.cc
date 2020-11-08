@@ -269,6 +269,7 @@ bool RequestGenerator::nextIOIsRead() {
 }
 
 void RequestGenerator::submitIO(uint64_t now) {
+  uint16_t tag;
   uint64_t offset, length;
   Driver::RequestType type;
 
@@ -292,7 +293,7 @@ void RequestGenerator::submitIO(uint64_t now) {
   io_depth++;
 
   // Submit to Block I/O entry
-  auto ret = bioEntry.submitRequest(type, offset, length);
+  auto ret = bioEntry.submitRequest(type, offset, length, tag);
 
   panic_if(!ret, "BUG!");
 
