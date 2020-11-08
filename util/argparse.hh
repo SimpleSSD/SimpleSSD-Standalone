@@ -17,6 +17,11 @@
 
 namespace Standalone {
 
+enum {
+  LONG_OPT,
+  SHORT_OPT,
+};
+
 class ArgumentParser {
  private:
   bool valid;
@@ -32,9 +37,9 @@ class ArgumentParser {
   ~ArgumentParser();
 
   bool isValid() noexcept { return valid; }
-  const char *getArgument(std::string, std::string = "") noexcept;
+  const char *getArgument(const char *[]) noexcept;
   const char *getPositionalArgument(int) noexcept;
-  std::vector<const char *> getMultipleArguments(std::string, std::string = "");
+  std::vector<const char *> getMultipleArguments(const char *[]);
 };
 
 }  // namespace Standalone

@@ -26,6 +26,12 @@ using namespace Standalone;
 
 static const std::regex regex_override("((?:\\[\\w+\\])+)(\\w+)=(.+)");
 
+static const char *OPT_CREATE_CKP[2] = {"--create-checkpoint", "-c"};
+static const char *OPT_RESTORE_CKP[2] = {"--restore-checkpoint", "-r"};
+static const char *OPT_CFG_OVERRIDE[2] = {"--config-override", "-O"};
+static const char *OPT_VERSION[2] = {"--version", "-v"};
+static const char *OPT_HELP[2] = {"--help", "-h"};
+
 // Global objects
 ObjectData standaloneObject;
 EventEngine engine;
@@ -66,21 +72,40 @@ void joinPath(std::string &lhs, std::string &rhs) {
   }
 }
 
+void printArg(const char *arg[], const char *optname = nullptr,
+              const char *desc = nullptr) {
+  int cnt = 4 + strlen(arg[SHORT_OPT]) + strlen(arg[LONG_OPT]);
+
+  printf("  %s, %s", arg[SHORT_OPT], arg[LONG_OPT]);
+
+  if (optname) {
+    cnt += 1 + strlen(optname);
+
+    printf("=%s", optname);
+  }
+
+  for (int i = cnt; i < 40; i++) {
+    putchar(' ');
+  }
+
+  if (desc) {
+    printf("%s\n", desc);
+  }
+}
+
 void printHelp() {
   std::cout << " Usage: simplessd-standalone [options] <Simulation config> "
                "<SimpleSSD config> <Output directory>"
             << std::endl;
   std::cout << std::endl;
   std::cout << "Checkpoint feature:" << std::endl;
-  std::cout << "  -c, --create-checkpoint=<dir>         "
-            << "Create checkpoint to the directory right after initialization."
-            << std::endl;
-  std::cout << "  -r, --restore-checkpoint=<dir>        "
-            << "Restore from checkpoint stored in directory." << std::endl;
+  printArg(OPT_CREATE_CKP, "<dir>",
+           "Create checkpoint to the directory right after initialization.");
+  printArg(OPT_RESTORE_CKP, "<dir>",
+           "Restore from checkpoint stored in directory.");
   std::cout << std::endl;
   std::cout << "Configuration override:" << std::endl;
-  std::cout << "  -o, --config-override=<option>        "
-            << "Override configuration." << std::endl;
+  printArg(OPT_CFG_OVERRIDE, "<option>", "Override configuration.");
   std::cout << "    <option> should be formatted as:" << std::endl;
   std::cout << "       [sim/ssd][section]...config=value" << std::endl;
   std::cout << "    Example: [ssd][memory][system]BusClock=100m" << std::endl;
@@ -93,10 +118,8 @@ void printHelp() {
             << std::endl;
   std::cout << std::endl;
   std::cout << "Miscellaneous:" << std::endl;
-  std::cout << "  -v, --version                         Print version."
-            << std::endl;
-  std::cout << "  -h, --help                            Print this help."
-            << std::endl;
+  printArg(OPT_VERSION, nullptr, "Print version.");
+  printArg(OPT_HELP, nullptr, "Print this help.");
   std::cout << std::endl;
 }
 
@@ -227,12 +250,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Validate
-    if (argparse.getArgument("--help", "-h")) {
+    if (argparse.getArgument(OPT_HELP)) {
       printHelp();
 
       return 0;
     }
-    if (argparse.getArgument("--version", "-v")) {
+    if (argparse.getArgument(OPT_VERSION)) {
       printVersion();
 
       return 0;
@@ -246,21 +269,21 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    if (argparse.getArgument("--create-checkpoint", "-c") &&
-        argparse.getArgument("--restore-checkpoint", "r")) {
+    if (argparse.getArgument(OPT_CREATE_CKP) &&
+        argparse.getArgument(OPT_RESTORE_CKP)) {
       std::cerr << " You cannot specify both create and restore checkpoint."
                 << std::endl;
 
       return 1;
     }
 
-    if ((pathCheckpoint = argparse.getArgument("--create-checkpoint", "-c"))) {
+    if ((pathCheckpoint = argparse.getArgument(OPT_CREATE_CKP))) {
       ckptAndTerminate = true;
 
       std::cout << " Checkpoint will be stored to " << pathCheckpoint
                 << std::endl;
     }
-    if ((pathCheckpoint = argparse.getArgument("--restore-checkpoint", "r"))) {
+    if ((pathCheckpoint = argparse.getArgument(OPT_RESTORE_CKP))) {
       restoreFromCkpt = true;
 
       std::cout << " Try to restore from checkpoint at " << pathCheckpoint
@@ -273,7 +296,7 @@ int main(int argc, char *argv[]) {
 
   // Prepare config override
   {
-    auto configlist = argparse.getMultipleArguments("--config-override", "-o");
+    auto configlist = argparse.getMultipleArguments(OPT_CFG_OVERRIDE);
     auto sim_cb = [&configlist](pugi::xml_node &root) -> bool {
       for (auto &iter : configlist) {
         if (!overrideConfig(root, iter, true)) {

@@ -98,17 +98,16 @@ out:
   valid = false;
 }
 
-const char *ArgumentParser::getArgument(std::string key,
-                                        std::string key2) noexcept {
-  auto iter = args.find(key);
+const char *ArgumentParser::getArgument(const char *key[]) noexcept {
+  auto iter = args.find(key[LONG_OPT]);
 
   if (iter != args.end()) {
     return iter->second;
   }
 
   // Check with key 2
-  if (key.length() > 0) {
-    iter = args.find(key2);
+  if (key[SHORT_OPT]) {
+    iter = args.find(key[SHORT_OPT]);
 
     if (iter != args.end()) {
       return iter->second;
@@ -127,12 +126,12 @@ const char *ArgumentParser::getPositionalArgument(int pos) noexcept {
 }
 
 std::vector<const char *> ArgumentParser::getMultipleArguments(
-    std::string key, std::string key2) {
+    const char *key[]) {
   std::vector<const char *> list;
-  auto range = args.equal_range(key);
+  auto range = args.equal_range(key[LONG_OPT]);
 
-  if (range.first == args.end() && key2.length() > 0) {
-    range = args.equal_range(key2);
+  if (range.first == args.end() && key[SHORT_OPT]) {
+    range = args.equal_range(key[SHORT_OPT]);
   }
 
   if (range.first != args.end()) {
