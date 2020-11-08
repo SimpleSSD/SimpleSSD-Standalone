@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
       std::cout << " Checkpoint will be stored to " << pathCheckpoint
                 << std::endl;
     }
-    if ((pathCheckpoint = argparse.getArgument(OPT_RESTORE_CKP))) {
+    else if ((pathCheckpoint = argparse.getArgument(OPT_RESTORE_CKP))) {
       restoreFromCkpt = true;
 
       std::cout << " Try to restore from checkpoint at " << pathCheckpoint
