@@ -21,6 +21,8 @@ void print(std::ostream &, double, uint32_t);
 // Functions for progress print
 void printBandwidth(std::ostream &, uint64_t, uint64_t);
 void printBandwidth(std::ostream &, uint64_t);
+void printBandwidth(int, uint64_t);
 void printLatency(std::ostream &, uint64_t);
+void printLatency(int, uint64_t);
 
 #endif

@@ -50,6 +50,24 @@ void printBandwidth(std::ostream &os, uint64_t bps) {
   }
 }
 
+void printBandwidth(int fd, uint64_t bps) {
+  float bw = (float)bps;
+  float digit = log10(bw);
+
+  if (digit < 6.0) {
+    dprintf(fd, "%fB/s", bw);
+  }
+  else if (digit < 9.0) {
+    dprintf(fd, "%fKB/s", bw / 1000.f);
+  }
+  else if (digit < 12.0) {
+    dprintf(fd, "%fMB/s", bw / 1000000.f);
+  }
+  else {
+    dprintf(fd, "%fGB/s", bw / 1000000000.f);
+  }
+}
+
 void printLatency(std::ostream &os, uint64_t lat) {
   float latency = (float)lat;
   float digit = log10(latency);
@@ -70,5 +88,26 @@ void printLatency(std::ostream &os, uint64_t lat) {
   else {
     latency = (float)(lat / 1000000);
     os << std::to_string(latency / 1000000.) << " sec.";
+  }
+}
+
+void printLatency(int fd, uint64_t lat) {
+  float latency = (float)lat;
+  float digit = log10(latency);
+
+  if (digit < 6.0) {
+    dprintf(fd, "%f ps", latency);
+  }
+  else if (digit < 9.0) {
+    dprintf(fd, "%f ns", latency / 1000.f);
+  }
+  else if (digit < 12.0) {
+    dprintf(fd, "%f us", latency / 1000000.f);
+  }
+  else if (digit < 15.0) {
+    dprintf(fd, "%f ms", latency / 1000000000.f);
+  }
+  else {
+    dprintf(fd, "%f sec.", latency / 1000000000000.f);
   }
 }
