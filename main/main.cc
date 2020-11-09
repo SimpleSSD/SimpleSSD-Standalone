@@ -56,6 +56,7 @@ std::vector<SimpleSSD::Stat> statList;
 std::ofstream logOut;
 std::ofstream debugLogOut;
 std::ofstream latencyFile;
+int stdoutCopy = fileno(stdout);
 
 // Declaration
 void cleanup(int);
@@ -531,6 +532,9 @@ int main(int argc, char *argv[]) {
       std::cerr << "Continue without redirection." << std::endl;
     }
     else {
+      // Progress will be printed to screen, not file
+      stdoutCopy = dup(fileno(stdout));
+
       dup2(fd, fileno(stdout));
       dup2(fd, fileno(stderr));
 
@@ -615,6 +619,9 @@ void cleanup(int sig) {
 
   simplessd.deinit();
 
+  // Close copied fd
+  close(stdoutCopy);
+
   // Exit program
   exit(0);
 }
@@ -628,12 +635,13 @@ void progress(int) {
   pIOGen->getProgress(progress);
   pBIOEntry->getProgress(data);
 
-  printf("\nSimTick: %" PRIu64 ", Progress: %.2f%%, IOPS: %" PRIu64 ", BW: ",
-         tick, progress * 100.f, data.iops);
-  printBandwidth(std::cout, data.bandwidth);
-  printf(", Lat: ");
-  printLatency(std::cout, data.latency);
-  printf("\n");
+  dprintf(stdoutCopy,
+          "\nSimTick: %" PRIu64 ", Progress: %.2f%%, IOPS: %" PRIu64 ", BW: ",
+          tick, progress * 100.f, data.iops);
+  printBandwidth(stdoutCopy, data.bandwidth);
+  dprintf(stdoutCopy, ", Lat: ");
+  printLatency(stdoutCopy, data.latency);
+  dprintf(stdoutCopy, "\n");
 }
 
 void statistics(uint64_t tick, bool last) {
