@@ -72,6 +72,7 @@ void ArgumentParser::parse(int argc, char *argv[]) {
         if (value) {
           // We got two consecutive options
           args.emplace(key, str_true);
+          value = false;
         }
 
         key = match[1].str();
