@@ -5,6 +5,7 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -57,20 +58,6 @@ void cleanup(int);
 void progress(int);
 void statistics(uint64_t, bool = false);
 void threadFunc(int);
-
-void joinPath(std::string &lhs, std::string &rhs) {
-  if (rhs.front() == '/') {
-    // Assume absolute path
-    lhs = rhs;
-  }
-  else if (lhs.back() == '/') {
-    lhs += rhs;
-  }
-  else {
-    lhs += '/';
-    lhs += rhs;
-  }
-}
 
 void printArg(const char *arg[], const char *optname = nullptr,
               const char *desc = nullptr) {
@@ -372,10 +359,9 @@ int main(int argc, char *argv[]) {
       pLog = &std::cerr;
     }
     else if (logPath.length() != 0) {
-      std::string full(pathOutputDirectory);
+      std::filesystem::path full(pathOutputDirectory);
 
-      joinPath(full, logPath);
-      logOut.open(full);
+      logOut.open(full / logPath);
 
       if (!logOut.is_open()) {
         std::cerr << " Failed to open log file: " << full << std::endl;
@@ -394,10 +380,9 @@ int main(int argc, char *argv[]) {
 
   // Open latency log if specified
   if (latencyLogPath.length() != 0) {
-    std::string full(pathOutputDirectory);
+    std::filesystem::path full(pathOutputDirectory);
 
-    joinPath(full, latencyLogPath);
-    latencyFile.open(full);
+    latencyFile.open(full / latencyLogPath);
 
     if (!latencyFile.is_open()) {
       std::cerr << " Failed to open log file: " << full << std::endl;
@@ -410,20 +395,16 @@ int main(int argc, char *argv[]) {
 
   // Store config files to output directory
   {
-    std::string full(pathOutputDirectory);
-    std::string name("standalone.xml");
+    std::filesystem::path full(pathOutputDirectory);
+    std::string path = full / "standalone.xml";
 
-    joinPath(full, name);
-
-    simConfig.save(full);
+    simConfig.save(path);
   }
   {
-    std::string full(pathOutputDirectory);
-    std::string name("simplessd.xml");
+    std::filesystem::path full(pathOutputDirectory);
+    std::string path = full / "simplessd.xml";
 
-    joinPath(full, name);
-
-    ssdConfig.save(full);
+    ssdConfig.save(path);
   }
 
   // Initialize SimpleSSD
