@@ -5,6 +5,9 @@
  * Author: Donghyun Gouk <kukdh1@camelab.org>
  */
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,8 +30,9 @@ using namespace Standalone;
 
 static const std::regex regex_override("((?:\\[\\w+\\])+)(\\w+)=(.+)");
 
-static const char *OPT_CREATE_CKP[2] = {"--create-checkpoint", "-c"};
-static const char *OPT_RESTORE_CKP[2] = {"--restore-checkpoint", "-r"};
+static const char *OPT_REDIRECT[2] = {"--redirect", "-r"};
+static const char *OPT_CREATE_CKP[2] = {"--create-checkpoint", "-C"};
+static const char *OPT_RESTORE_CKP[2] = {"--restore-checkpoint", "-R"};
 static const char *OPT_CFG_OVERRIDE[2] = {"--config-override", "-O"};
 static const char *OPT_VERSION[2] = {"--version", "-v"};
 static const char *OPT_HELP[2] = {"--help", "-h"};
@@ -85,12 +89,18 @@ void printHelp() {
                "<SimpleSSD config> <Output directory>"
             << std::endl;
   std::cout << std::endl;
+
+  std::cout << "Output control:" << std::endl;
+  printArg(OPT_REDIRECT, nullptr, "Redirect stdout and stderr to simout file.");
+  std::cout << std::endl;
+
   std::cout << "Checkpoint feature:" << std::endl;
   printArg(OPT_CREATE_CKP, "<dir>",
            "Create checkpoint to the directory right after initialization.");
   printArg(OPT_RESTORE_CKP, "<dir>",
            "Restore from checkpoint stored in directory.");
   std::cout << std::endl;
+
   std::cout << "Configuration override:" << std::endl;
   printArg(OPT_CFG_OVERRIDE, "<option>", "Override configuration.");
   std::cout << "    <option> should be formatted as:" << std::endl;
@@ -104,6 +114,7 @@ void printHelp() {
   std::cout << "    Wrap with \"\" if option contains any whitespaces."
             << std::endl;
   std::cout << std::endl;
+
   std::cout << "Miscellaneous:" << std::endl;
   printArg(OPT_VERSION, nullptr, "Print version.");
   printArg(OPT_HELP, nullptr, "Print this help.");
@@ -506,6 +517,25 @@ int main(int argc, char *argv[]) {
         "statEvent");
 
     engine.schedule(statEvent, 0ull, period);
+  }
+
+  // Redirect stdout/err here, if enabled
+  if (argparse.getArgument(OPT_REDIRECT)) {
+    std::filesystem::path full(pathOutputDirectory);
+
+    // TODO: validate this code on Windows
+    int fd = open((full / "simout").c_str(), O_WRONLY | O_CREAT);
+
+    if (fd < 0) {
+      perror("Failed to open redirect file");
+      std::cerr << "Continue without redirection." << std::endl;
+    }
+    else {
+      dup2(fd, fileno(stdout));
+      dup2(fd, fileno(stderr));
+
+      close(fd);
+    }
   }
 
   // Do Simulation
