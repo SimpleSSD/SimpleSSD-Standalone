@@ -233,6 +233,7 @@ int main(int argc, char *argv[]) {
   ArgumentParser argparse(argc, argv, 3);  // Two positional arguments
   bool ckptAndTerminate = false;
   bool restoreFromCkpt = false;
+  bool redirect = false;
   const char *pathCheckpoint = nullptr;
   const char *pathOutputDirectory = nullptr;
 
@@ -287,6 +288,10 @@ int main(int argc, char *argv[]) {
 
       std::cout << " Try to restore from checkpoint at " << pathCheckpoint
                 << std::endl;
+    }
+
+    if (argparse.getArgument(OPT_REDIRECT)) {
+      redirect = true;
     }
   }
 
@@ -521,7 +526,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Redirect stdout/err here, if enabled
-  if (argparse.getArgument(OPT_REDIRECT)) {
+  if (redirect) {
     std::filesystem::path full(pathOutputDirectory);
 
     // TODO: validate this code on Windows
@@ -547,7 +552,7 @@ int main(int argc, char *argv[]) {
 
   pInterface->initialize(pBIOEntry, beginCallback);
 
-  if (noLogPrintOnScreen) {
+  if (noLogPrintOnScreen || redirect) {
     int period = (int)simConfig.readUint(Section::Simulation,
                                          Config::Key::ProgressPeriod);
 
