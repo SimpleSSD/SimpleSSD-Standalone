@@ -530,7 +530,8 @@ int main(int argc, char *argv[]) {
     std::filesystem::path full(pathOutputDirectory);
 
     // TODO: validate this code on Windows
-    int fd = open((full / "simout").c_str(), O_WRONLY | O_CREAT);
+    int fd =
+        open((full / "simout").c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 
     if (fd < 0) {
       perror("Failed to open redirect file");
