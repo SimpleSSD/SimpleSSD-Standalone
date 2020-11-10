@@ -55,16 +55,16 @@ void printBandwidth(int fd, uint64_t bps) {
   float digit = log10(bw);
 
   if (digit < 6.0) {
-    dprintf(fd, "%fB/s", bw);
+    dprintf(fd, "%f B/s", bw);
   }
   else if (digit < 9.0) {
-    dprintf(fd, "%fKB/s", bw / 1000.f);
+    dprintf(fd, "%f KB/s", bw / 1000.f);
   }
   else if (digit < 12.0) {
-    dprintf(fd, "%fMB/s", bw / 1000000.f);
+    dprintf(fd, "%f MB/s", bw / 1000000.f);
   }
   else {
-    dprintf(fd, "%fGB/s", bw / 1000000000.f);
+    dprintf(fd, "%f GB/s", bw / 1000000000.f);
   }
 }
 
