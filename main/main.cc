@@ -626,7 +626,11 @@ void cleanup(int sig) {
   simplessd.deinit();
 
   // Close copied fd
-  close(stdoutCopy);
+  if (stdoutCopy != 1) {
+    dprintf(stdoutCopy, "\nEnd of simulation @ tick %" PRIu64 "\n", tick);
+
+    close(stdoutCopy);
+  }
 
   // Exit program
   exit(0);
