@@ -538,6 +538,9 @@ int main(int argc, char *argv[]) {
       std::cerr << "Continue without redirection." << std::endl;
     }
     else {
+      // Resize to zero
+      ftruncate(fd, 0);
+
       // Progress will be printed to screen, not file
       stdoutCopy = dup(fileno(stdout));
 
