@@ -359,6 +359,12 @@ void TraceReplayer::parseLine() {
 
       return;
     }
+
+    // CRLF files
+    if (UNLIKELY(line.back() == '\r')) {
+      line.pop_back();
+    }
+
     if (std::regex_match(line, match, regex)) {
       break;
     }
