@@ -183,9 +183,6 @@ else ()
 
   if (uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     target_compile_definitions(simplessd-standalone PRIVATE -DSIMPLESSD_STANDALONE_DEBUG)
-    target_compile_options(simplessd-standalone PRIVATE -O0)
-  else ()
-    target_compile_options(simplessd-standalone PRIVATE -O2)
   endif ()
 endif ()
 
