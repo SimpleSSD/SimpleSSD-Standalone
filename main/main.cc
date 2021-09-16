@@ -86,8 +86,8 @@ void printArg(const char *arg[], const char *optname = nullptr,
 }
 
 void printHelp() {
-  std::cout << " Usage: simplessd-standalone [options] <Simulation config> "
-               "<SimpleSSD config> <Output directory>"
+  std::cout << " Usage: simplessd-standalone [options] [--] <Simulation "
+               "config> <SimpleSSD config> <Output directory>"
             << std::endl;
   std::cout << std::endl;
 
@@ -230,7 +230,7 @@ bool overrideConfig(pugi::xml_node &root, const char *str, bool simcfg) {
 }
 
 int main(int argc, char *argv[]) {
-  ArgumentParser argparse(argc, argv, 3);  // Two positional arguments
+  ArgumentParser argparse(argc, argv, 3);
   bool ckptAndTerminate = false;
   bool restoreFromCkpt = false;
   bool redirect = false;
