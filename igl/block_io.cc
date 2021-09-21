@@ -82,7 +82,7 @@ void BlockIOLayer::calculateStat(uint64_t now) {
   }
 
   if (pLatencyLogFile) {
-    *pLatencyLogFile << std::to_string(now) << ", "
+    *pLatencyLogFile << std::to_string(iter.submittedAt) << ", "
                      << static_cast<int>(iter.type) << ", "
                      << std::to_string(iter.offset * bs) << ", "
                      << std::to_string(iter.length * bs) << ", "
