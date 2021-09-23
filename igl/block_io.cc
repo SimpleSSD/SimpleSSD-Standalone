@@ -125,6 +125,10 @@ bool BlockIOLayer::submitRequest(Driver::RequestType type, uint64_t offset,
     warn("Request offset is larger than SSD size.");
 
     offset %= bytesize;
+
+    if (UNLIKELY(offset + length > bytesize)) {
+      offset -= length;
+    }
   }
 
   // Check length
