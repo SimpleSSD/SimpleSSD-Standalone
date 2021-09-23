@@ -35,6 +35,9 @@ endif ()
 # Add options for debug build
 option(DRAMPOWER_VERBOSE "Show warnings from DRAMPower library." OFF)
 
+# Add options for sanitizer
+option(USE_SANITIZER "Use sanitizer." OFF)
+
 # Set DRAMPower path
 set(DRAMPOWER_SOURCE_DIR
   "${PROJECT_SOURCE_DIR}/lib/drampower/src"
@@ -176,7 +179,22 @@ else ()
     message(FATAL_ERROR "Please install libdw-dev or elfutils-devel.")
   endif ()
 
-  target_compile_options(simplessd-standalone PRIVATE -g -Wall -Wextra -Werror)
+  if (USE_SANITIZER)
+    set(SANFLAG
+      -fsanitize=address
+      -fsanitize=undefined
+      -fno-sanitize-recover=all
+      -fsanitize=float-divide-by-zero
+      -fsanitize=float-cast-overflow
+      -fno-sanitize=null
+      -fno-sanitize=alignment
+    )
+  else ()
+    set(SANFLAG "")
+  endif ()
+
+  target_compile_options(simplessd-standalone PRIVATE -g -Wall -Wextra -Werror ${SANFLAG})
+  target_link_libraries(simplessd-standalone ${SANFLAG})
 
   set(LD_FLAGS "-ldw -lunwind -lstdc++fs")
   set(CMAKE_CXX_FLAGS "-D__FILENAME__='\"$(subst ${PROJECT_SOURCE_DIR}/,,$(abspath $<))\"' ${CMAKE_CXX_FLAGS}")
